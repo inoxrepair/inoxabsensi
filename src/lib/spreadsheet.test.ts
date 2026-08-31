@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { csvCell, datesInMonth, kodeShift, parseCsv, shiftByKode, updateJadwalCell } from "./spreadsheet";
+import { csvCell, datesInMonth, kodeShift, parseCsv, parseTanggalSpreadsheet, renderSpreadsheetCsv, shiftByKode, updateJadwalCell } from "./spreadsheet";
 
 describe("spreadsheet", () => {
   it("menghasilkan kode shift singkat", () => {
@@ -11,6 +11,16 @@ describe("spreadsheet", () => {
     const shifts = [{ id: "p", nama: "Pagi", mulai: "09", selesai: "17" }];
     expect(shiftByKode("P", shifts)?.id).toBe("p");
     expect(shiftByKode("L", shifts)).toBeNull();
+    expect(shiftByKode("O", shifts)).toBeNull();
+  });
+  it("format export memakai tanggal panjang dan O untuk Off", () => {
+    const csv = renderSpreadsheetCsv(["2026-07-28"], [{ userId: "u", nama: "A", cabang: "C", hari: [null] }], []);
+    expect(csv).toContain("28 Juli 2026");
+    expect(csv).toContain(";O");
+  });
+  it("parse tanggal panjang Indonesia", () => {
+    expect(parseTanggalSpreadsheet("28 Juli 2026")).toBe("2026-07-28");
+    expect(parseTanggalSpreadsheet("2026-07-28")).toBe("2026-07-28");
   });
   it("parse CSV escaped", () => {
     expect(parseCsv('Nama;Catatan\r\nA;"x;y"')).toEqual([["Nama", "Catatan"], ["A", "x;y"]]);

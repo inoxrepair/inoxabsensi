@@ -119,7 +119,7 @@ export function FormRentang({
         <label className="text-xs text-muted">
           Shift
           <select name="shiftId" className="mt-1.5 w-full rounded-lg border border-line px-3 py-2 text-sm">
-            <option value="">Libur (hapus jadwal)</option>
+            <option value="">Off (hapus jadwal)</option>
             {shift.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.nama} ({s.mulai}–{s.selesai})

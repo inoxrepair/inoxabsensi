@@ -8,7 +8,7 @@ import { wajibAkses, type Pengguna } from "@/lib/session";
 import { selJadwalSkema, shiftSkema } from "@/lib/jadwal";
 import { selisihHari, tanggalGeser } from "@/lib/waktu";
 import { tanggalValid } from "@/lib/rekap";
-import { parseCsv, shiftByKode } from "@/lib/spreadsheet";
+import { parseCsv, parseTanggalSpreadsheet, shiftByKode } from "@/lib/spreadsheet";
 
 export type Hasil = { ok: boolean; pesan: string };
 
@@ -306,10 +306,11 @@ export async function importJadwalCsv(formData: FormData): Promise<Hasil> {
   if (rows.length < 2 || rows[0][0] !== "Karyawan" || rows[0][1] !== "Cabang") {
     return { ok: false, pesan: "Format CSV tidak sesuai hasil export Jadwal." };
   }
-  const dates = rows[0].slice(2);
-  if (dates.length === 0 || dates.length > 62 || dates.some((d) => !tanggalValid(d))) {
+  const parsedDates = rows[0].slice(2).map(parseTanggalSpreadsheet);
+  if (parsedDates.length === 0 || parsedDates.length > 62 || parsedDates.some((d) => !d || !tanggalValid(d))) {
     return { ok: false, pesan: "Kolom tanggal CSV tidak valid." };
   }
+  const dates = parsedDates as string[];
 
   const cabangId = roleTerbatasCabang(admin.role) ? admin.cabangId : String(formData.get("cabangId") ?? "") || null;
   const lingkup = cabangId ? { cabangId } : {};
@@ -333,10 +334,10 @@ export async function importJadwalCsv(formData: FormData): Promise<Hasil> {
     if (!user) return { ok: false, pesan: `Karyawan "${row[0] ?? ""}" tidak ditemukan pada lingkup ini.` };
     userIds.push(user.id);
     for (let i = 0; i < dates.length; i++) {
-      const kode = (row[i + 2] ?? "L").trim().toUpperCase();
-      if (!kode || kode === "L" || kode === "-") continue;
+      const kode = (row[i + 2] ?? "O").trim().toUpperCase();
+      if (!kode || kode === "O" || kode === "L" || kode === "-") continue;
       const shift = shiftByKode(kode, shifts.map((s) => ({ id: s.id, nama: s.nama, mulai: "", selesai: "" })));
-      if (!shift) return { ok: false, pesan: `Kode shift "${kode}" tidak dikenal. Gunakan P/S/F/L.` };
+      if (!shift) return { ok: false, pesan: `Kode shift "${kode}" tidak dikenal. Gunakan P/S/F/O.` };
       if (shift) creates.push({ userId: user.id, tanggal: dates[i], shiftId: shift.id, seragam: null, seragamId: null });
     }
   }

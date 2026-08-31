@@ -1,5 +1,6 @@
 import type { BarisJadwal, Shift } from "@/app/admin/jadwal/matriks-jadwal";
 import { indeksHari, tanggalGeser } from "@/lib/waktu";
+import { formatTanggalPanjang } from "@/lib/format";
 
 /** Kode ringkas untuk tampilan spreadsheet dan file CSV. */
 export function kodeShift(nama: string): string {
@@ -12,7 +13,7 @@ export function kodeShift(nama: string): string {
 
 export function shiftByKode(kode: string, shifts: Shift[]): Shift | null {
   const wanted = kode.trim().toUpperCase();
-  if (!wanted || wanted === "L" || wanted === "-") return null;
+  if (!wanted || wanted === "O" || wanted === "L" || wanted === "-") return null;
   return shifts.find((s) => kodeShift(s.nama) === wanted) ?? null;
 }
 
@@ -50,17 +51,37 @@ export function renderSpreadsheetCsv(
   rows: BarisJadwal[],
   shifts: Shift[],
 ): string {
-  const header = ["Karyawan", "Cabang", ...dates];
+  const header = ["Karyawan", "Cabang", ...dates.map(formatTanggalPanjang)];
   const body = rows.map((row) => [
     row.nama,
     row.cabang,
     ...dates.map((date) => {
       const cell = row.hari[dates.indexOf(date)];
-      if (!cell) return "L";
+      if (!cell) return "O";
       return kodeShift(shifts.find((s) => s.id === cell.shiftId)?.nama ?? "-");
     }),
   ]);
   return "\uFEFF" + [header, ...body].map((r) => r.map(csvCell).join(";")).join("\r\n");
+}
+
+const BULAN_ID = [
+  "januari", "februari", "maret", "april", "mei", "juni",
+  "juli", "agustus", "september", "oktober", "november", "desember",
+];
+
+/** Menerima ISO atau format export "28 Juli 2026". */
+export function parseTanggalSpreadsheet(value: string): string | null {
+  const text = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+  const match = /^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/.exec(text);
+  if (!match) return null;
+  const month = BULAN_ID.indexOf(match[2].toLowerCase()) + 1;
+  if (!month) return null;
+  const day = Number(match[1]);
+  const year = Number(match[3]);
+  const max = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  if (day < 1 || day > max) return null;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 export function datesInMonth(year: number, month: number): string[] {

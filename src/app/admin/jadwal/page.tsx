@@ -175,7 +175,7 @@ export default async function AdminJadwalPage({
       />
 
       <p className="mt-4 text-xs text-muted">
-        Perubahan per sel tersimpan otomatis. Overview rentang hanya mengubah
+        Perubahan per sel tersimpan otomatis. Off berarti hari libur. Overview rentang hanya mengubah
         tampilan tabel; Terapkan shift massal mengubah jadwal karyawan. Hari ini adalah{" "}
         {[
           "Senin",

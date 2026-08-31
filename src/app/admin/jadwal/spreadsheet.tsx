@@ -1,6 +1,7 @@
 "use client";
 
 import { kodeShift } from "@/lib/spreadsheet";
+import { formatTanggalPanjang } from "@/lib/format";
 import { namaHari } from "@/lib/waktu";
 import type { BarisJadwal, Shift } from "./matriks-jadwal";
 
@@ -19,7 +20,7 @@ export function SpreadsheetJadwal({
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-sm font-semibold">Preview Spreadsheet</h2>
-          <p className="text-xs text-muted">P = Pagi, S = Siang, F = Full, L = Libur</p>
+          <p className="text-xs text-muted">P = Pagi, S = Siang, F = Full, O = Off</p>
         </div>
       </div>
       <div className="overflow-x-auto rounded-xl border border-line bg-paper">
@@ -30,7 +31,7 @@ export function SpreadsheetJadwal({
               {tanggal.map((tgl) => (
                 <th key={tgl} className="min-w-12 border-b border-r border-line p-1.5 text-center font-medium">
                   <span className="block">{namaHari(tgl, true)}</span>
-                  <span className="tabular-nums text-muted">{tgl.slice(8)}</span>
+                  <span className="block max-w-20 whitespace-normal text-[10px] leading-tight text-muted">{formatTanggalPanjang(tgl)}</span>
                 </th>
               ))}
             </tr>
@@ -44,8 +45,8 @@ export function SpreadsheetJadwal({
                 </th>
                 {tanggal.map((tgl, i) => {
                   const cell = row.hari[i];
-                  const kode = cell ? kodeShift(namaShift.get(cell.shiftId) ?? "-") : "L";
-                  return <td key={tgl} className="border-b border-r border-line p-2 text-center font-semibold tabular-nums">{kode}</td>;
+                  const kode = cell ? kodeShift(namaShift.get(cell.shiftId) ?? "-") : "O";
+                  return <td key={tgl} className={`border-b border-r border-line p-2 text-center font-semibold tabular-nums ${kode === "O" ? "bg-status-alpa/10 text-status-alpa" : ""}`}>{kode}</td>;
                 })}
               </tr>
             ))}

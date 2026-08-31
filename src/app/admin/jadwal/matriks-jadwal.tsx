@@ -181,13 +181,13 @@ function SelShift({
       className={`w-full rounded-lg border px-2 py-1.5 text-sm disabled:opacity-50 ${
         pilihan
           ? "border-line bg-surface font-medium"
-          : "border-line/60 bg-paper text-muted"
+          : "border-status-alpa/30 bg-status-alpa/10 text-status-alpa"
       }`}
       >
-        <option value="">Libur</option>
+        <option value="">Off</option>
         {shift.map((s) => (
           <option key={s.id} value={s.id}>
-            {s.nama} ({s.mulai}–{s.selesai})
+            {s.nama}
           </option>
         ))}
       </select>

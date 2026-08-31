@@ -55,7 +55,7 @@ export function AlatJadwal({
 
       <form onSubmit={importCsv} className="rounded-xl border border-line bg-paper p-4">
         <p className="text-sm font-semibold">Import dari Excel/CSV</p>
-        <p className="mt-1 text-xs text-muted">Gunakan file hasil export, lalu ubah kode P/S/F/L di Excel.</p>
+        <p className="mt-1 text-xs text-muted">Gunakan file hasil export, lalu ubah kode P/S/F/O di Excel.</p>
         <input name="file" type="file" accept=".csv,text/csv" required className="mt-3 block w-full text-sm" />
         <button type="submit" disabled={pending} className="mt-3 w-full rounded-lg border border-line px-3 py-2 text-sm font-medium disabled:opacity-40">Import CSV</button>
       </form>

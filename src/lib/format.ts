@@ -23,6 +23,19 @@ export function formatTanggal(iso: string) {
   return TANGGAL.format(new Date(Date.UTC(y, m - 1, d)));
 }
 
+const TANGGAL_PANJANG = new Intl.DateTimeFormat("id-ID", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
+/** Format spreadsheet/export: "28 Juli 2026". */
+export function formatTanggalPanjang(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return TANGGAL_PANJANG.format(new Date(Date.UTC(y, m - 1, d)));
+}
+
 export function formatKoordinat(lat: number, lng: number) {
   return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
 }
