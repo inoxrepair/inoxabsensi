@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { roleTerbatasCabang } from "@/lib/domain";
-import { editAbsensiSkema, type HasilAbsensi } from "@/lib/log-absensi";
+import {
+  editAbsensiSkema,
+  hitungMenitTelatKoreksi,
+  type HasilAbsensi,
+} from "@/lib/log-absensi";
 import { wajibAkses } from "@/lib/session";
 
 export async function simpanEditAbsensi(formData: FormData): Promise<HasilAbsensi> {
@@ -23,21 +27,41 @@ export async function simpanEditAbsensi(formData: FormData): Promise<HasilAbsens
     }
   }
 
-  const { masuk, keluar, ...data } = parsed.data;
+  const jadwal = await db.jadwal.findUnique({
+    where: {
+      userId_tanggal: {
+        userId: absensi.userId,
+        tanggal: absensi.tanggal,
+      },
+    },
+    select: {
+      shift: { select: { mulaiMenit: true, toleransiMenit: true } },
+    },
+  });
+
+  const { masuk, keluar, status, catatan } = parsed.data;
+  const menitTelat = hitungMenitTelatKoreksi(
+    status,
+    masuk,
+    jadwal?.shift ?? null,
+  );
   await db.absensi.update({
     where: { id: parsed.data.id },
     data: {
-      ...data,
+      status,
       masukMenit: masuk,
       keluarMenit: keluar,
+      menitTelat,
       // Kesalahan input membuat data lokasi tidak lagi dianggap akurat.
-      catatan: [parsed.data.catatan, "Diedit manual."].filter(Boolean).join(" · "),
+      catatan: [catatan, "Diedit manual."].filter(Boolean).join(" · "),
       editedBy: admin.id,
     },
   });
 
   revalidatePath("/admin/log-absensi");
   revalidatePath("/admin");
+  revalidatePath("/admin/rekap");
+  revalidatePath("/karyawan/riwayat");
   return { ok: true, pesan: "Catatan absensi diperbarui." };
 }
 

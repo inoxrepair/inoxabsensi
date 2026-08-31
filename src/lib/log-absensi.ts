@@ -1,10 +1,24 @@
 import { z } from "zod";
 import { tanggalValid } from "@/lib/rekap";
-import { keMenit } from "@/lib/waktu";
+import { keMenit, menitTelat } from "@/lib/waktu";
+import type { StatusAbsensi } from "@/lib/domain";
 
 const STATUS = ["hadir", "telat", "izin", "alpa", "libur"] as const;
 
 export type HasilAbsensi = { ok: boolean; pesan: string };
+
+/**
+ * Koreksi manual harus ikut memperbarui akumulasi telat. Status selain
+ * "telat" selalu nol; status telat dihitung ulang dari shift pada tanggal itu.
+ */
+export function hitungMenitTelatKoreksi(
+  status: StatusAbsensi,
+  masuk: number | null,
+  shift: { mulaiMenit: number; toleransiMenit: number } | null,
+): number {
+  if (status !== "telat" || masuk === null || !shift) return 0;
+  return menitTelat(masuk, shift);
+}
 
 /** Validasi form koreksi log absensi, bukan server action. */
 export const editAbsensiSkema = z
