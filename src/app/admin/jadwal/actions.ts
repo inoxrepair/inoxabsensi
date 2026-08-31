@@ -9,7 +9,6 @@ import { selJadwalSkema, shiftSkema } from "@/lib/jadwal";
 import { selisihHari, tanggalGeser } from "@/lib/waktu";
 import { tanggalValid } from "@/lib/rekap";
 import { parseCsv, parseTanggalSpreadsheet, shiftByKode } from "@/lib/spreadsheet";
-import { buatRevision, parseSnapshot } from "@/lib/jadwal-revision";
 
 export type Hasil = { ok: boolean; pesan: string };
 
@@ -126,12 +125,10 @@ export async function setJadwal(formData: FormData): Promise<Hasil> {
   if (seragamId && !seragam) return { ok: false, pesan: "Jenis seragam tidak ditemukan." };
 
   if (shiftId === null) {
-    await buatRevision(db, { adminId: admin.id, aksi: "Ubah satu sel jadwal", cabangId: admin.cabangId, userIds: [userId], dates: [tanggal] });
     // Libur: hapus barisnya, bukan simpan baris kosong, agar tabel
     // hanya memuat hari kerja yang benar-benar dijadwalkan.
     await db.jadwal.deleteMany({ where: { userId, tanggal } });
   } else {
-    await buatRevision(db, { adminId: admin.id, aksi: "Ubah satu sel jadwal", cabangId: admin.cabangId, userIds: [userId], dates: [tanggal] });
     await db.jadwal.upsert({
       where: { userId_tanggal: { userId, tanggal } },
       update: { shiftId, seragamId: seragam?.id ?? null, seragam: seragam?.nama ?? null },
@@ -180,13 +177,6 @@ export async function salinMinggu(
       seragam: s.seragam,
     }));
 
-  await buatRevision(db, {
-    adminId: admin.id,
-    aksi: "Salin minggu lalu",
-    cabangId: admin.cabangId,
-    userIds: [...new Set(baris.map((b) => b.userId))],
-    dates: tujuan,
-  });
 
   // Transaksi: minggu tujuan digantikan seluruhnya, bukan digabung,
   // supaya hasilnya persis sama dengan minggu sumber.
@@ -211,7 +201,6 @@ export async function kosongkanMinggu(senin: string): Promise<Hasil> {
 
   const target = await db.jadwal.findMany({ where: { tanggal: { in: minggu }, ...lingkup }, select: { userId: true } });
   const ids = [...new Set(target.map((t) => t.userId))];
-  if (ids.length) await buatRevision(db, { adminId: admin.id, aksi: "Kosongkan minggu", cabangId: admin.cabangId, userIds: ids, dates: minggu });
   const { count } = await db.jadwal.deleteMany({
     where: { tanggal: { in: minggu }, ...lingkup },
   });
@@ -290,7 +279,6 @@ export async function aturRentang(formData: FormData): Promise<Hasil> {
     })),
   );
 
-  await buatRevision(db, { adminId: admin.id, aksi: "Terapkan shift massal", cabangId, userIds: ids, dates: tanggal });
 
   const operasi = [
     db.jadwal.deleteMany({
@@ -358,7 +346,6 @@ export async function importJadwalCsv(formData: FormData): Promise<Hasil> {
     }
   }
   const ids = [...new Set(userIds)];
-  await buatRevision(db, { adminId: admin.id, aksi: "Import CSV jadwal", cabangId, userIds: ids, dates });
   await db.$transaction([
     db.jadwal.deleteMany({ where: { userId: { in: ids }, tanggal: { in: dates } } }),
     ...(creates.length ? [db.jadwal.createMany({ data: creates })] : []),
@@ -394,31 +381,10 @@ export async function generateJadwalBulanan(formData: FormData): Promise<Hasil> 
     const p = byUserDay.get(`${userId}|${idx}`);
     return p?.shiftId ? [{ userId, tanggal: date, shiftId: p.shiftId, seragamId: p.seragamId, seragam: p.seragam }] : [];
   }));
-  await buatRevision(db, { adminId: admin.id, aksi: `Generate jadwal bulan ${bulan}`, cabangId, userIds: users, dates });
   await db.$transaction([
     db.jadwal.deleteMany({ where: { userId: { in: users }, tanggal: { in: dates } } }),
     db.jadwal.createMany({ data }),
   ]);
   segarkan();
   return { ok: true, pesan: `${data.length} jadwal bulan ${bulan} dibuat dari pola mingguan.` };
-}
-
-export async function undoRevision(id: string): Promise<Hasil> {
-  const admin = await wajibAkses("jadwal");
-  const revision = await db.jadwalRevision.findUnique({ where: { id } });
-  if (!revision || revision.undoneAt) return { ok: false, pesan: "Revision tidak tersedia atau sudah dibatalkan." };
-  if (roleTerbatasCabang(admin.role) && revision.cabangId !== admin.cabangId) {
-    return { ok: false, pesan: "Revision di luar lingkup cabang Anda." };
-  }
-  if (admin.role !== "super_admin" && revision.adminId !== admin.id) {
-    return { ok: false, pesan: "Anda hanya dapat membatalkan perubahan sendiri." };
-  }
-  const snapshot = parseSnapshot(revision.snapshot);
-  await db.$transaction([
-    db.jadwal.deleteMany({ where: { userId: { in: snapshot.userIds }, tanggal: { in: snapshot.dates } } }),
-    ...(snapshot.rows.length ? [db.jadwal.createMany({ data: snapshot.rows })] : []),
-    db.jadwalRevision.update({ where: { id }, data: { undoneAt: new Date() } }),
-  ]);
-  segarkan();
-  return { ok: true, pesan: `Perubahan "${revision.aksi}" berhasil dibatalkan.` };
 }

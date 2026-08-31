@@ -16,7 +16,6 @@ import type { ShiftLengkap } from "./daftar-shift";
 import type { BarisJadwal } from "./matriks-jadwal";
 import { PanelJadwal } from "./panel-jadwal";
 import Link from "next/link";
-import { UndoJadwal } from "./undo-jadwal";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +69,7 @@ export default async function AdminJadwalPage({
     : (q.cabang ?? "");
   const lingkup = cabangTerpilih ? { cabangId: cabangTerpilih } : {};
 
-  const [karyawan, shiftRows, jadwal, cabang, seragam, revisions] = await Promise.all([
+  const [karyawan, shiftRows, jadwal, cabang, seragam] = await Promise.all([
     db.user.findMany({
       where: { aktif: true, role: { not: "super_admin" }, ...lingkup },
       orderBy: [{ cabang: { nama: "asc" } }, { name: "asc" }],
@@ -95,17 +94,6 @@ export default async function AdminJadwalPage({
     db.jenisSeragam.findMany({
       orderBy: [{ aktif: "desc" }, { nama: "asc" }],
       select: { id: true, nama: true, aktif: true },
-    }),
-    db.jadwalRevision.findMany({
-      where: {
-        undoneAt: null,
-        ...(roleTerbatasCabang(admin.role)
-          ? { cabangId: admin.cabangId ?? "-", adminId: admin.id }
-          : {}),
-      },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-      select: { id: true, aksi: true, createdAt: true },
     }),
   ]);
 
@@ -153,14 +141,6 @@ export default async function AdminJadwalPage({
             </Link>
           ) : undefined
         }
-      />
-
-      <UndoJadwal
-        revisions={revisions.map((r) => ({
-          id: r.id,
-          aksi: r.aksi,
-          createdAt: r.createdAt.toLocaleString("id-ID", { timeZone: "Asia/Makassar" }),
-        }))}
       />
 
       <PanelJadwal

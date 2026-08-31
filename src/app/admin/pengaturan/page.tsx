@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { wajibAkses } from "@/lib/session";
 import { keJam } from "@/lib/waktu";
 import { DaftarSeragam } from "./seragam";
+import { BackupJadwalPanel } from "./backup-jadwal";
+import { tanggalLokal } from "@/lib/waktu";
 
 /** Hak akses dibaca dari database, jadi perubahan tidak perlu deploy. */
 export const dynamic = "force-dynamic";
@@ -96,6 +98,18 @@ export default async function AdminPengaturanPage() {
               aktif: s.aktif,
               dipakai: s._count.jadwal,
             }))}
+          />
+        </Card>
+      </div>
+
+      <div className="mt-6">
+        <Card
+          title="Backup Jadwal"
+          footer="Backup berupa file JSON portable dan tidak disimpan di database. Simpan file ini di tempat aman."
+        >
+          <BackupJadwalPanel
+            defaultDari={tanggalLokal()}
+            defaultSampai={tanggalLokal()}
           />
         </Card>
       </div>

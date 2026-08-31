@@ -240,15 +240,3 @@ model RolePermission {
 }
 
 /// Snapshot sebelum perubahan jadwal; dipakai untuk membatalkan aksi terakhir.
-model JadwalRevision {
-  id            String   @id @default(cuid())
-  adminId       String
-  aksi          String
-  cabangId      String?
-  snapshot      String
-  createdAt     DateTime @default(now())
-  undoneAt      DateTime?
-
-  @@index([adminId, createdAt])
-  @@index([createdAt])
-}

@@ -174,15 +174,3 @@ model RolePermission {
   menu String
   @@id([role, menu])
 }
-
-model JadwalRevision {
-  id        String   @id @default(cuid())
-  adminId   String
-  aksi      String
-  cabangId  String?
-  snapshot  String
-  createdAt DateTime @default(now())
-  undoneAt  DateTime?
-  @@index([adminId, createdAt])
-  @@index([createdAt])
-}
