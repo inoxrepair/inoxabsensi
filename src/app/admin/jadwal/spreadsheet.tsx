@@ -20,7 +20,7 @@ export function SpreadsheetJadwal({
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-sm font-semibold">Preview Spreadsheet</h2>
-          <p className="text-xs text-muted">P = Pagi, S = Siang, F = Full, O = Off</p>
+          <p className="text-xs text-muted">P = Pagi, S = Siang, F = Full, Off = hari libur</p>
         </div>
       </div>
       <div className="overflow-x-auto rounded-xl border border-line bg-paper">
@@ -45,8 +45,8 @@ export function SpreadsheetJadwal({
                 </th>
                 {tanggal.map((tgl, i) => {
                   const cell = row.hari[i];
-                  const kode = cell ? kodeShift(namaShift.get(cell.shiftId) ?? "-") : "O";
-                  return <td key={tgl} className={`border-b border-r border-line p-2 text-center font-semibold tabular-nums ${kode === "O" ? "bg-status-alpa/10 text-status-alpa" : ""}`}>{kode}</td>;
+                  const kode = cell ? kodeShift(namaShift.get(cell.shiftId) ?? "-") : "Off";
+                  return <td key={tgl} className={`border-b border-r border-line p-2 text-center font-semibold tabular-nums ${kode === "Off" ? "bg-status-alpa/10 text-status-alpa" : ""}`}>{kode}</td>;
                 })}
               </tr>
             ))}
