@@ -62,7 +62,7 @@ export function PanelJadwal({
   const [barisLive, setBarisLive] = useState(baris);
   const [formRentang, setFormRentang] = useState(false);
   const [menunggu, mulai] = useTransition();
-  const adaJadwal = baris.some((b) => b.hari.some(Boolean));
+  const adaJadwal = barisLive.some((b) => b.hari.some(Boolean));
 
   useEffect(() => setBarisLive(baris), [baris]);
 

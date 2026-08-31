@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { namaHari } from "@/lib/waktu";
 import { setJadwal, type Hasil } from "./actions";
 
@@ -85,6 +85,7 @@ export function MatriksJadwal({
               {minggu.map((tgl, i) => (
                 <td key={tgl} className="p-2">
                   <SelShift
+                    key={`${r.userId}:${tgl}:${r.hari[i]?.shiftId ?? "off"}:${r.hari[i]?.seragamId ?? "none"}`}
                     userId={r.userId}
                     nama={r.nama}
                     tanggal={tgl}
@@ -136,6 +137,17 @@ function SelShift({
   const [pilihan, setPilihan] = useState(nilai);
   const [pilihanSeragamId, setPilihanSeragamId] = useState(seragamId);
   const [menunggu, mulai] = useTransition();
+
+  // Sel dapat tetap mounted ketika server mengirim data baru untuk tanggal
+  // yang sama (import, generator, salin minggu, massal). Tanpa sinkronisasi
+  // ini dropdown menyimpan state lama sementara preview sudah data baru.
+  useEffect(() => {
+    setPilihan(nilai);
+  }, [nilai, userId, tanggal]);
+
+  useEffect(() => {
+    setPilihanSeragamId(seragamId);
+  }, [seragamId, userId, tanggal]);
 
   function ubah(shiftId: string) {
     const sebelumnya = pilihan;
