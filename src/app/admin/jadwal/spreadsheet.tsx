@@ -9,10 +9,12 @@ export function SpreadsheetJadwal({
   tanggal,
   baris,
   shift,
+  pdfUrl,
 }: {
   tanggal: string[];
   baris: BarisJadwal[];
   shift: Shift[];
+  pdfUrl: string;
 }) {
   const namaShift = new Map(shift.map((s) => [s.id, s.nama]));
   return (
@@ -22,6 +24,12 @@ export function SpreadsheetJadwal({
           <h2 className="text-sm font-semibold">Preview Spreadsheet</h2>
           <p className="text-xs text-muted">P = Pagi, S = Siang, F = Full, Off = hari libur</p>
         </div>
+        <a
+          href={pdfUrl}
+          className="rounded-lg border border-line bg-paper px-3 py-1.5 text-sm font-medium"
+        >
+          Unduh PDF
+        </a>
       </div>
       <div className="overflow-x-auto rounded-xl border border-line bg-paper">
         <table className="min-w-max border-collapse text-xs">

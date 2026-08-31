@@ -63,6 +63,7 @@ export function PanelJadwal({
   const [formRentang, setFormRentang] = useState(false);
   const [menunggu, mulai] = useTransition();
   const adaJadwal = barisLive.some((b) => b.hari.some(Boolean));
+  const pdfUrl = `/admin/jadwal/export-pdf?dari=${rentangAktif.dari}&sampai=${rentangAktif.sampai}${cabangTerpilih ? `&cabang=${cabangTerpilih}` : ""}`;
 
   useEffect(() => setBarisLive(baris), [baris]);
 
@@ -216,7 +217,7 @@ export function PanelJadwal({
       ) : null}
 
       <MatriksJadwal minggu={minggu} baris={barisLive} shift={shift} seragam={seragam} onPesan={setPesan} onCellChange={ubahCell} />
-      <SpreadsheetJadwal tanggal={minggu} baris={barisLive} shift={shift} />
+      <SpreadsheetJadwal tanggal={minggu} baris={barisLive} shift={shift} pdfUrl={pdfUrl} />
       <AlatJadwal
         awal={rentangAktif.dari}
         akhir={rentangAktif.sampai}
