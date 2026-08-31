@@ -1,0 +1,2 @@
+# Jangan edit manual. Digunakan oleh `prisma migrate deploy` production.
+provider = "postgresql"

@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, sans-serif;
+
+  /* Palet utama: hitam, putih, abu-abu */
+  --color-ink: #111111;
+  --color-paper: #ffffff;
+  --color-muted: #6b7280;
+  --color-surface: #f3f4f6;
+  --color-line: #e5e7eb;
+
+  /* Aksen HANYA untuk status */
+  --color-status-hadir: #16a34a;
+  --color-status-alpa: #dc2626;
+  --color-status-izin: #ca8a04;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+/* iOS Safari memperbesar halaman saat input di bawah 16px difokuskan. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Fokus terlihat jelas untuk aksesibilitas keyboard */
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}

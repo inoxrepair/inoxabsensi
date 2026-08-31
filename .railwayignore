@@ -1,0 +1,15 @@
+node_modules/
+.next/
+.git/
+.env
+.env.*
+!.env.example
+!.env.production.example
+prisma/dev.db*
+prisma/migrations/postgresql/
+*.log
+*.tsbuildinfo
+AGENTS.md
+CLAUDE.md
+docker-compose.production.yml
+DEPLOY.md

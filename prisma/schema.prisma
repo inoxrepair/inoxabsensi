@@ -1,0 +1,222 @@
+// Skema iNox Absensi.
+// Catatan: SQLite dipakai untuk development (tanpa enum & tanpa array native),
+// jadi kolom bertipe union disimpan sebagai String dan divalidasi di
+// src/lib/domain.ts. Provider bisa diganti postgresql tanpa mengubah relasi.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// ---------------------------------------------------------------------------
+/// Auth.js (skema minimal adapter Prisma)
+/// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  /// Hash bcrypt. Null jika user hanya login via Google.
+  passwordHash  String?
+
+  /// RoleKaryawan: super_admin | admin_cabang | karyawan
+  role         String    @default("karyawan")
+  jabatan      String    @default("-")
+  /// Disimpan sebagai tanggal lokal "yyyy-mm-dd" agar bebas timezone.
+  tanggalMasuk String
+  aktif        Boolean   @default(true)
+
+  cabangId String?
+  cabang   Cabang? @relation(fields: [cabangId], references: [id], onDelete: SetNull)
+
+  accounts Account[]
+  sessions Session[]
+  jadwal   Jadwal[]
+  absensi  Absensi[]
+  kasbon   Kasbon[]
+  payroll  Payroll[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cabangId, aktif])
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  sessionToken String   @id
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+/// ---------------------------------------------------------------------------
+/// Domain absensi
+/// ---------------------------------------------------------------------------
+
+model Cabang {
+  id          String  @id @default(cuid())
+  nama        String  @unique
+  kota        String
+  lat         Float
+  lng         Float
+  /// Radius toleransi absensi dalam meter.
+  radiusMeter Int     @default(100)
+  aktif       Boolean @default(true)
+
+  karyawan User[]
+  absensi  Absensi[]
+}
+
+model Shift {
+  id   String @id @default(cuid())
+  nama String @unique
+  /// Menit sejak tengah malam (mis. 09.00 = 540). Integer supaya
+  /// perhitungan telat & durasi kerja tidak tersentuh timezone.
+  mulaiMenit     Int
+  selesaiMenit   Int
+  toleransiMenit Int @default(10)
+
+  jadwal Jadwal[]
+}
+
+/// Satu baris = satu hari kerja satu karyawan. shiftId null berarti libur.
+model Jadwal {
+  id      String @id @default(cuid())
+  userId  String
+  /// Tanggal lokal "yyyy-mm-dd".
+  tanggal String
+  shiftId String?
+  seragam String?
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shift Shift? @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, tanggal])
+  @@index([tanggal])
+}
+
+/// Satu baris per karyawan per hari; check-out mengisi kolom *Keluar.
+model Absensi {
+  id       String @id @default(cuid())
+  userId   String
+  cabangId String
+  /// Tanggal lokal "yyyy-mm-dd".
+  tanggal  String
+
+  /// StatusAbsensi: hadir | telat | alpa | izin | libur
+  status String
+
+  masukMenit        Int?
+  keluarMenit       Int?
+  /// Menit keterlambatan setelah dikurangi toleransi shift; 0 bila tepat waktu.
+  /// Disimpan saat check-in karena jam shift bisa diubah admin kemudian,
+  /// sehingga menghitung ulang dari shift akan mengubah riwayat.
+  menitTelat        Int     @default(0)
+  masukLat          Float?
+  masukLng          Float?
+  masukJarakMeter   Int?
+  keluarLat         Float?
+  keluarLng         Float?
+  keluarJarakMeter  Int?
+  catatan           String?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cabang Cabang @relation(fields: [cabangId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, tanggal])
+  @@index([cabangId, tanggal])
+  @@index([tanggal, status])
+}
+
+model Kasbon {
+  id     String @id @default(cuid())
+  userId String
+  /// Rupiah, bilangan bulat.
+  jumlah Int
+  /// StatusKasbon: pending | disetujui | ditolak | lunas
+  status String @default("pending")
+  /// Periode payroll "yyyy-mm".
+  periode  String
+  keterangan String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, periode])
+  @@index([status])
+}
+
+/// Komponen gaji per karyawan per periode. Semua nilai rupiah bilangan bulat
+/// dan diisi manual oleh super admin, karena rumus lembur/THR/pajak belum
+/// ditetapkan. Baris dibuat saat pertama kali diedit (bukan otomatis untuk
+/// semua karyawan) agar tabel tidak dipenuhi baris bernilai nol.
+model Payroll {
+  id      String @id @default(cuid())
+  userId  String
+  /// Periode payroll "yyyy-mm".
+  periode String
+
+  gajiPokok     Int @default(0)
+  tunjangan     Int @default(0)
+  potonganTelat Int @default(0)
+  kasbon        Int @default(0)
+
+  catatan String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, periode])
+  @@index([periode])
+}
+
+/// Hak akses menu per role. Menggantikan matriks hardcode di halaman
+/// Pengaturan sehingga perubahan akses tidak perlu deploy.
+model RolePermission {
+  role String
+  menu String
+
+  @@id([role, menu])
+}

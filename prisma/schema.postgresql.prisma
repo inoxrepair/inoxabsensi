@@ -1,0 +1,160 @@
+// Schema production. Model dan nama kolom sengaja sama dengan schema SQLite
+// agar source code Prisma tidak bercabang antara development dan production.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          String    @default("karyawan")
+  jabatan       String    @default("-")
+  tanggalMasuk  String
+  aktif         Boolean   @default(true)
+  cabangId      String?
+  cabang        Cabang?   @relation(fields: [cabangId], references: [id], onDelete: SetNull)
+  accounts      Account[]
+  sessions      Session[]
+  jadwal        Jadwal[]
+  absensi       Absensi[]
+  kasbon        Kasbon[]
+  payroll       Payroll[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  @@index([cabangId, aktif])
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  sessionToken String   @id
+  userId       String
+  expires      DateTime
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+  @@id([identifier, token])
+}
+
+model Cabang {
+  id          String  @id @default(cuid())
+  nama        String  @unique
+  kota        String
+  lat         Float
+  lng         Float
+  radiusMeter Int     @default(100)
+  aktif       Boolean @default(true)
+  karyawan User[]
+  absensi  Absensi[]
+}
+
+model Shift {
+  id             String @id @default(cuid())
+  nama           String @unique
+  mulaiMenit     Int
+  selesaiMenit   Int
+  toleransiMenit Int @default(10)
+  jadwal Jadwal[]
+}
+
+model Jadwal {
+  id      String @id @default(cuid())
+  userId  String
+  tanggal String
+  shiftId String?
+  seragam String?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shift Shift? @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  @@unique([userId, tanggal])
+  @@index([tanggal])
+}
+
+model Absensi {
+  id              String  @id @default(cuid())
+  userId          String
+  cabangId        String
+  tanggal         String
+  status          String
+  masukMenit      Int?
+  keluarMenit     Int?
+  menitTelat      Int     @default(0)
+  masukLat        Float?
+  masukLng        Float?
+  masukJarakMeter Int?
+  keluarLat       Float?
+  keluarLng       Float?
+  keluarJarakMeter Int?
+  catatan         String?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cabang Cabang @relation(fields: [cabangId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([userId, tanggal])
+  @@index([cabangId, tanggal])
+  @@index([tanggal, status])
+}
+
+model Kasbon {
+  id          String @id @default(cuid())
+  userId      String
+  jumlah      Int
+  status      String @default("pending")
+  periode     String
+  keterangan  String?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  @@index([userId, periode])
+  @@index([status])
+}
+
+model Payroll {
+  id            String @id @default(cuid())
+  userId        String
+  periode       String
+  gajiPokok     Int @default(0)
+  tunjangan     Int @default(0)
+  potonganTelat Int @default(0)
+  kasbon        Int @default(0)
+  catatan       String?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([userId, periode])
+  @@index([periode])
+}
+
+model RolePermission {
+  role String
+  menu String
+  @@id([role, menu])
+}

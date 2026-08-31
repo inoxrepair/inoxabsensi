@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-inox}
+      POSTGRES_USER: ${POSTGRES_USER:-inox}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD wajib diisi}
+    volumes:
+      - inox-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  app:
+    build:
+      context: .
+      args:
+        DATABASE_URL: ${DATABASE_URL:?DATABASE_URL wajib diisi}
+        AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET wajib diisi}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL wajib diisi}
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET wajib diisi}
+      AUTH_URL: ${AUTH_URL:?AUTH_URL wajib diisi}
+      AUTH_TRUST_HOST: "true"
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
+    ports:
+      - "3000:3000"
+
+volumes:
+  inox-postgres:
