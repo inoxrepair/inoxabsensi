@@ -15,9 +15,11 @@ const db = new PrismaClient();
 function shift(nama: string, mulai: string, selesai: string, toleransi = 10) {
   return {
     nama,
+    mode: "terjadwal",
     mulaiMenit: keMenit(mulai)!,
     selesaiMenit: keMenit(selesai)!,
     toleransiMenit: toleransi,
+    minimumKerjaMenit: null,
   };
 }
 

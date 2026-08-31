@@ -22,8 +22,8 @@ async function main() {
   // Seed production tidak membuat cabang/demo user agar data production aman.
   await db.shift.upsert({
     where: { nama: "Pagi" },
-    update: { mulaiMenit: keMenit("09.00")!, selesaiMenit: keMenit("17.00")!, toleransiMenit: 10 },
-    create: { nama: "Pagi", mulaiMenit: keMenit("09.00")!, selesaiMenit: keMenit("17.00")!, toleransiMenit: 10 },
+    update: { mode: "terjadwal", mulaiMenit: keMenit("09.00")!, selesaiMenit: keMenit("17.00")!, toleransiMenit: 10, minimumKerjaMenit: null },
+    create: { nama: "Pagi", mode: "terjadwal", mulaiMenit: keMenit("09.00")!, selesaiMenit: keMenit("17.00")!, toleransiMenit: 10, minimumKerjaMenit: null },
   });
 
   for (const seragam of [
@@ -39,8 +39,8 @@ async function main() {
   }
   await db.shift.upsert({
     where: { nama: "Siang" },
-    update: { mulaiMenit: keMenit("14.00")!, selesaiMenit: keMenit("22.00")!, toleransiMenit: 10 },
-    create: { nama: "Siang", mulaiMenit: keMenit("14.00")!, selesaiMenit: keMenit("22.00")!, toleransiMenit: 10 },
+    update: { mode: "terjadwal", mulaiMenit: keMenit("14.00")!, selesaiMenit: keMenit("22.00")!, toleransiMenit: 10, minimumKerjaMenit: null },
+    create: { nama: "Siang", mode: "terjadwal", mulaiMenit: keMenit("14.00")!, selesaiMenit: keMenit("22.00")!, toleransiMenit: 10, minimumKerjaMenit: null },
   });
 
   const user = await db.user.upsert({
