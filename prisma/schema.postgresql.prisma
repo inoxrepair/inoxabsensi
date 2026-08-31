@@ -116,6 +116,7 @@ model Absensi {
   keluarLng       Float?
   keluarJarakMeter Int?
   catatan         String?
+  editedBy        String?
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   cabang Cabang @relation(fields: [cabangId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
