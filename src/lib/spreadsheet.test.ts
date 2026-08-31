@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { csvCell, datesInMonth, kodeShift, parseCsv, shiftByKode } from "./spreadsheet";
+import { csvCell, datesInMonth, kodeShift, parseCsv, shiftByKode, updateJadwalCell } from "./spreadsheet";
 
 describe("spreadsheet", () => {
   it("menghasilkan kode shift singkat", () => {
@@ -18,5 +18,12 @@ describe("spreadsheet", () => {
   it("escape CSV", () => expect(csvCell("a;b")).toBe('"a;b"'));
   it("menghasilkan jumlah tanggal bulan", () => {
     expect(datesInMonth(2028, 2)).toHaveLength(29);
+  });
+  it("mengubah editor dan preview dari data yang sama", () => {
+    const rows = [{ userId: "u1", nama: "A", cabang: "C", hari: [null, null] }];
+    const updated = updateJadwalCell(rows, ["2026-08-01", "2026-08-02"], "u1", "2026-08-02", "p", "s", "Seragam A");
+    expect(updated[0].hari[1]).toEqual({ shiftId: "p", seragamId: "s", seragam: "Seragam A" });
+    const libur = updateJadwalCell(updated, ["2026-08-01", "2026-08-02"], "u1", "2026-08-02", "", "", null);
+    expect(libur[0].hari[1]).toBeNull();
   });
 });

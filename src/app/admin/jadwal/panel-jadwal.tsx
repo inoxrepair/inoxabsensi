@@ -11,6 +11,7 @@ import { FormRentang } from "./form-rentang";
 import { FilterOverview } from "./filter-overview";
 import { SpreadsheetJadwal } from "./spreadsheet";
 import { AlatJadwal } from "./alat-jadwal";
+import { updateJadwalCell } from "@/lib/spreadsheet";
 import {
   MatriksJadwal,
   type BarisJadwal,
@@ -66,22 +67,22 @@ export function PanelJadwal({
   useEffect(() => setBarisLive(baris), [baris]);
 
   function ubahCell(userId: string, tanggal: string, shiftId: string, seragamId: string) {
-    const indexTanggal = minggu.indexOf(tanggal);
-    if (indexTanggal < 0) return;
     setBarisLive((lama) =>
-      lama.map((row) => {
-        if (row.userId !== userId) return row;
-        const hari = [...row.hari];
-        hari[indexTanggal] = shiftId
-          ? {
-              shiftId,
-              seragamId: seragamId || null,
-              seragam: seragam.find((s) => s.id === seragamId)?.nama ?? null,
-            }
-          : null;
-        return { ...row, hari };
-      }),
+      updateJadwalCell(
+        lama,
+        minggu,
+        userId,
+        tanggal,
+        shiftId,
+        seragamId,
+        seragam.find((s) => s.id === seragamId)?.nama ?? null,
+      ),
     );
+  }
+
+  function selesaiAksi(hasil: Hasil) {
+    setPesan(hasil);
+    if (hasil.ok) router.refresh();
   }
 
   function urlMinggu(tanggal?: string): Route {
@@ -156,7 +157,7 @@ export function PanelJadwal({
                 disabled={menunggu}
                 onClick={() =>
                   mulai(async () =>
-                    setPesan(
+                    selesaiAksi(
                       await salinMinggu(
                         navigasi.seninSebelumnya,
                         navigasi.seninSekarang,
@@ -173,7 +174,7 @@ export function PanelJadwal({
                 disabled={menunggu || !adaJadwal}
                 onClick={() =>
                   mulai(async () =>
-                    setPesan(await kosongkanMinggu(navigasi.seninSekarang)),
+                    selesaiAksi(await kosongkanMinggu(navigasi.seninSekarang)),
                   )
                 }
                 className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted disabled:opacity-40"
@@ -221,7 +222,7 @@ export function PanelJadwal({
         akhir={rentangAktif.sampai}
         polaMulai={navigasi.seninSekarang}
         cabangId={cabangTerpilih}
-        onPesan={setPesan}
+        onPesan={selesaiAksi}
       />
 
       <div className="mt-6">

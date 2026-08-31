@@ -72,3 +72,25 @@ export function datesInMonth(year: number, month: number): string[] {
 export function tanggalPola(pola: string[], date: string): string | null {
   return pola[indeksHari(date)] ?? null;
 }
+
+/** Satu sumber transformasi untuk editor dan preview spreadsheet. */
+export function updateJadwalCell(
+  rows: BarisJadwal[],
+  dates: string[],
+  userId: string,
+  date: string,
+  shiftId: string,
+  seragamId: string,
+  seragamNama: string | null,
+): BarisJadwal[] {
+  const index = dates.indexOf(date);
+  if (index < 0) return rows;
+  return rows.map((row) => {
+    if (row.userId !== userId) return row;
+    const hari = [...row.hari];
+    hari[index] = shiftId
+      ? { shiftId, seragamId: seragamId || null, seragam: seragamNama }
+      : null;
+    return { ...row, hari };
+  });
+}

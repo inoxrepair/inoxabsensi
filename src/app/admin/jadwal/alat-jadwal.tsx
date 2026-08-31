@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { generateJadwalBulanan, importJadwalCsv, type Hasil } from "./actions";
 
 export function AlatJadwal({
@@ -18,13 +19,18 @@ export function AlatJadwal({
 }) {
   const [bulan, setBulan] = useState(awal.slice(0, 7));
   const [pending, mulai] = useTransition();
+  const router = useRouter();
   const exportUrl = `/admin/jadwal/export?dari=${awal}&sampai=${akhir}${cabangId ? `&cabang=${cabangId}` : ""}`;
 
   function importCsv(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     fd.set("cabangId", cabangId);
-    mulai(async () => onPesan(await importJadwalCsv(fd)));
+    mulai(async () => {
+      const hasil = await importJadwalCsv(fd);
+      onPesan(hasil);
+      if (hasil.ok) router.refresh();
+    });
   }
 
   function generate() {
@@ -32,7 +38,11 @@ export function AlatJadwal({
     fd.set("bulan", bulan);
     fd.set("polaMulai", polaMulai);
     fd.set("cabangId", cabangId);
-    mulai(async () => onPesan(await generateJadwalBulanan(fd)));
+    mulai(async () => {
+      const hasil = await generateJadwalBulanan(fd);
+      onPesan(hasil);
+      if (hasil.ok) router.refresh();
+    });
   }
 
   return (
