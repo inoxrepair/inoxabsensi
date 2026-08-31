@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/primitives";
 import { kosongkanMinggu, salinMinggu, type Hasil } from "./actions";
 import { DaftarShift, type ShiftLengkap } from "./daftar-shift";
 import { FormRentang } from "./form-rentang";
+import { FilterOverview } from "./filter-overview";
 import {
   MatriksJadwal,
   type BarisJadwal,
@@ -119,7 +120,7 @@ export function PanelJadwal({
             onClick={() => setFormRentang((v) => !v)}
             className="rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-paper"
           >
-            Atur rentang tanggal
+            Terapkan shift massal
           </button>
           {!navigasi.rentangAktif ? (
             <>
@@ -171,6 +172,13 @@ export function PanelJadwal({
           onBatal={() => setFormRentang(false)}
         />
       ) : null}
+
+      <FilterOverview
+        key={`${rentangAktif.dari}:${rentangAktif.sampai}:${cabangTerpilih}`}
+        awal={rentangAktif.dari}
+        akhir={rentangAktif.sampai}
+        cabangId={cabangTerpilih}
+      />
 
       {pesan ? (
         <p role="status" aria-live="polite" className={`mb-4 rounded-xl px-3.5 py-2.5 text-sm ${pesan.ok ? "bg-status-hadir/10 text-status-hadir" : "bg-status-alpa/10 text-status-alpa"}`}>

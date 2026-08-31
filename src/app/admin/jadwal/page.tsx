@@ -15,6 +15,7 @@ import {
 import type { ShiftLengkap } from "./daftar-shift";
 import type { BarisJadwal } from "./matriks-jadwal";
 import { PanelJadwal } from "./panel-jadwal";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -124,6 +125,16 @@ export default async function AdminJadwalPage({
       <PageHeader
         title="Jadwal Shift"
         description={`${karyawan.length} karyawan · ${terjadwal} hari kerja terjadwal · ${labelTanggal}.`}
+        action={
+          admin.role === "headstore" ? (
+            <Link
+              href="/karyawan"
+              className="rounded-xl border border-line bg-paper px-4 py-2.5 text-sm font-medium"
+            >
+              ← Kembali ke Absensi
+            </Link>
+          ) : undefined
+        }
       />
 
       <PanelJadwal
@@ -157,8 +168,8 @@ export default async function AdminJadwalPage({
       />
 
       <p className="mt-4 text-xs text-muted">
-        Perubahan per sel tersimpan otomatis. Aksi rentang mengganti jadwal
-        karyawan terpilih dari tanggal awal hingga akhir. Hari ini adalah{" "}
+        Perubahan per sel tersimpan otomatis. Overview rentang hanya mengubah
+        tampilan tabel; Terapkan shift massal mengubah jadwal karyawan. Hari ini adalah{" "}
         {[
           "Senin",
           "Selasa",

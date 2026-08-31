@@ -76,7 +76,10 @@ export function FormRentang({
 
   return (
     <form onSubmit={kirim} className="mb-4 rounded-xl border border-ink bg-paper p-4">
-      <p className="text-sm font-semibold">Atur shift untuk rentang tanggal</p>
+      <p className="text-sm font-semibold">Terapkan shift massal</p>
+      <p className="mt-1 text-xs text-muted">
+        Aksi ini mengubah jadwal karyawan terpilih pada seluruh tanggal.
+      </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
         <label className="text-xs text-muted">
           Dari
