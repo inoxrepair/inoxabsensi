@@ -1,4 +1,4 @@
-const CACHE = "inox-static-v1";
+const CACHE = "inox-static-v2";
 const STATIC_ASSETS = ["/manifest.webmanifest", "/icon.svg", "/offline.html"];
 
 self.addEventListener("install", (event) => {
