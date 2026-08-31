@@ -198,6 +198,36 @@ untuk melihat halaman, bukan untuk Geolocation API iOS/Android.
 - Untuk update aplikasi: build image baru, jalankan migration, lalu rolling
   restart service.
 
+## 9. Rollback Deployment
+
+Rollback kode tidak otomatis mengembalikan database. Gunakan salah satu:
+
+### Railway Dashboard (cepat)
+
+1. Buka service `inox-absensi-web`.
+2. Buka tab `Deployments`.
+3. Pilih deployment lama yang berstatus `SUCCESS`.
+4. Klik menu deployment lalu `Redeploy`/`Rollback` jika tersedia.
+5. Periksa `/api/health` dan fungsi utama.
+
+Cara ini mengaktifkan image/commit lama, tetapi data yang sudah ditulis user
+setelah deployment baru tetap ada.
+
+### Git Revert (direkomendasikan untuk riwayat source)
+
+```bash
+git revert <commit-yang-bermasalah>
+git push origin main
+```
+
+Railway akan auto-deploy commit revert. Jangan memakai force-push atau
+`git reset --hard` pada branch production.
+
+Migration yang hanya menambah kolom nullable/default biasanya aman ketika kode
+di-rollback. Migration destructive (drop/rename) harus dibatalkan dengan
+migration forward baru dan backup database, bukan dengan menghapus file
+migration lama.
+
 ## Development Lokal
 
 ```powershell
