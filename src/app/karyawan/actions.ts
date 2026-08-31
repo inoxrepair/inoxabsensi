@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { wajibLogin } from "@/lib/session";
-import { bolehKeluar, bolehMasuk, type KondisiAbsen } from "@/lib/absensi";
+import {
+  bolehKeluar,
+  bolehMasuk,
+  kekuranganKerja,
+  type KondisiAbsen,
+} from "@/lib/absensi";
 import { bacaStatusAbsensi } from "@/lib/domain";
 import { menitLokal, tanggalLokal } from "@/lib/waktu";
 
@@ -50,6 +55,8 @@ async function kondisiHariIni(userId: string, tanggal: string) {
     cabangId: user.cabang?.id ?? null,
     adaBaris: absensi !== null,
     seragam: jadwal?.jenisSeragam?.nama ?? jadwal?.seragam,
+    minimumKerjaMenit:
+      absensi?.minimumKerjaMenit ?? jadwal?.shift?.minimumKerjaMenit ?? null,
   };
 }
 
@@ -73,6 +80,9 @@ export async function absenMasuk(formData: FormData): Promise<HasilAbsen> {
     // Disimpan agar rekap tidak perlu menghitung ulang dari shift, yang
     // jamnya bisa diubah admin setelah absensi tercatat.
     menitTelat: izin.menitTelat,
+    modeShift: kondisi.shift?.mode ?? "terjadwal",
+    minimumKerjaMenit: kondisi.shift?.minimumKerjaMenit ?? null,
+    kekuranganMenit: 0,
     masukLat: posisi.data.lat,
     masukLng: posisi.data.lng,
     masukJarakMeter: izin.jarakMeter,
@@ -113,7 +123,7 @@ export async function absenKeluar(formData: FormData): Promise<HasilAbsen> {
 
   const tanggal = tanggalLokal();
   const sekarang = menitLokal();
-  const { kondisi } = await kondisiHariIni(user.id, tanggal);
+  const { kondisi, minimumKerjaMenit } = await kondisiHariIni(user.id, tanggal);
 
   const izin = bolehKeluar({ ...kondisi, posisi: posisi.data }, sekarang);
   if (!izin.ok) return { ok: false, pesan: izin.alasan };
@@ -125,6 +135,10 @@ export async function absenKeluar(formData: FormData): Promise<HasilAbsen> {
       keluarLat: posisi.data.lat,
       keluarLng: posisi.data.lng,
       keluarJarakMeter: izin.jarakMeter,
+      kekuranganMenit: kekuranganKerja(
+        izin.durasiMenit,
+        minimumKerjaMenit,
+      ),
     },
   });
 
@@ -135,6 +149,11 @@ export async function absenKeluar(formData: FormData): Promise<HasilAbsen> {
   const menit = izin.durasiMenit % 60;
   return {
     ok: true,
-    pesan: `Absen keluar tercatat. Durasi kerja ${jam}j${menit ? ` ${menit}m` : ""}.`,
+    pesan: `Absen keluar tercatat. Durasi kerja ${jam}j${menit ? ` ${menit}m` : ""}.${
+      minimumKerjaMenit != null &&
+      kekuranganKerja(izin.durasiMenit, minimumKerjaMenit) > 0
+        ? ` Kurang ${kekuranganKerja(izin.durasiMenit, minimumKerjaMenit)} menit dari target.`
+        : ""
+    }`,
   };
 }

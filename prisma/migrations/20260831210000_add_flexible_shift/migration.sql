@@ -1,0 +1,5 @@
+ALTER TABLE "Shift" ADD COLUMN "mode" TEXT NOT NULL DEFAULT 'terjadwal';
+ALTER TABLE "Shift" ADD COLUMN "minimumKerjaMenit" INTEGER;
+ALTER TABLE "Absensi" ADD COLUMN "modeShift" TEXT NOT NULL DEFAULT 'terjadwal';
+ALTER TABLE "Absensi" ADD COLUMN "minimumKerjaMenit" INTEGER;
+ALTER TABLE "Absensi" ADD COLUMN "kekuranganMenit" INTEGER NOT NULL DEFAULT 0;

@@ -68,6 +68,14 @@ export default async function KaryawanAbsenPage() {
                 ? `${shift.nama} · ${keJam(shift.mulaiMenit)}–${keJam(shift.selesaiMenit)}`
                 : "Tidak ada jadwal"}
             </p>
+            {shift?.mode === "fleksibel" ? (
+              <p className="mt-1 text-xs text-muted">
+                Fleksibel · tanpa hitung telat
+                {shift.minimumKerjaMenit != null
+                  ? ` · target ${shift.minimumKerjaMenit / 60} jam`
+                  : " · tanpa minimum jam"}
+              </p>
+            ) : null}
           </div>
           {status ? <StatusBadge status={status} /> : null}
         </div>

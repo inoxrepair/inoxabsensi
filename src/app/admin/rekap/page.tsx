@@ -43,6 +43,11 @@ const kolom: Kolom<BarisTabel>[] = [
     cell: (r) => (r.menitKerja ? formatDurasi(r.menitKerja) : "—"),
     numeric: true,
   },
+  {
+    header: "Kurang jam",
+    cell: (r) => (r.kekuranganMenit > 0 ? formatDurasi(r.kekuranganMenit) : "—"),
+    numeric: true,
+  },
 ];
 
 export default async function AdminRekapPage({
@@ -106,6 +111,13 @@ export default async function AdminRekapPage({
           value={`${persen}%`}
           hint={`Total ${formatDurasi(total.menitKerja)}`}
         />
+        {total.kekuranganMenit > 0 ? (
+          <StatCard
+            label="Kekurangan jam"
+            value={formatDurasi(total.kekuranganMenit)}
+            hint="Hanya shift fleksibel dengan target minimum"
+          />
+        ) : null}
       </div>
 
       <div className="mt-6">

@@ -108,11 +108,15 @@ model Cabang {
 model Shift {
   id   String @id @default(cuid())
   nama String @unique
+  /// terjadwal | fleksibel
+  mode String @default("terjadwal")
   /// Menit sejak tengah malam (mis. 09.00 = 540). Integer supaya
   /// perhitungan telat & durasi kerja tidak tersentuh timezone.
   mulaiMenit     Int
   selesaiMenit   Int
   toleransiMenit Int @default(10)
+  /// Target minimum kerja untuk mode fleksibel; null berarti tanpa minimum.
+  minimumKerjaMenit Int?
 
   jadwal Jadwal[]
 }
@@ -165,6 +169,9 @@ model Absensi {
   /// Disimpan saat check-in karena jam shift bisa diubah admin kemudian,
   /// sehingga menghitung ulang dari shift akan mengubah riwayat.
   menitTelat        Int     @default(0)
+  modeShift         String  @default("terjadwal")
+  minimumKerjaMenit Int?
+  kekuranganMenit   Int     @default(0)
   masukLat          Float?
   masukLng          Float?
   masukJarakMeter   Int?

@@ -82,9 +82,11 @@ model Cabang {
 model Shift {
   id             String @id @default(cuid())
   nama           String @unique
+  mode           String @default("terjadwal")
   mulaiMenit     Int
   selesaiMenit   Int
   toleransiMenit Int @default(10)
+  minimumKerjaMenit Int?
   jadwal Jadwal[]
 }
 
@@ -123,6 +125,9 @@ model Absensi {
   masukMenit      Int?
   keluarMenit     Int?
   menitTelat      Int     @default(0)
+  modeShift       String  @default("terjadwal")
+  minimumKerjaMenit Int?
+  kekuranganMenit Int     @default(0)
   masukLat        Float?
   masukLng        Float?
   masukJarakMeter Int?

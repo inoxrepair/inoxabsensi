@@ -25,6 +25,7 @@ export type BarisTabel = {
   menitKerja: number;
   menitTelat: number;
   belumKeluar: number;
+  kekuranganMenit: number;
 };
 
 export type LingkupRekap = Rentang & {
@@ -69,6 +70,7 @@ export async function ambilRekap(lingkup: LingkupRekap) {
         masukMenit: true,
         keluarMenit: true,
         menitTelat: true,
+        kekuranganMenit: true,
       },
     }),
   ]);
@@ -79,6 +81,7 @@ export async function ambilRekap(lingkup: LingkupRekap) {
     masukMenit: c.masukMenit,
     keluarMenit: c.keluarMenit,
     menitTelat: c.menitTelat,
+    kekuranganMenit: c.kekuranganMenit,
   }));
 
   const peta = rekapPerKaryawan(bersih);
@@ -98,6 +101,7 @@ export async function ambilRekap(lingkup: LingkupRekap) {
       menitKerja: r?.menitKerja ?? 0,
       menitTelat: r?.menitTelat ?? 0,
       belumKeluar: r?.belumKeluar ?? 0,
+      kekuranganMenit: r?.kekuranganMenit ?? 0,
     };
   });
 

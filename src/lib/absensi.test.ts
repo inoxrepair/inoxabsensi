@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bolehKeluar, bolehMasuk, ringkas, type KondisiAbsen } from "./absensi";
+import { bolehKeluar, bolehMasuk, kekuranganKerja, ringkas, type KondisiAbsen } from "./absensi";
 
 const CABANG = { lat: 0.7333, lng: 124.3167, radiusMeter: 100 };
 const DI_DALAM = { lat: 0.7333 + 0.0003, lng: 124.3167 }; // ~33 m
@@ -77,6 +77,17 @@ describe("bolehMasuk", () => {
     const h = bolehMasuk(kondisi({ shift: null, posisi: DI_LUAR }), 540);
     if (!h.ok) expect(h.alasan).toMatch(/jadwal/);
   });
+
+  it("mode fleksibel tidak pernah dihitung telat", () => {
+    const h = bolehMasuk(kondisi({ shift: { ...SHIFT, mode: "fleksibel" } }), 900);
+    expect(h).toMatchObject({ ok: true, status: "hadir", menitTelat: 0 });
+  });
+});
+
+describe("kekuranganKerja", () => {
+  it("tanpa minimum selalu nol", () => expect(kekuranganKerja(60, null)).toBe(0));
+  it("menghitung kekurangan target", () => expect(kekuranganKerja(180, 240)).toBe(60));
+  it("lebih dari target tetap nol", () => expect(kekuranganKerja(300, 240)).toBe(0));
 });
 
 describe("bolehKeluar", () => {

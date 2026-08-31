@@ -7,6 +7,7 @@ import { keMenit } from "@/lib/waktu";
  */
 
 export const TOLERANSI_MAKS = 120;
+export const MODE_SHIFT = ["terjadwal", "fleksibel"] as const;
 
 /** Jam ditulis "09.00" atau "09:00" lalu disimpan sebagai menit. */
 const jam = z
@@ -28,6 +29,7 @@ export const shiftSkema = z
       .trim()
       .min(2, "Nama shift minimal 2 karakter.")
       .max(30, "Nama shift maksimal 30 karakter."),
+    mode: z.enum(MODE_SHIFT).default("terjadwal"),
     jamMulai: jam,
     jamSelesai: jam,
     toleransiMenit: z.preprocess(
@@ -39,15 +41,20 @@ export const shiftSkema = z
         .min(0, "Toleransi tidak boleh negatif.")
         .max(TOLERANSI_MAKS, `Toleransi maksimal ${TOLERANSI_MAKS} menit.`),
     ),
+    minimumKerjaJam: z.preprocess(
+      (v) => (typeof v === "string" && v.trim() !== "" ? Number(v) : null),
+      z.number().min(0, "Minimum jam tidak boleh negatif.").max(24, "Minimum jam maksimal 24.").nullable(),
+    ),
   })
   .refine((d) => d.jamMulai !== d.jamSelesai, {
     message: "Jam mulai dan selesai tidak boleh sama.",
     path: ["jamSelesai"],
   })
-  .transform(({ jamMulai, jamSelesai, ...sisa }) => ({
+  .transform(({ jamMulai, jamSelesai, minimumKerjaJam, ...sisa }) => ({
     ...sisa,
     mulaiMenit: jamMulai,
     selesaiMenit: jamSelesai,
+    minimumKerjaMenit: minimumKerjaJam === null ? null : Math.round(minimumKerjaJam * 60),
   }));
 
 export type DataShift = z.output<typeof shiftSkema>;

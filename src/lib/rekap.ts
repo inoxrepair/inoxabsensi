@@ -13,6 +13,7 @@ export type CatatanAbsensi = {
   keluarMenit: number | null;
   /** Menit keterlambatan tersimpan saat check-in. */
   menitTelat: number;
+  kekuranganMenit: number;
 };
 
 export type BarisRekap = {
@@ -25,6 +26,7 @@ export type BarisRekap = {
   menitKerja: number;
   /** Akumulasi keterlambatan seluruh hari pada periode. */
   menitTelat: number;
+  kekuranganMenit: number;
   /** Hari yang check-in tapi belum check-out. */
   belumKeluar: number;
 };
@@ -38,6 +40,7 @@ function barisKosong(userId: string): BarisRekap {
     alpa: 0,
     menitKerja: 0,
     menitTelat: 0,
+    kekuranganMenit: 0,
     belumKeluar: 0,
   };
 }
@@ -56,6 +59,7 @@ export function rekapPerKaryawan(
 
     if (c.status !== "libur") baris[c.status] += 1;
     baris.menitTelat += c.menitTelat;
+    baris.kekuranganMenit += c.kekuranganMenit;
 
     if (c.masukMenit !== null) {
       if (c.keluarMenit !== null) {
@@ -78,6 +82,7 @@ export type TotalRekap = {
   alpa: number;
   menitKerja: number;
   menitTelat: number;
+  kekuranganMenit: number;
 };
 
 export function totalRekap(baris: BarisRekap[]): TotalRekap {
@@ -89,8 +94,9 @@ export function totalRekap(baris: BarisRekap[]): TotalRekap {
       alpa: a.alpa + b.alpa,
       menitKerja: a.menitKerja + b.menitKerja,
       menitTelat: a.menitTelat + b.menitTelat,
+      kekuranganMenit: a.kekuranganMenit + b.kekuranganMenit,
     }),
-    { hadir: 0, telat: 0, izin: 0, alpa: 0, menitKerja: 0, menitTelat: 0 },
+    { hadir: 0, telat: 0, izin: 0, alpa: 0, menitKerja: 0, menitTelat: 0, kekuranganMenit: 0 },
   );
 }
 

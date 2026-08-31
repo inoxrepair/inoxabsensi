@@ -12,6 +12,8 @@ export type ShiftLengkap = {
   toleransiMenit: number;
   dipakai: number;
   lintasTengahMalam: boolean;
+  mode: "terjadwal" | "fleksibel";
+  minimumKerjaMenit: number | null;
 };
 
 const KELAS_INPUT =
@@ -58,7 +60,9 @@ export function DaftarShift({
                     ) : null}
                   </p>
                   <p className="mt-1 text-xs text-muted">
-                    Toleransi {s.toleransiMenit} menit · dipakai {s.dipakai} hari
+                    {s.mode === "fleksibel"
+                      ? `Fleksibel${s.minimumKerjaMenit != null ? ` · target ${s.minimumKerjaMenit / 60} jam` : " · tanpa minimum"}`
+                      : `Toleransi ${s.toleransiMenit} menit`} · dipakai {s.dipakai} hari
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col gap-1">
@@ -155,7 +159,7 @@ function FormShift({
       <p className="text-sm font-semibold">{judul}</p>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-4">
-        <div>
+          <div>
           <label htmlFor="nama" className="text-xs text-muted">
             Nama shift
           </label>
@@ -168,6 +172,21 @@ function FormShift({
             maxLength={30}
             className={KELAS_INPUT}
           />
+        </div>
+        <div>
+          <label htmlFor="mode" className="text-xs text-muted">
+            Mode shift
+          </label>
+          <select id="mode" name="mode" defaultValue={s?.mode ?? "terjadwal"} className={KELAS_INPUT}>
+            <option value="terjadwal">Terjadwal (hitung telat)</option>
+            <option value="fleksibel">Fleksibel (tanpa telat)</option>
+          </select>
+        </div>
+        <div>
+          <label htmlFor="minimumKerjaJam" className="text-xs text-muted">
+            Minimum kerja (jam, opsional)
+          </label>
+          <input id="minimumKerjaJam" name="minimumKerjaJam" type="number" min={0} max={24} step="0.5" defaultValue={s?.minimumKerjaMenit != null ? s.minimumKerjaMenit / 60 : ""} placeholder="Kosong = tanpa minimum" className={`${KELAS_INPUT} tabular-nums`} />
         </div>
         <div>
           <label htmlFor="jamMulai" className="text-xs text-muted">

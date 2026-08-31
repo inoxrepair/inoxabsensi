@@ -20,6 +20,7 @@ function catatan(ubah: Partial<CatatanAbsensi> = {}): CatatanAbsensi {
     masukMenit: 540,
     keluarMenit: 1020,
     menitTelat: 0,
+    kekuranganMenit: 0,
     ...ubah,
   };
 }
@@ -112,12 +113,13 @@ describe("totalRekap", () => {
       alpa: 0,
       menitKerja: 0,
       menitTelat: 0,
+      kekuranganMenit: 0,
     });
   });
 });
 
 describe("persenKehadiran", () => {
-  const dasar = { izin: 0, alpa: 0, menitKerja: 0, menitTelat: 0 };
+  const dasar = { izin: 0, alpa: 0, menitKerja: 0, menitTelat: 0, kekuranganMenit: 0 };
 
   it("telat tetap dihitung hadir", () => {
     expect(persenKehadiran({ hadir: 8, telat: 2, ...dasar })).toBe(100);

@@ -11,6 +11,8 @@ export type Shift = {
   mulaiMenit: number;
   selesaiMenit: number;
   toleransiMenit: number;
+  mode?: string;
+  minimumKerjaMenit?: number | null;
 };
 
 export type KondisiAbsen = {
@@ -74,13 +76,23 @@ export function bolehMasuk(
   const lokasi = periksaLokasi(k);
   if (!lokasi.ok) return lokasi;
 
-  const telat = menitTelat(sekarangMenit, k.shift);
+  const fleksibel = k.shift.mode === "fleksibel";
+  const telat = fleksibel ? 0 : menitTelat(sekarangMenit, k.shift);
   return {
     ok: true,
     status: telat > 0 ? "telat" : "hadir",
     jarakMeter: lokasi.jarak,
     menitTelat: telat,
   };
+}
+
+/** Kekurangan target fleksibel hanya indikator; tidak memblokir check-out. */
+export function kekuranganKerja(
+  durasi: number,
+  minimumKerjaMenit: number | null | undefined,
+): number {
+  if (minimumKerjaMenit == null) return 0;
+  return Math.max(0, minimumKerjaMenit - durasi);
 }
 
 export function bolehKeluar(

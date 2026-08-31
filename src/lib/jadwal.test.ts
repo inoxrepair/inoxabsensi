@@ -4,9 +4,11 @@ import { selJadwalSkema, shiftSkema, TOLERANSI_MAKS } from "./jadwal";
 function formShift(ubah: Record<string, string | undefined> = {}) {
   return {
     nama: "Pagi",
+    mode: "terjadwal",
     jamMulai: "09.00",
     jamSelesai: "17.00",
     toleransiMenit: "10",
+    minimumKerjaJam: "",
     ...ubah,
   };
 }
@@ -23,9 +25,11 @@ describe("shiftSkema", () => {
     if (h.success) {
       expect(h.data).toEqual({
         nama: "Pagi",
+        mode: "terjadwal",
         mulaiMenit: 540,
         selesaiMenit: 1020,
         toleransiMenit: 10,
+        minimumKerjaMenit: null,
       });
     }
   });
@@ -72,6 +76,17 @@ describe("shiftSkema", () => {
     expect(galatShift({ toleransiMenit: String(TOLERANSI_MAKS + 1) })).toMatch(
       /maksimal/,
     );
+  });
+
+  it("mode fleksibel menerima minimum jam opsional", () => {
+    const h = shiftSkema.safeParse(formShift({ mode: "fleksibel", minimumKerjaJam: "4.5" }));
+    expect(h.success).toBe(true);
+    if (h.success) expect(h.data.minimumKerjaMenit).toBe(270);
+  });
+
+  it("mode fleksibel boleh tanpa minimum", () => {
+    const h = shiftSkema.safeParse(formShift({ mode: "fleksibel", minimumKerjaJam: "" }));
+    if (h.success) expect(h.data.minimumKerjaMenit).toBeNull();
   });
 });
 
