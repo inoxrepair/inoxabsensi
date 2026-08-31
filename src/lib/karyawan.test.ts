@@ -3,6 +3,7 @@ import { validasiKaryawan } from "./karyawan";
 
 function form(ubah: Record<string, string | undefined> = {}) {
   return {
+    username: "rizky.pratama",
     name: "Rizky Pratama",
     email: "RIZKY@INOX.CO.ID ",
     jabatan: "Teknisi",
@@ -26,8 +27,19 @@ describe("validasiKaryawan", () => {
     expect(h.success).toBe(true);
     if (h.success) {
       expect(h.data.email).toBe("rizky@inox.co.id");
+      expect(h.data.username).toBe("rizky.pratama");
       expect(h.data.aktif).toBe(true);
     }
+  });
+
+  it("menormalkan username ke lowercase", () => {
+    const h = validasiKaryawan(form({ username: "RIZKY_01" }), true);
+    if (h.success) expect(h.data.username).toBe("rizky_01");
+  });
+
+  it("menolak username dengan spasi atau simbol lain", () => {
+    expect(pesan({ username: "rizky pratama" })).toMatch(/Username/);
+    expect(pesan({ username: "r!zky" })).toMatch(/Username/);
   });
 
   it("checkbox kosong berarti nonaktif", () => {

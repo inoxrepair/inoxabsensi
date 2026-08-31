@@ -26,6 +26,7 @@ export default async function AdminKaryawanPage() {
       orderBy: [{ aktif: "desc" }, { name: "asc" }],
       select: {
         id: true,
+        username: true,
         name: true,
         email: true,
         jabatan: true,
@@ -48,6 +49,7 @@ export default async function AdminKaryawanPage() {
 
   const rows: BarisKaryawan[] = karyawan.map((k) => ({
     id: k.id,
+    username: k.username ?? "",
     nama: k.name,
     email: k.email,
     jabatan: k.jabatan,

@@ -2,15 +2,10 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { compare } from "bcryptjs";
-import { z } from "zod";
 import { authConfig } from "@/auth.config";
 import { db } from "@/lib/db";
 import { bacaRole } from "@/lib/domain";
-
-const kredensial = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-});
+import { loginSkema } from "@/lib/akun";
 
 /** Login Google hanya diaktifkan jika kredensial OAuth tersedia. */
 const googleAktif = Boolean(
@@ -22,15 +17,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({
       credentials: {
-        email: { label: "Email", type: "email" },
+        identifier: { label: "Username atau email", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(raw) {
-        const parsed = kredensial.safeParse(raw);
+        const parsed = loginSkema.safeParse(raw);
         if (!parsed.success) return null;
 
-        const user = await db.user.findUnique({
-          where: { email: parsed.data.email },
+        const identifier = parsed.data.identifier.toLowerCase();
+        const user = await db.user.findFirst({
+          where: {
+            OR: [{ email: identifier }, { username: identifier }],
+          },
         });
 
         // Pesan seragam: jangan bocorkan apakah email terdaftar.

@@ -5,6 +5,13 @@ import { tanggalValid } from "@/lib/rekap";
 /** Validasi data akun karyawan/admin. */
 export const karyawanSkema = z
   .object({
+    username: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .min(3, "Username minimal 3 karakter.")
+      .max(30, "Username maksimal 30 karakter.")
+      .regex(/^[a-z0-9._-]+$/, "Username hanya boleh berisi huruf kecil, angka, titik, underscore, atau strip."),
     name: z
       .string()
       .trim()

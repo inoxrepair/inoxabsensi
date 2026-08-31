@@ -13,6 +13,7 @@ import {
 export type CabangOption = { id: string; nama: string };
 export type BarisKaryawan = {
   id: string;
+  username: string;
   nama: string;
   email: string;
   jabatan: string;
@@ -45,7 +46,7 @@ export function DaftarKaryawan({
   const [filterStatus, setFilterStatus] = useState("");
 
   const tampak = rows.filter((r) => {
-    const teks = `${r.nama} ${r.email} ${r.jabatan}`.toLowerCase();
+    const teks = `${r.nama} ${r.username} ${r.email} ${r.jabatan}`.toLowerCase();
     return (
       teks.includes(cari.toLowerCase()) &&
       (!filterCabang || r.cabangId === filterCabang) &&
@@ -66,7 +67,7 @@ export function DaftarKaryawan({
           type="search"
           value={cari}
           onChange={(e) => setCari(e.target.value)}
-          placeholder="Cari nama, email, jabatan…"
+          placeholder="Cari nama, username, email, jabatan…"
           className="min-w-52 flex-1 rounded-lg border border-line px-3 py-1.5 text-sm"
         />
         {adminRole === "super_admin" ? (
@@ -197,7 +198,7 @@ function Kartu({
         <div>
           <p className="font-medium">{r.nama}</p>
           <p className="text-sm text-muted">
-            {r.email} · {r.jabatan}
+            @{r.username || "belum-diatur"} · {r.email} · {r.jabatan}
           </p>
         </div>
         <div className="flex gap-2">
@@ -285,6 +286,20 @@ function FormKaryawan({
         {awal ? `Ubah ${awal.nama}` : "Karyawan baru"}
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Field label="Username">
+          <input
+            name="username"
+            defaultValue={awal?.username}
+            required
+            minLength={3}
+            maxLength={30}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            placeholder="contoh: budi.01"
+            className={INPUT}
+          />
+        </Field>
         <Field label="Nama">
           <input ref={namaRef} name="name" defaultValue={awal?.nama} required className={INPUT} />
         </Field>
@@ -332,7 +347,7 @@ function FormKaryawan({
           </select>
           {role === "super_admin" ? <input type="hidden" name="cabangId" value="" /> : null}
         </Field>
-        <Field label={awal ? "Password baru (opsional)" : "Password"}>
+        <Field label={awal ? "Reset password (kosongkan jika tidak diubah)" : "Password"}>
           <input
             name="password"
             type="password"

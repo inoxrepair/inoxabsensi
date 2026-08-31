@@ -21,16 +21,16 @@ export function FormLogin({
         {next ? <input type="hidden" name="next" value={next} /> : null}
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium">
-            Email
+          <label htmlFor="identifier" className="block text-sm font-medium">
+            Username atau email
           </label>
           <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
+            id="identifier"
+            name="identifier"
+            type="text"
+            autoComplete="username"
             required
-            placeholder="nama@inox.co.id"
+            placeholder="username atau nama@inox.co.id"
             aria-invalid={status ? true : undefined}
             aria-describedby={status ? "galat-login" : undefined}
             className="mt-1.5 w-full rounded-xl border border-line bg-paper px-3.5 py-3 text-base placeholder:text-muted/70"

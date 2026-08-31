@@ -3,12 +3,9 @@
 import { AuthError } from "next-auth";
 import { z } from "zod";
 import { signIn, signOut } from "@/auth";
+import { loginSkema } from "@/lib/akun";
 
-const skema = z.object({
-  email: z.string().trim().email("Format email tidak valid."),
-  password: z.string().min(1, "Password wajib diisi."),
-  next: z.string().optional(),
-});
+const skema = loginSkema.extend({ next: z.string().optional() });
 
 export type StatusLogin = { pesan: string } | undefined;
 
@@ -30,14 +27,14 @@ export async function masuk(
     // redirectTo "/" dibiarkan diproses proxy, yang mengarahkan
     // ke /admin atau /karyawan sesuai role.
     await signIn("credentials", {
-      email: parsed.data.email,
+      identifier: parsed.data.identifier,
       password: parsed.data.password,
       redirectTo: tujuanAman(parsed.data.next),
     });
   } catch (error) {
     if (error instanceof AuthError) {
-      // Pesan seragam: tidak membocorkan apakah email terdaftar.
-      return { pesan: "Email atau password salah." };
+      // Pesan seragam: tidak membocorkan apakah akun terdaftar.
+      return { pesan: "Username/email atau password salah." };
     }
     // signIn melempar NEXT_REDIRECT saat berhasil; jangan ditelan.
     throw error;

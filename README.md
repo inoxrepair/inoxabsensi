@@ -3,6 +3,9 @@
 Aplikasi absensi GPS multi-cabang untuk iNox, mencakup autentikasi berbasis
 role, cabang/radius, jadwal shift, rekap keterlambatan, payroll, dan kasbon.
 
+Login mendukung username atau email. Administrator dapat mereset password
+melalui menu Karyawan, dan pengguna dapat mengganti password sendiri di Profil.
+
 Production:
 
 https://inox-absensi-web-production.up.railway.app

@@ -20,6 +20,8 @@ model User {
   id            String    @id @default(cuid())
   name          String
   email         String    @unique
+  /// Username login opsional untuk akun lama; akun baru wajib mengisinya.
+  username      String?   @unique
   emailVerified DateTime?
   image         String?
   /// Hash bcrypt. Null jika user hanya login via Google.

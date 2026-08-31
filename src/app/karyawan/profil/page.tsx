@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { LABEL_ROLE } from "@/lib/domain";
 import { wajibLogin } from "@/lib/session";
 import { formatTanggal } from "@/lib/format";
+import { FormPassword } from "./form-password";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ export default async function KaryawanProfilPage() {
     select: {
       name: true,
       email: true,
+      username: true,
       jabatan: true,
       role: true,
       tanggalMasuk: true,
@@ -49,6 +51,7 @@ export default async function KaryawanProfilPage() {
         {[
           ["Cabang", user.cabang?.nama ?? "Belum ditempatkan"],
           ["Email", user.email],
+          ["Username", user.username ? `@${user.username}` : "Belum diatur"],
           ["Bergabung", formatTanggal(user.tanggalMasuk)],
           ["Role", LABEL_ROLE[sesi.role]],
         ].map(([label, value]) => (
@@ -58,6 +61,8 @@ export default async function KaryawanProfilPage() {
           </div>
         ))}
       </dl>
+
+      <FormPassword />
 
       <div className="mt-4">
         <TombolKeluar className="block w-full rounded-xl border border-line bg-paper px-4 py-3 text-center text-sm font-medium" />

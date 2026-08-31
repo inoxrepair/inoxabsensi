@@ -13,6 +13,8 @@ function wajib(name: string) {
 
 async function main() {
   const email = wajib("SEED_ADMIN_EMAIL").toLowerCase();
+  const username = (process.env.SEED_ADMIN_USERNAME?.trim().toLowerCase() || "owner")
+    .replace(/[^a-z0-9._-]/g, "");
   const password = wajib("SEED_ADMIN_PASSWORD");
   if (password.length < 12) throw new Error("SEED_ADMIN_PASSWORD minimal 12 karakter.");
   const name = process.env.SEED_ADMIN_NAME?.trim() || "Owner iNox";
@@ -31,10 +33,11 @@ async function main() {
 
   const user = await db.user.upsert({
     where: { email },
-    update: { name, role: "super_admin", aktif: true, passwordHash: await hash(password, 12) },
+    update: { name, username, role: "super_admin", aktif: true, passwordHash: await hash(password, 12) },
     create: {
       name,
       email,
+      username,
       role: "super_admin",
       jabatan: "Owner",
       tanggalMasuk: new Date().toISOString().slice(0, 10),

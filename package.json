@@ -17,6 +17,7 @@
     "db:generate:prod": "prisma generate --schema prisma/schema.postgresql.prisma",
     "db:migrate:prod": "prisma migrate deploy --schema prisma/schema.postgresql.prisma",
     "db:seed:prod": "tsx prisma/seed-production.ts",
+    "db:backfill-usernames": "tsx prisma/backfill-usernames.ts",
     "db:studio": "prisma studio",
     "test": "vitest run"
   },

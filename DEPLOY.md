@@ -37,7 +37,7 @@ npm.cmd run build:prod
 Container menjalankan migration sebelum aplikasi standalone:
 
 ```text
-prisma migrate deploy -> node .next/standalone/server.js
+prisma migrate deploy -> backfill username akun lama -> node .next/standalone/server.js
 ```
 
 Jangan menggunakan `prisma db push` pada database production.

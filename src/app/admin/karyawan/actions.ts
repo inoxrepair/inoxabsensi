@@ -63,6 +63,7 @@ export async function simpanKaryawan(
   }
 
   const dasar = {
+    username: data.username,
     name: data.name,
     email: data.email,
     jabatan: data.jabatan,
@@ -73,7 +74,7 @@ export async function simpanKaryawan(
   };
 
   try {
-    if (id) {
+  if (id) {
       await db.user.update({
         where: { id },
         data: {
@@ -92,7 +93,10 @@ export async function simpanKaryawan(
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
       if (e.code === "P2002") {
-        return { ok: false, pesan: `Email "${data.email}" sudah terdaftar.` };
+        return {
+          ok: false,
+          pesan: "Email atau username sudah digunakan akun lain.",
+        };
       }
       if (e.code === "P2025") {
         return { ok: false, pesan: "Karyawan tidak ditemukan." };

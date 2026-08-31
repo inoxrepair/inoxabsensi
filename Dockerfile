@@ -30,4 +30,4 @@ EXPOSE 3000
 
 # Migrasi idempoten dijalankan sebelum server menerima trafik. Seed production
 # hanya berjalan bila RUN_PRODUCTION_SEED=true, lalu variable itu dihapus.
-CMD ["sh", "-c", "npm run db:migrate:prod && if [ \"$RUN_PRODUCTION_SEED\" = \"true\" ]; then npm run db:seed:prod; fi && node .next/standalone/server.js"]
+CMD ["sh", "-c", "npm run db:migrate:prod && npm run db:backfill-usernames && if [ \"$RUN_PRODUCTION_SEED\" = \"true\" ]; then npm run db:seed:prod; fi && node .next/standalone/server.js"]

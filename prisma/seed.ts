@@ -57,6 +57,7 @@ const SHIFT = [
 const KARYAWAN = [
   {
     email: "owner@inox.co.id",
+    username: "owner",
     name: "Owner iNox",
     role: "super_admin",
     jabatan: "Owner",
@@ -66,6 +67,7 @@ const KARYAWAN = [
   },
   {
     email: "dewi@inox.co.id",
+    username: "dewi",
     name: "Dewi Anggraini",
     role: "admin_cabang",
     jabatan: "Kasir",
@@ -75,6 +77,7 @@ const KARYAWAN = [
   },
   {
     email: "rizky@inox.co.id",
+    username: "rizky",
     name: "Rizky Pratama",
     role: "karyawan",
     jabatan: "Teknisi",
@@ -84,6 +87,7 @@ const KARYAWAN = [
   },
   {
     email: "bagus@inox.co.id",
+    username: "bagus",
     name: "Bagus Setiawan",
     role: "karyawan",
     jabatan: "Teknisi Senior",
@@ -93,6 +97,7 @@ const KARYAWAN = [
   },
   {
     email: "siti@inox.co.id",
+    username: "siti",
     name: "Siti Nurhaliza",
     role: "karyawan",
     jabatan: "Sales",
@@ -102,6 +107,7 @@ const KARYAWAN = [
   },
   {
     email: "andi@inox.co.id",
+    username: "andi",
     name: "Andi Wijaya",
     role: "karyawan",
     jabatan: "Teknisi",
@@ -153,6 +159,7 @@ async function main() {
 
   for (const k of KARYAWAN) {
     const data = {
+      username: k.username,
       name: k.name,
       role: k.role,
       jabatan: k.jabatan,
