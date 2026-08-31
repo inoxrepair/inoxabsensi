@@ -38,7 +38,7 @@ export default async function AdminDashboardPage() {
         select: {
           userId: true,
           seragam: true,
-          shift: { select: { nama: true, mulaiMenit: true, selesaiMenit: true } },
+          shift: { select: { nama: true, mode: true, mulaiMenit: true, selesaiMenit: true } },
           user: {
             select: { name: true, cabang: { select: { nama: true } } },
           },
@@ -67,7 +67,9 @@ export default async function AdminDashboardPage() {
         nama: j.user.name,
         cabang: j.user.cabang?.nama ?? "—",
         shift: j.shift
-          ? `${j.shift.nama} (${keJam(j.shift.mulaiMenit)}–${keJam(j.shift.selesaiMenit)})`
+          ? j.shift.mode === "fleksibel"
+            ? `${j.shift.nama} (Fleksibel)`
+            : `${j.shift.nama} (${keJam(j.shift.mulaiMenit)}–${keJam(j.shift.selesaiMenit)})`
           : "—",
         masuk: a?.masukMenit ?? null,
         keluar: a?.keluarMenit ?? null,
