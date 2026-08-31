@@ -1,40 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { db } from "@/lib/db";
 import { roleTerbatasCabang } from "@/lib/domain";
-import { tanggalValid } from "@/lib/rekap";
+import { editAbsensiSkema, type HasilAbsensi } from "@/lib/log-absensi";
 import { wajibAkses } from "@/lib/session";
-import { keMenit } from "@/lib/waktu";
-
-const STATUS = ["hadir", "telat", "izin", "alpa", "libur"] as const;
-
-export const editAbsensiSkema = z
-  .object({
-    id: z.string().min(1),
-    tanggal: z.string().refine(tanggalValid, "Tanggal tidak valid."),
-    status: z.enum(STATUS),
-    masuk: z
-      .string()
-      .optional()
-      .transform((v) => (v ? keMenit(v) : null)),
-    keluar: z
-      .string()
-      .optional()
-      .transform((v) => (v ? keMenit(v) : null)),
-    catatan: z.string().trim().max(300, "Catatan maksimal 300 karakter.").optional(),
-  })
-  .superRefine((data, ctx) => {
-    if ((data.status === "hadir" || data.status === "telat") && data.masuk === null) {
-      ctx.addIssue({ code: "custom", path: ["masuk"], message: "Jam masuk wajib untuk status hadir/telat." });
-    }
-    if (data.keluar !== null && data.masuk === null) {
-      ctx.addIssue({ code: "custom", path: ["keluar"], message: "Jam keluar hanya boleh diisi bila ada jam masuk." });
-    }
-  });
-
-export type HasilAbsensi = { ok: boolean; pesan: string };
 
 export async function simpanEditAbsensi(formData: FormData): Promise<HasilAbsensi> {
   const admin = await wajibAkses("karyawan");
