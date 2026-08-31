@@ -25,7 +25,11 @@ async function kondisiHariIni(userId: string, tanggal: string) {
     }),
     db.jadwal.findUnique({
       where: { userId_tanggal: { userId, tanggal } },
-      select: { shift: true, seragam: true },
+      select: {
+        shift: true,
+        seragam: true,
+        jenisSeragam: { select: { nama: true } },
+      },
     }),
     db.absensi.findUnique({
       where: { userId_tanggal: { userId, tanggal } },
@@ -45,7 +49,7 @@ async function kondisiHariIni(userId: string, tanggal: string) {
     kondisi,
     cabangId: user.cabang?.id ?? null,
     adaBaris: absensi !== null,
-    seragam: jadwal?.seragam,
+    seragam: jadwal?.jenisSeragam?.nama ?? jadwal?.seragam,
   };
 }
 

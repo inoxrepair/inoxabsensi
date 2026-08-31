@@ -20,7 +20,12 @@ export default async function KaryawanJadwalPage() {
 
   const jadwal = await db.jadwal.findMany({
     where: { userId: sesi.id, tanggal: { in: minggu } },
-    select: { tanggal: true, seragam: true, shift: true },
+    select: {
+      tanggal: true,
+      seragam: true,
+      jenisSeragam: { select: { nama: true } },
+      shift: true,
+    },
   });
 
   const perTanggal = new Map(jadwal.map((j) => [j.tanggal, j]));
@@ -58,7 +63,9 @@ export default async function KaryawanJadwalPage() {
                   {j?.shift
                     ? `${keJam(j.shift.mulaiMenit)}–${keJam(j.shift.selesaiMenit)}`
                     : "Libur"}
-                  {j?.seragam ? ` · ${j.seragam}` : ""}
+                  {j?.jenisSeragam?.nama || j?.seragam
+                    ? ` · ${j.jenisSeragam?.nama ?? j.seragam}`
+                    : ""}
                 </p>
               </div>
               {j?.shift ? (

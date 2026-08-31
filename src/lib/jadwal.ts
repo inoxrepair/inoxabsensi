@@ -59,10 +59,8 @@ export const selJadwalSkema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal tidak valid."),
   shiftId: z.string().transform((v) => (v === "" ? null : v)),
-  seragam: z
+  seragamId: z
     .string()
-    .trim()
-    .max(30, "Nama seragam maksimal 30 karakter.")
     .optional()
     .transform((v) => (v ? v : null)),
 });

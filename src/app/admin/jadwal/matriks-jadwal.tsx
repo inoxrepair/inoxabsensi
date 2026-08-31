@@ -11,12 +11,18 @@ export type Shift = {
   selesai: string;
 };
 
+export type SeragamOption = {
+  id: string;
+  nama: string;
+  aktif: boolean;
+};
+
 export type BarisJadwal = {
   userId: string;
   nama: string;
   cabang: string;
   /** 7 entri Senin..Minggu; null = libur. */
-  hari: ({ shiftId: string; seragam: string | null } | null)[];
+  hari: ({ shiftId: string; seragamId: string | null; seragam: string | null } | null)[];
 };
 
 /**
@@ -27,11 +33,13 @@ export function MatriksJadwal({
   minggu,
   baris,
   shift,
+  seragam,
   onPesan,
 }: {
   minggu: string[];
   baris: BarisJadwal[];
   shift: Shift[];
+  seragam: SeragamOption[];
   onPesan: (h: Hasil) => void;
 }) {
   if (baris.length === 0) {
@@ -81,7 +89,9 @@ export function MatriksJadwal({
                     hari={namaHari(tgl, true)}
                     nilai={r.hari[i]?.shiftId ?? ""}
                     seragam={r.hari[i]?.seragam ?? ""}
+                    seragamId={r.hari[i]?.seragamId ?? ""}
                     shift={shift}
+                    pilihanSeragam={seragam}
                     onPesan={onPesan}
                   />
                 </td>
@@ -101,7 +111,9 @@ function SelShift({
   hari,
   nilai,
   seragam,
+  seragamId,
   shift,
+  pilihanSeragam,
   onPesan,
 }: {
   userId: string;
@@ -110,11 +122,14 @@ function SelShift({
   hari: string;
   nilai: string;
   seragam: string;
+  seragamId: string;
   shift: Shift[];
+  pilihanSeragam: SeragamOption[];
   onPesan: (h: Hasil) => void;
 }) {
   // Optimistis: tampilkan pilihan baru langsung, tanpa menunggu server.
   const [pilihan, setPilihan] = useState(nilai);
+  const [pilihanSeragamId, setPilihanSeragamId] = useState(seragamId);
   const [menunggu, mulai] = useTransition();
 
   function ubah(shiftId: string) {
@@ -125,7 +140,7 @@ function SelShift({
     data.set("userId", userId);
     data.set("tanggal", tanggal);
     data.set("shiftId", shiftId);
-    if (seragam) data.set("seragam", seragam);
+    if (pilihanSeragamId) data.set("seragamId", pilihanSeragamId);
 
     mulai(async () => {
       const hasil = await setJadwal(data);
@@ -134,8 +149,24 @@ function SelShift({
     });
   }
 
+  function ubahSeragam(id: string) {
+    const sebelumnya = pilihanSeragamId;
+    setPilihanSeragamId(id);
+    const data = new FormData();
+    data.set("userId", userId);
+    data.set("tanggal", tanggal);
+    data.set("shiftId", pilihan);
+    data.set("seragamId", id);
+    mulai(async () => {
+      const hasil = await setJadwal(data);
+      if (!hasil.ok) setPilihanSeragamId(sebelumnya);
+      onPesan(hasil);
+    });
+  }
+
   return (
-    <select
+    <div className="space-y-1.5">
+      <select
       aria-label={`Shift ${nama} hari ${hari} tanggal ${tanggal}`}
       value={pilihan}
       disabled={menunggu}
@@ -145,13 +176,30 @@ function SelShift({
           ? "border-line bg-surface font-medium"
           : "border-line/60 bg-paper text-muted"
       }`}
-    >
-      <option value="">Libur</option>
-      {shift.map((s) => (
-        <option key={s.id} value={s.id}>
-          {s.nama} ({s.mulai}–{s.selesai})
-        </option>
-      ))}
-    </select>
+      >
+        <option value="">Libur</option>
+        {shift.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.nama} ({s.mulai}–{s.selesai})
+          </option>
+        ))}
+      </select>
+      {pilihan ? (
+        <select
+          aria-label={`Seragam ${nama} hari ${hari} tanggal ${tanggal}`}
+          value={pilihanSeragamId}
+          disabled={menunggu}
+          onChange={(e) => ubahSeragam(e.target.value)}
+          className="w-full rounded-lg border border-line bg-paper px-2 py-1.5 text-xs text-muted disabled:opacity-50"
+        >
+          <option value="">Tanpa seragam</option>
+          {pilihanSeragam.map((s) => (
+            <option key={s.id} value={s.id} disabled={!s.aktif && s.id !== pilihanSeragamId}>
+              {s.nama}{!s.aktif ? " (nonaktif)" : ""}
+            </option>
+          ))}
+        </select>
+      ) : null}
+    </div>
   );
 }

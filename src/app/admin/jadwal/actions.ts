@@ -103,7 +103,7 @@ export async function setJadwal(formData: FormData): Promise<Hasil> {
   if (!parsed.success) {
     return { ok: false, pesan: parsed.error.issues[0].message };
   }
-  const { userId, tanggal, shiftId, seragam } = parsed.data;
+  const { userId, tanggal, shiftId, seragamId } = parsed.data;
 
   if (!(await pastikanDalamLingkup(admin, userId))) {
     return { ok: false, pesan: "Karyawan di luar lingkup cabang Anda." };
@@ -115,6 +115,14 @@ export async function setJadwal(formData: FormData): Promise<Hasil> {
     if (ada === 0) return { ok: false, pesan: "Shift tidak ditemukan." };
   }
 
+  const seragam = seragamId
+    ? await db.jenisSeragam.findUnique({
+        where: { id: seragamId },
+        select: { id: true, nama: true },
+      })
+    : null;
+  if (seragamId && !seragam) return { ok: false, pesan: "Jenis seragam tidak ditemukan." };
+
   if (shiftId === null) {
     // Libur: hapus barisnya, bukan simpan baris kosong, agar tabel
     // hanya memuat hari kerja yang benar-benar dijadwalkan.
@@ -122,8 +130,8 @@ export async function setJadwal(formData: FormData): Promise<Hasil> {
   } else {
     await db.jadwal.upsert({
       where: { userId_tanggal: { userId, tanggal } },
-      update: { shiftId, seragam },
-      create: { userId, tanggal, shiftId, seragam },
+      update: { shiftId, seragamId: seragam?.id ?? null, seragam: seragam?.nama ?? null },
+      create: { userId, tanggal, shiftId, seragamId: seragam?.id ?? null, seragam: seragam?.nama ?? null },
     });
   }
 
@@ -151,7 +159,7 @@ export async function salinMinggu(
 
   const sumber = await db.jadwal.findMany({
     where: { tanggal: { in: asal }, ...lingkup },
-    select: { userId: true, tanggal: true, shiftId: true, seragam: true },
+    select: { userId: true, tanggal: true, shiftId: true, seragamId: true, seragam: true },
   });
 
   if (sumber.length === 0) {
@@ -164,6 +172,7 @@ export async function salinMinggu(
       userId: s.userId,
       tanggal: tujuan[asal.indexOf(s.tanggal)],
       shiftId: s.shiftId,
+      seragamId: s.seragamId,
       seragam: s.seragam,
     }));
 
@@ -202,6 +211,7 @@ export async function aturRentang(formData: FormData): Promise<Hasil> {
   const dariRaw = String(formData.get("dari") ?? "");
   const sampaiRaw = String(formData.get("sampai") ?? "");
   const shiftId = String(formData.get("shiftId") ?? "") || null;
+  const seragamId = String(formData.get("seragamId") ?? "") || null;
   const cabangIdForm = String(formData.get("cabangId") ?? "");
   const userIds = formData.getAll("userId").map(String).filter(Boolean);
 
@@ -217,6 +227,15 @@ export async function aturRentang(formData: FormData): Promise<Hasil> {
 
   if (shiftId && (await db.shift.count({ where: { id: shiftId } })) === 0) {
     return { ok: false, pesan: "Shift tidak ditemukan." };
+  }
+  const seragam = seragamId
+    ? await db.jenisSeragam.findFirst({
+        where: { id: seragamId, aktif: true },
+        select: { id: true, nama: true },
+      })
+    : null;
+  if (seragamId && !seragam) {
+    return { ok: false, pesan: "Jenis seragam tidak aktif atau tidak ditemukan." };
   }
 
   const cabangId = roleTerbatasCabang(admin.role)
@@ -247,7 +266,13 @@ export async function aturRentang(formData: FormData): Promise<Hasil> {
   );
   const ids = target.map((u) => u.id);
   const baris = ids.flatMap((userId) =>
-    tanggal.map((tgl) => ({ userId, tanggal: tgl, shiftId, seragam: null })),
+    tanggal.map((tgl) => ({
+      userId,
+      tanggal: tgl,
+      shiftId,
+      seragamId: seragam?.id ?? null,
+      seragam: seragam?.nama ?? null,
+    })),
   );
 
   const operasi = [

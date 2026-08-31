@@ -4,11 +4,12 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
 import { aturRentang, type Hasil } from "./actions";
-import type { Shift } from "./matriks-jadwal";
+import type { SeragamOption, Shift } from "./matriks-jadwal";
 
 export function FormRentang({
   karyawan,
   shift,
+  seragam,
   cabangId,
   awal,
   akhir,
@@ -17,6 +18,7 @@ export function FormRentang({
 }: {
   karyawan: { id: string; nama: string }[];
   shift: Shift[];
+  seragam: SeragamOption[];
   cabangId: string;
   awal: string;
   akhir: string;
@@ -60,6 +62,8 @@ export function FormRentang({
     // Ambil nilai shift dari select langsung karena tidak ada state terpisah.
     const selectEl = e.currentTarget.elements.namedItem("shiftId") as HTMLSelectElement | null;
     if (selectEl) form.set("shiftId", selectEl.value);
+    const seragamEl = e.currentTarget.elements.namedItem("seragamId") as HTMLSelectElement | null;
+    if (seragamEl) form.set("seragamId", seragamEl.value);
 
     mulai(async () => {
       const hasil = await aturRentang(form);
@@ -80,7 +84,7 @@ export function FormRentang({
       <p className="mt-1 text-xs text-muted">
         Aksi ini mengubah jadwal karyawan terpilih pada seluruh tanggal.
       </p>
-      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+      <div className="mt-3 grid gap-3 sm:grid-cols-4">
         <label className="text-xs text-muted">
           Dari
           <input
@@ -91,6 +95,15 @@ export function FormRentang({
             required
             className="mt-1.5 w-full rounded-lg border border-line px-3 py-2 text-sm"
           />
+        </label>
+        <label className="text-xs text-muted">
+          Seragam
+          <select name="seragamId" className="mt-1.5 w-full rounded-lg border border-line px-3 py-2 text-sm">
+            <option value="">Tanpa seragam</option>
+            {seragam.filter((s) => s.aktif).map((s) => (
+              <option key={s.id} value={s.id}>{s.nama}</option>
+            ))}
+          </select>
         </label>
         <label className="text-xs text-muted">
           Sampai

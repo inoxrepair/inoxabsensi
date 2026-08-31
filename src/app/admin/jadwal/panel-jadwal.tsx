@@ -12,6 +12,7 @@ import { FilterOverview } from "./filter-overview";
 import {
   MatriksJadwal,
   type BarisJadwal,
+  type SeragamOption,
   type Shift,
 } from "./matriks-jadwal";
 
@@ -22,6 +23,7 @@ export function PanelJadwal({
   baris,
   shift,
   shiftLengkap,
+  seragam,
   bolehUbahShift,
   bolehPilihCabang,
   cabang,
@@ -34,6 +36,7 @@ export function PanelJadwal({
   baris: BarisJadwal[];
   shift: Shift[];
   shiftLengkap: ShiftLengkap[];
+  seragam: SeragamOption[];
   bolehUbahShift: boolean;
   bolehPilihCabang: boolean;
   cabang: CabangOption[];
@@ -162,6 +165,7 @@ export function PanelJadwal({
         <FormRentang
           karyawan={karyawanRentang}
           shift={shift}
+          seragam={seragam}
           cabangId={cabangTerpilih}
           awal={rentangAktif.dari}
           akhir={rentangAktif.sampai}
@@ -186,7 +190,7 @@ export function PanelJadwal({
         </p>
       ) : null}
 
-      <MatriksJadwal minggu={minggu} baris={baris} shift={shift} onPesan={setPesan} />
+      <MatriksJadwal minggu={minggu} baris={baris} shift={shift} seragam={seragam} onPesan={setPesan} />
 
       <div className="mt-6">
         <Card

@@ -133,6 +133,12 @@ const POLA_JADWAL: Record<string, (string | null)[]> = {
 
 const SERAGAM = ["Seragam A", "Seragam B"];
 
+const MASTER_SERAGAM = [
+  { kode: "SRG-A", nama: "Seragam A", deskripsi: "Seragam kerja tipe A" },
+  { kode: "SRG-B", nama: "Seragam B", deskripsi: "Seragam kerja tipe B" },
+  { kode: "POLO-INOX", nama: "Polo iNox", deskripsi: "Kaos polo resmi iNox" },
+];
+
 async function main() {
   const passwordHash = await hash(PASSWORD_DEMO, 10);
 
@@ -155,6 +161,14 @@ async function main() {
       create: s,
     });
     shiftId.set(row.nama, row.id);
+  }
+
+  for (const s of MASTER_SERAGAM) {
+    await db.jenisSeragam.upsert({
+      where: { kode: s.kode },
+      update: s,
+      create: { ...s, aktif: true },
+    });
   }
 
   for (const k of KARYAWAN) {

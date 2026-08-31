@@ -91,22 +91,22 @@ describe("selJadwalSkema", () => {
       userId: "u1",
       tanggal: "2026-08-31",
       shiftId: "s1",
-      seragam: "Seragam A",
+      seragamId: "srg-a",
     });
     if (h.success) {
       expect(h.data.shiftId).toBe("s1");
-      expect(h.data.seragam).toBe("Seragam A");
+      expect(h.data.seragamId).toBe("srg-a");
     }
   });
 
-  it("seragam kosong menjadi null", () => {
+  it("seragamId kosong menjadi null", () => {
     const h = selJadwalSkema.safeParse({
       userId: "u1",
       tanggal: "2026-08-31",
       shiftId: "s1",
-      seragam: "   ",
+      seragamId: "",
     });
-    if (h.success) expect(h.data.seragam).toBeNull();
+    if (h.success) expect(h.data.seragamId).toBeNull();
   });
 
   it("menolak format tanggal salah", () => {

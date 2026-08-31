@@ -69,7 +69,7 @@ export default async function AdminJadwalPage({
     : (q.cabang ?? "");
   const lingkup = cabangTerpilih ? { cabangId: cabangTerpilih } : {};
 
-  const [karyawan, shiftRows, jadwal, cabang] = await Promise.all([
+  const [karyawan, shiftRows, jadwal, cabang, seragam] = await Promise.all([
     db.user.findMany({
       where: { aktif: true, role: { not: "super_admin" }, ...lingkup },
       orderBy: [{ cabang: { nama: "asc" } }, { name: "asc" }],
@@ -84,12 +84,16 @@ export default async function AdminJadwalPage({
         tanggal: { in: tanggalTampil },
         user: { aktif: true, ...lingkup },
       },
-      select: { userId: true, tanggal: true, shiftId: true, seragam: true },
+      select: { userId: true, tanggal: true, shiftId: true, seragamId: true, seragam: true },
     }),
     db.cabang.findMany({
       where: { aktif: true },
       orderBy: { nama: "asc" },
       select: { id: true, nama: true },
+    }),
+    db.jenisSeragam.findMany({
+      orderBy: [{ aktif: "desc" }, { nama: "asc" }],
+      select: { id: true, nama: true, aktif: true },
     }),
   ]);
 
@@ -102,7 +106,9 @@ export default async function AdminJadwalPage({
     cabang: k.cabang?.nama ?? "Belum ditempatkan",
     hari: tanggalTampil.map((tgl) => {
       const j = petaJadwal.get(`${k.id}|${tgl}`);
-      return j?.shiftId ? { shiftId: j.shiftId, seragam: j.seragam } : null;
+      return j?.shiftId
+        ? { shiftId: j.shiftId, seragamId: j.seragamId, seragam: j.seragam }
+        : null;
     }),
   }));
 
@@ -147,6 +153,7 @@ export default async function AdminJadwalPage({
           selesai: s.selesai,
         }))}
         shiftLengkap={shiftLengkap}
+        seragam={seragam}
         bolehUbahShift={admin.role === "super_admin"}
         bolehPilihCabang={admin.role === "super_admin"}
         cabang={cabang}

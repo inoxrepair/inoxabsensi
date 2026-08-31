@@ -25,7 +25,11 @@ export default async function KaryawanAbsenPage() {
     }),
     db.jadwal.findUnique({
       where: { userId_tanggal: { userId: sesi.id, tanggal } },
-      select: { seragam: true, shift: true },
+      select: {
+        seragam: true,
+        jenisSeragam: { select: { nama: true } },
+        shift: true,
+      },
     }),
     db.absensi.findUnique({
       where: { userId_tanggal: { userId: sesi.id, tanggal } },
@@ -83,7 +87,9 @@ export default async function KaryawanAbsenPage() {
           </div>
           <div>
             <dt className="text-muted">Seragam</dt>
-            <dd className="mt-0.5 font-medium">{jadwal?.seragam ?? "—"}</dd>
+            <dd className="mt-0.5 font-medium">
+              {jadwal?.jenisSeragam?.nama ?? jadwal?.seragam ?? "—"}
+            </dd>
           </div>
           <div>
             <dt className="text-muted">Radius cabang</dt>

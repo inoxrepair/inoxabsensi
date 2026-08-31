@@ -88,16 +88,30 @@ model Shift {
   jadwal Jadwal[]
 }
 
+model JenisSeragam {
+  id          String   @id @default(cuid())
+  kode        String   @unique
+  nama        String   @unique
+  deskripsi   String?
+  aktif       Boolean  @default(true)
+  jadwal      Jadwal[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model Jadwal {
   id      String @id @default(cuid())
   userId  String
   tanggal String
   shiftId String?
+  seragamId String?
   seragam String?
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   shift Shift? @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  jenisSeragam JenisSeragam? @relation(fields: [seragamId], references: [id], onDelete: SetNull)
   @@unique([userId, tanggal])
   @@index([tanggal])
+  @@index([seragamId])
 }
 
 model Absensi {

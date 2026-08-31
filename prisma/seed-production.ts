@@ -25,6 +25,18 @@ async function main() {
     update: { mulaiMenit: keMenit("09.00")!, selesaiMenit: keMenit("17.00")!, toleransiMenit: 10 },
     create: { nama: "Pagi", mulaiMenit: keMenit("09.00")!, selesaiMenit: keMenit("17.00")!, toleransiMenit: 10 },
   });
+
+  for (const seragam of [
+    { kode: "SRG-A", nama: "Seragam A", deskripsi: "Seragam kerja tipe A" },
+    { kode: "SRG-B", nama: "Seragam B", deskripsi: "Seragam kerja tipe B" },
+    { kode: "POLO-INOX", nama: "Polo iNox", deskripsi: "Kaos polo resmi iNox" },
+  ]) {
+    await db.jenisSeragam.upsert({
+      where: { kode: seragam.kode },
+      update: seragam,
+      create: { ...seragam, aktif: true },
+    });
+  }
   await db.shift.upsert({
     where: { nama: "Siang" },
     update: { mulaiMenit: keMenit("14.00")!, selesaiMenit: keMenit("22.00")!, toleransiMenit: 10 },
