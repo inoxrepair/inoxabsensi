@@ -61,7 +61,9 @@ export default async function KaryawanJadwalPage() {
                 </p>
                 <p className="text-xs tabular-nums text-muted">
                   {j?.shift
-                    ? `${keJam(j.shift.mulaiMenit)}–${keJam(j.shift.selesaiMenit)}`
+                    ? j.shift.mode === "fleksibel"
+                      ? "Jam aktual saat absen"
+                      : `${keJam(j.shift.mulaiMenit)}–${keJam(j.shift.selesaiMenit)}`
                     : "Libur"}
                   {j?.jenisSeragam?.nama || j?.seragam
                     ? ` · ${j.jenisSeragam?.nama ?? j.seragam}`

@@ -65,7 +65,9 @@ export default async function KaryawanAbsenPage() {
             </p>
             <p className="mt-1 font-medium">
               {shift
-                ? `${shift.nama} · ${keJam(shift.mulaiMenit)}–${keJam(shift.selesaiMenit)}`
+                ? shift.mode === "fleksibel"
+                  ? `${shift.nama} · jam aktual masuk–keluar`
+                  : `${shift.nama} · ${keJam(shift.mulaiMenit)}–${keJam(shift.selesaiMenit)}`
                 : "Tidak ada jadwal"}
             </p>
             {shift?.mode === "fleksibel" ? (

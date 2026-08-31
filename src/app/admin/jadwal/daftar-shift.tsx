@@ -54,8 +54,8 @@ export function DaftarShift({
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{s.nama}</p>
                   <p className="mt-0.5 text-sm tabular-nums text-muted">
-                    {s.mulai}–{s.selesai}
-                    {s.lintasTengahMalam ? (
+                    {s.mode === "fleksibel" ? "Jam aktual masuk–keluar" : `${s.mulai}–${s.selesai}`}
+                    {s.mode !== "fleksibel" && s.lintasTengahMalam ? (
                       <span className="ml-1 text-xs">(+1 hari)</span>
                     ) : null}
                   </p>
