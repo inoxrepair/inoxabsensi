@@ -3,12 +3,14 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Card } from "@/components/ui/primitives";
 import { kosongkanMinggu, salinMinggu, type Hasil } from "./actions";
 import { DaftarShift, type ShiftLengkap } from "./daftar-shift";
 import { FormRentang } from "./form-rentang";
 import { FilterOverview } from "./filter-overview";
+import { SpreadsheetJadwal } from "./spreadsheet";
+import { AlatJadwal } from "./alat-jadwal";
 import {
   MatriksJadwal,
   type BarisJadwal,
@@ -56,9 +58,31 @@ export function PanelJadwal({
   const router = useRouter();
   const params = useSearchParams();
   const [pesan, setPesan] = useState<Hasil | null>(null);
+  const [barisLive, setBarisLive] = useState(baris);
   const [formRentang, setFormRentang] = useState(false);
   const [menunggu, mulai] = useTransition();
   const adaJadwal = baris.some((b) => b.hari.some(Boolean));
+
+  useEffect(() => setBarisLive(baris), [baris]);
+
+  function ubahCell(userId: string, tanggal: string, shiftId: string, seragamId: string) {
+    const indexTanggal = minggu.indexOf(tanggal);
+    if (indexTanggal < 0) return;
+    setBarisLive((lama) =>
+      lama.map((row) => {
+        if (row.userId !== userId) return row;
+        const hari = [...row.hari];
+        hari[indexTanggal] = shiftId
+          ? {
+              shiftId,
+              seragamId: seragamId || null,
+              seragam: seragam.find((s) => s.id === seragamId)?.nama ?? null,
+            }
+          : null;
+        return { ...row, hari };
+      }),
+    );
+  }
 
   function urlMinggu(tanggal?: string): Route {
     const q = new URLSearchParams();
@@ -190,7 +214,15 @@ export function PanelJadwal({
         </p>
       ) : null}
 
-      <MatriksJadwal minggu={minggu} baris={baris} shift={shift} seragam={seragam} onPesan={setPesan} />
+      <MatriksJadwal minggu={minggu} baris={barisLive} shift={shift} seragam={seragam} onPesan={setPesan} onCellChange={ubahCell} />
+      <SpreadsheetJadwal tanggal={minggu} baris={barisLive} shift={shift} />
+      <AlatJadwal
+        awal={rentangAktif.dari}
+        akhir={rentangAktif.sampai}
+        polaMulai={navigasi.seninSekarang}
+        cabangId={cabangTerpilih}
+        onPesan={setPesan}
+      />
 
       <div className="mt-6">
         <Card

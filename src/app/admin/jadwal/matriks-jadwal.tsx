@@ -35,12 +35,14 @@ export function MatriksJadwal({
   shift,
   seragam,
   onPesan,
+  onCellChange,
 }: {
   minggu: string[];
   baris: BarisJadwal[];
   shift: Shift[];
   seragam: SeragamOption[];
   onPesan: (h: Hasil) => void;
+  onCellChange?: (userId: string, tanggal: string, shiftId: string, seragamId: string) => void;
 }) {
   if (baris.length === 0) {
     return (
@@ -93,6 +95,7 @@ export function MatriksJadwal({
                     shift={shift}
                     pilihanSeragam={seragam}
                     onPesan={onPesan}
+                    onCellChange={onCellChange}
                   />
                 </td>
               ))}
@@ -115,6 +118,7 @@ function SelShift({
   shift,
   pilihanSeragam,
   onPesan,
+  onCellChange,
 }: {
   userId: string;
   nama: string;
@@ -126,6 +130,7 @@ function SelShift({
   shift: Shift[];
   pilihanSeragam: SeragamOption[];
   onPesan: (h: Hasil) => void;
+  onCellChange?: (userId: string, tanggal: string, shiftId: string, seragamId: string) => void;
 }) {
   // Optimistis: tampilkan pilihan baru langsung, tanpa menunggu server.
   const [pilihan, setPilihan] = useState(nilai);
@@ -145,6 +150,7 @@ function SelShift({
     mulai(async () => {
       const hasil = await setJadwal(data);
       if (!hasil.ok) setPilihan(sebelumnya);
+      else onCellChange?.(userId, tanggal, shiftId, shiftId ? pilihanSeragamId : "");
       onPesan(hasil);
     });
   }
@@ -160,6 +166,7 @@ function SelShift({
     mulai(async () => {
       const hasil = await setJadwal(data);
       if (!hasil.ok) setPilihanSeragamId(sebelumnya);
+      else onCellChange?.(userId, tanggal, pilihan, id);
       onPesan(hasil);
     });
   }
