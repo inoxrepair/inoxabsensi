@@ -166,11 +166,18 @@ async function main() {
   }
 
   for (const s of MASTER_SERAGAM) {
-    await db.jenisSeragam.upsert({
-      where: { kode: s.kode },
-      update: s,
-      create: { ...s, aktif: true },
+    // Database development lama pernah memakai kode berbeda untuk nama yang
+    // sama. Pertahankan ID yang sudah direferensikan jadwal agar seed ulang
+    // tidak menabrak unique nama atau memutus relasi.
+    const ada = await db.jenisSeragam.findFirst({
+      where: { OR: [{ kode: s.kode }, { nama: s.nama }] },
+      select: { id: true },
     });
+    if (ada) {
+      await db.jenisSeragam.update({ where: { id: ada.id }, data: s });
+    } else {
+      await db.jenisSeragam.create({ data: { ...s, aktif: true } });
+    }
   }
 
   for (const k of KARYAWAN) {
