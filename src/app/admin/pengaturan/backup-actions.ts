@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { backupJadwalSkema } from "@/lib/backup-jadwal";
+import { backupJadwalSkema, kelompokTanggalRestore } from "@/lib/backup-jadwal";
 import { wajibAkses } from "@/lib/session";
 
 export type HasilBackup = { ok: boolean; pesan: string };
@@ -48,8 +48,6 @@ export async function importBackupJadwal(formData: FormData): Promise<HasilBacku
     seragamId: string | null;
     seragam: string | null;
   }[] = [];
-  const userIds: string[] = [];
-  const dates: string[] = [];
   for (const row of parsed.data.data) {
     const user =
       (row.username ? byUsername.get(row.username) : undefined) ??
@@ -61,8 +59,6 @@ export async function importBackupJadwal(formData: FormData): Promise<HasilBacku
     if (row.seragamKode && !uniform) {
       return { ok: false, pesan: `Seragam ${row.seragamKode} tidak ditemukan.` };
     }
-    userIds.push(user.id);
-    dates.push(row.tanggal);
     data.push({
       userId: user.id,
       tanggal: row.tanggal,
@@ -72,12 +68,14 @@ export async function importBackupJadwal(formData: FormData): Promise<HasilBacku
     });
   }
 
-  const ids = [...new Set(userIds)];
-  const tanggal = [...new Set(dates)];
-  await db.$transaction([
-    db.jadwal.deleteMany({ where: { userId: { in: ids }, tanggal: { in: tanggal } } }),
+  const kelompok = kelompokTanggalRestore(data);
+  const operasi = [
+    ...kelompok.map(({ userId, tanggal }) =>
+      db.jadwal.deleteMany({ where: { userId, tanggal: { in: tanggal } } }),
+    ),
     ...(data.length ? [db.jadwal.createMany({ data })] : []),
-  ]);
+  ];
+  if (operasi.length) await db.$transaction(operasi);
   revalidatePath("/admin/jadwal");
   revalidatePath("/karyawan/jadwal");
   return { ok: true, pesan: `${data.length} jadwal berhasil dipulihkan dari backup.` };

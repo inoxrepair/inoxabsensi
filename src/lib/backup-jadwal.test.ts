@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { backupJadwalSkema } from "./backup-jadwal";
+import { backupJadwalSkema, kelompokTanggalRestore } from "./backup-jadwal";
 
 describe("backupJadwalSkema", () => {
   const valid = {
@@ -25,5 +25,31 @@ describe("backupJadwalSkema", () => {
   });
   it("menolak tanggal rusak", () => {
     expect(backupJadwalSkema.safeParse({ ...valid, dari: "2026-02-31" }).success).toBe(false);
+  });
+});
+
+describe("kelompokTanggalRestore", () => {
+  it("mempertahankan pasangan tanggal masing-masing user", () => {
+    expect(
+      kelompokTanggalRestore([
+        { userId: "user-a", tanggal: "2026-08-01" },
+        { userId: "user-b", tanggal: "2026-08-02" },
+      ]),
+    ).toEqual([
+      { userId: "user-a", tanggal: ["2026-08-01"] },
+      { userId: "user-b", tanggal: ["2026-08-02"] },
+    ]);
+  });
+
+  it("menghapus tanggal duplikat dalam kelompok user yang sama", () => {
+    expect(
+      kelompokTanggalRestore([
+        { userId: "user-a", tanggal: "2026-08-01" },
+        { userId: "user-a", tanggal: "2026-08-01" },
+        { userId: "user-a", tanggal: "2026-08-02" },
+      ]),
+    ).toEqual([
+      { userId: "user-a", tanggal: ["2026-08-01", "2026-08-02"] },
+    ]);
   });
 });

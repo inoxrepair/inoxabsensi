@@ -1,7 +1,12 @@
 import { forbidden, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { bacaRole, type MenuAdmin, type RoleKaryawan } from "@/lib/domain";
+import {
+  bacaRole,
+  roleTerbatasCabang,
+  type MenuAdmin,
+  type RoleKaryawan,
+} from "@/lib/domain";
 
 export type Pengguna = {
   id: string;
@@ -38,11 +43,14 @@ export async function wajibLogin(): Promise<Pengguna> {
   });
   if (!row?.aktif) redirect("/login");
 
+  const role = bacaRole(row.role);
+  if (roleTerbatasCabang(role) && !row.cabangId) forbidden();
+
   return {
     id: row.id,
     nama: row.name,
     email: row.email,
-    role: bacaRole(row.role),
+    role,
     cabangId: row.cabangId,
     jabatan: row.jabatan,
   };

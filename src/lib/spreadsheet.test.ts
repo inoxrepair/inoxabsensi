@@ -26,6 +26,11 @@ describe("spreadsheet", () => {
     expect(parseCsv('Nama;Catatan\r\nA;"x;y"')).toEqual([["Nama", "Catatan"], ["A", "x;y"]]);
   });
   it("escape CSV", () => expect(csvCell("a;b")).toBe('"a;b"'));
+  it("menetralisir formula spreadsheet", () => {
+    expect(csvCell("=1+1")).toBe("'=1+1");
+    expect(csvCell(" +CMD(1)")).toBe("' +CMD(1)");
+    expect(csvCell("@SUM(A1:A2)")).toBe("'@SUM(A1:A2)");
+  });
   it("menghasilkan jumlah tanggal bulan", () => {
     expect(datesInMonth(2028, 2)).toHaveLength(29);
   });

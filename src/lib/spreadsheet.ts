@@ -43,7 +43,9 @@ export function parseCsv(text: string): string[][] {
 
 export function csvCell(value: string | number | null): string {
   const text = value == null ? "" : String(value);
-  return /[";\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  // Netralisir formula spreadsheet, termasuk yang diawali whitespace.
+  const safe = /^[\s]*[=+\-@\t\r\n]/.test(text) ? `'${text}` : text;
+  return /[";\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 
 export function renderSpreadsheetCsv(
