@@ -78,7 +78,7 @@ export default async function AdminRekapPage({
   const total = totalRekap(baris);
   const persen = persenKehadiran(total);
   const jumlahHari = selisihHari(lingkup.dari, lingkup.sampai) + 1;
-  const adaData = total.hadir + total.telat + total.izin + total.alpa > 0;
+  const adaData = total.hadir + total.izin + total.alpa > 0;
 
   const paramExport = new URLSearchParams(
     lingkup.kustom
@@ -98,7 +98,7 @@ export default async function AdminRekapPage({
         <StatCard
           label="Hadir"
           value={total.hadir}
-          hint={total.telat > 0 ? `+${total.telat} telat` : "tanpa keterlambatan"}
+          hint={total.telat > 0 ? `${total.telat} di antaranya telat` : "tanpa keterlambatan"}
         />
         <StatCard
           label="Akumulasi telat"

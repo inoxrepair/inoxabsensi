@@ -9,9 +9,7 @@ export default async function HomePage() {
   // Sudah login: langsung ke area sesuai role, tidak perlu halaman perantara.
   if (sesi?.user) {
     redirect(
-      sesi.user.role === "karyawan" || sesi.user.role === "headstore"
-        ? "/karyawan"
-        : "/admin",
+      sesi.user.role === "karyawan" ? "/karyawan" : "/admin",
     );
   }
 

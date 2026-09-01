@@ -33,7 +33,7 @@ describe("rekapPerKaryawan", () => {
       catatan({ status: "izin", masukMenit: null, keluarMenit: null }),
     ]);
     const u = peta.get("u1")!;
-    expect(u.hadir).toBe(1);
+    expect(u.hadir).toBe(2);
     expect(u.telat).toBe(1);
     expect(u.izin).toBe(1);
     expect(u.alpa).toBe(0);
@@ -49,6 +49,7 @@ describe("rekapPerKaryawan", () => {
     ]);
     const u = peta.get("u1")!;
     expect(u.telat).toBe(2);
+    expect(u.hadir).toBe(3);
     expect(u.menitTelat).toBe(22);
   });
 
@@ -111,7 +112,7 @@ describe("totalRekap", () => {
       catatan({ userId: "b", status: "telat", menitTelat: 12 }),
     ]);
     const t = totalRekap([...peta.values()]);
-    expect(t.hadir).toBe(1);
+    expect(t.hadir).toBe(2);
     expect(t.telat).toBe(1);
     expect(t.menitKerja).toBe(960);
     expect(t.menitTelat).toBe(12);
@@ -134,12 +135,12 @@ describe("persenKehadiran", () => {
   const dasar = { izin: 0, alpa: 0, menitKerja: 0, menitTelat: 0, kekuranganMenit: 0 };
 
   it("telat tetap dihitung hadir", () => {
-    expect(persenKehadiran({ hadir: 8, telat: 2, ...dasar })).toBe(100);
+    expect(persenKehadiran({ hadir: 10, telat: 2, ...dasar })).toBe(100);
   });
 
   it("menghitung proporsi terhadap total hari", () => {
     expect(
-      persenKehadiran({ ...dasar, hadir: 7, telat: 1, izin: 1, alpa: 1 }),
+      persenKehadiran({ ...dasar, hadir: 8, telat: 1, izin: 1, alpa: 1 }),
     ).toBe(80);
   });
 

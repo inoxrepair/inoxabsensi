@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Card, PageHeader, StatCard } from "@/components/ui/primitives";
 import { db } from "@/lib/db";
@@ -92,6 +93,13 @@ export default async function AdminDashboardPage() {
       <PageHeader
         title="Dashboard"
         description={`${namaHari(tanggal)}, ${formatTanggal(tanggal)}`}
+        action={
+          admin.role === "headstore" ? (
+            <Link href="/karyawan" className="rounded-xl border border-line bg-paper px-4 py-2.5 text-sm font-medium">
+              Buka absensi saya
+            </Link>
+          ) : undefined
+        }
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

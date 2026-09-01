@@ -58,7 +58,12 @@ export function rekapPerKaryawan(
   for (const c of catatan) {
     const baris = peta.get(c.userId) ?? barisKosong(c.userId);
 
-    if (c.status !== "libur") baris[c.status] += 1;
+    if (c.status !== "libur") {
+      baris[c.status] += 1;
+      // Telat adalah subset kehadiran, bukan kategori yang menghilangkan hadir.
+      // Kolom hadir menunjukkan seluruh hari karyawan benar-benar datang.
+      if (c.status === "telat") baris.hadir += 1;
+    }
     baris.menitTelat += c.menitTelat;
     baris.kekuranganMenit += c.kekuranganMenit;
 
@@ -107,12 +112,11 @@ export function totalRekap(baris: BarisRekap[]): TotalRekap {
 }
 
 /**
- * Persentase kehadiran: (hadir + telat) dibagi seluruh hari terjadwal.
- * Telat tetap dihitung hadir karena karyawan memang datang bekerja.
+ * `hadir` sudah mencakup hari telat; `telat` hanya subset informasional.
  */
 export function persenKehadiran(t: TotalRekap): number {
-  const total = t.hadir + t.telat + t.izin + t.alpa;
-  return total === 0 ? 0 : Math.round(((t.hadir + t.telat) / total) * 100);
+  const total = t.hadir + t.izin + t.alpa;
+  return total === 0 ? 0 : Math.round((t.hadir / total) * 100);
 }
 
 /** Periode "yyyy-mm" untuk filter; dibatasi agar tidak menerima input bebas. */

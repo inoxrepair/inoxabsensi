@@ -80,6 +80,6 @@ export const AKSES_DEFAULT: Record<RoleKaryawan, readonly MenuAdmin[]> = {
   admin_cabang: ["dashboard", "karyawan", "jadwal", "rekap", "kasbon"],
   // Rekap pribadi tersedia di /karyawan/riwayat; akses admin Headstore
   // hanya untuk menyusun jadwal cabangnya.
-  headstore: ["jadwal"],
+  headstore: ["dashboard", "jadwal"],
   karyawan: [],
 };

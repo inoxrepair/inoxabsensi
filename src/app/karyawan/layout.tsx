@@ -15,10 +15,10 @@ export default async function KaryawanLayout({
       <main className="mx-auto w-full max-w-md flex-1 px-5 py-6">
         {user.role === "headstore" ? (
           <Link
-            href="/admin/jadwal"
+            href="/admin"
             className="mb-5 block rounded-xl border border-line bg-paper px-4 py-2.5 text-center text-sm font-medium"
           >
-            Kelola jadwal cabang
+            Dashboard cabang
           </Link>
         ) : null}
         {children}

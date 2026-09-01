@@ -25,10 +25,7 @@ export default auth((req) => {
     return NextResponse.redirect(login);
   }
 
-  const beranda =
-    user.role === "karyawan" || user.role === "headstore"
-      ? "/karyawan"
-      : "/admin";
+  const beranda = user.role === "karyawan" ? "/karyawan" : "/admin";
 
   // Proxy tidak memutuskan izin role karena JWT dapat tertinggal setelah
   // role diubah admin. Setiap halaman admin memanggil wajibAkses(), yang
