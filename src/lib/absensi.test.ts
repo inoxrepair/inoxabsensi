@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bolehKeluar, bolehMasuk, kekuranganKerja, ringkas, type KondisiAbsen } from "./absensi";
+import { bolehKeluar, bolehMasuk, kekuranganKerja, ringkas, ringkasCycle, type KondisiAbsen } from "./absensi";
 
 const CABANG = { lat: 0.7333, lng: 124.3167, radiusMeter: 100 };
 const DI_DALAM = { lat: 0.7333 + 0.0003, lng: 124.3167 }; // ~33 m
@@ -14,6 +14,8 @@ function kondisi(ubah: Partial<KondisiAbsen> = {}): KondisiAbsen {
     masukMenit: null,
     keluarMenit: null,
     statusTercatat: null,
+    jumlahCycle: 0,
+    maksimalCycle: 1,
     ...ubah,
   };
 }
@@ -55,7 +57,30 @@ describe("bolehMasuk", () => {
   it("menolak absen ganda", () => {
     const h = bolehMasuk(kondisi({ masukMenit: 540 }), 600);
     expect(h.ok).toBe(false);
-    if (!h.ok) expect(h.alasan).toMatch(/sudah absen masuk/);
+    if (!h.ok) expect(h.alasan).toMatch(/cycle aktif/);
+  });
+
+  it("mengizinkan cycle berikutnya setelah keluar pada shift fleksibel", () => {
+    const h = bolehMasuk(kondisi({
+      shift: { ...SHIFT, mode: "fleksibel" },
+      masukMenit: 540,
+      keluarMenit: 600,
+      jumlahCycle: 1,
+      maksimalCycle: 3,
+    }), 720);
+    expect(h).toMatchObject({ ok: true, status: "hadir" });
+  });
+
+  it("menolak cycle keempat", () => {
+    const h = bolehMasuk(kondisi({
+      shift: { ...SHIFT, mode: "fleksibel" },
+      masukMenit: 900,
+      keluarMenit: 960,
+      jumlahCycle: 3,
+      maksimalCycle: 3,
+    }), 1000);
+    expect(h.ok).toBe(false);
+    if (!h.ok) expect(h.alasan).toMatch(/Batas 3 cycle/);
   });
 
   it("menolak bila lokasi tidak terdeteksi", () => {
@@ -81,6 +106,16 @@ describe("bolehMasuk", () => {
   it("mode fleksibel tidak pernah dihitung telat", () => {
     const h = bolehMasuk(kondisi({ shift: { ...SHIFT, mode: "fleksibel" } }), 900);
     expect(h).toMatchObject({ ok: true, status: "hadir", menitTelat: 0 });
+  });
+});
+
+describe("ringkasCycle", () => {
+  it("menjumlahkan cycle lengkap dan mengabaikan durasi cycle aktif", () => {
+    expect(ringkasCycle([
+      { masukMenit: 480, keluarMenit: 600 },
+      { masukMenit: 720, keluarMenit: 810 },
+      { masukMenit: 900, keluarMenit: null },
+    ])).toEqual({ totalMenit: 210, adaCycleAktif: true });
   });
 });
 

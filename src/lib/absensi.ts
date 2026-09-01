@@ -29,6 +29,8 @@ export type KondisiAbsen = {
    * dari masukMenit.
    */
   statusTercatat: StatusAbsensi | null;
+  jumlahCycle: number;
+  maksimalCycle: number;
 };
 
 export type Penolakan = { ok: false; alasan: string };
@@ -66,8 +68,11 @@ export function bolehMasuk(
   if (!k.shift) {
     return { ok: false, alasan: "Tidak ada jadwal shift hari ini." };
   }
-  if (k.masukMenit !== null) {
-    return { ok: false, alasan: "Anda sudah absen masuk hari ini." };
+  if (k.masukMenit !== null && k.keluarMenit === null) {
+    return { ok: false, alasan: "Selesaikan cycle aktif sebelum absen masuk lagi." };
+  }
+  if (k.jumlahCycle >= k.maksimalCycle) {
+    return { ok: false, alasan: `Batas ${k.maksimalCycle} cycle hari ini sudah tercapai.` };
   }
   if (k.statusTercatat === "izin") {
     return { ok: false, alasan: "Anda tercatat izin hari ini." };
@@ -93,6 +98,23 @@ export function kekuranganKerja(
 ): number {
   if (minimumKerjaMenit == null) return 0;
   return Math.max(0, minimumKerjaMenit - durasi);
+}
+
+export type WaktuCycle = { masukMenit: number; keluarMenit: number | null };
+
+/** Total hanya memakai cycle lengkap; cycle aktif ditandai terpisah. */
+export function ringkasCycle(cycles: WaktuCycle[]) {
+  return cycles.reduce(
+    (hasil, cycle) => {
+      if (cycle.keluarMenit === null) {
+        hasil.adaCycleAktif = true;
+      } else {
+        hasil.totalMenit += durasiMenit(cycle.masukMenit, cycle.keluarMenit);
+      }
+      return hasil;
+    },
+    { totalMenit: 0, adaCycleAktif: false },
+  );
 }
 
 export function bolehKeluar(

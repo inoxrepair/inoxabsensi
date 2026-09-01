@@ -71,6 +71,7 @@ export async function ambilRekap(lingkup: LingkupRekap) {
         keluarMenit: true,
         menitTelat: true,
         kekuranganMenit: true,
+        cycles: { select: { masukMenit: true, keluarMenit: true } },
       },
     }),
   ]);
@@ -82,6 +83,7 @@ export async function ambilRekap(lingkup: LingkupRekap) {
     keluarMenit: c.keluarMenit,
     menitTelat: c.menitTelat,
     kekuranganMenit: c.kekuranganMenit,
+    cycles: c.cycles,
   }));
 
   const peta = rekapPerKaryawan(bersih);

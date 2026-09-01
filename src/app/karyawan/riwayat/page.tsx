@@ -22,15 +22,18 @@ export default async function KaryawanRiwayatPage() {
       status: true,
       masukMenit: true,
       keluarMenit: true,
+      cycles: { orderBy: { urutan: "asc" }, select: { id: true, urutan: true, masukMenit: true, keluarMenit: true } },
     },
   });
 
   const total = ringkas(baris.map((b) => bacaStatusAbsensi(b.status)));
   const totalJam = baris.reduce(
     (a, b) =>
-      b.masukMenit != null && b.keluarMenit != null
-        ? a + durasiMenit(b.masukMenit, b.keluarMenit)
-        : a,
+      a + (b.cycles.length
+        ? b.cycles.reduce((jumlah, cycle) => jumlah + (cycle.keluarMenit == null ? 0 : durasiMenit(cycle.masukMenit, cycle.keluarMenit)), 0)
+        : b.masukMenit != null && b.keluarMenit != null
+          ? durasiMenit(b.masukMenit, b.keluarMenit)
+          : 0),
     0,
   );
 
@@ -77,13 +80,15 @@ export default async function KaryawanRiwayatPage() {
                 <p className="text-sm font-medium">
                   {namaHari(r.tanggal, true)}, {formatTanggal(r.tanggal)}
                 </p>
-                <p className="text-xs tabular-nums text-muted">
-                  {r.masukMenit != null
-                    ? `${keJam(r.masukMenit)} – ${
-                        r.keluarMenit != null ? keJam(r.keluarMenit) : "belum keluar"
-                      }`
-                    : "—"}
-                </p>
+                <div className="text-xs tabular-nums text-muted">
+                  {(r.cycles.length
+                    ? r.cycles
+                    : r.masukMenit != null
+                      ? [{ id: r.tanggal, urutan: 1, masukMenit: r.masukMenit, keluarMenit: r.keluarMenit }]
+                      : []).map((cycle) => (
+                    <p key={cycle.id}>Cycle {cycle.urutan}: {keJam(cycle.masukMenit)} – {cycle.keluarMenit != null ? keJam(cycle.keluarMenit) : "belum keluar"}</p>
+                  ))}
+                </div>
               </div>
               <StatusBadge status={bacaStatusAbsensi(r.status)} />
             </li>

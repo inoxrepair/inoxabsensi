@@ -87,6 +87,18 @@ describe("rekapPerKaryawan", () => {
     expect(peta.get("u1")!.menitKerja).toBe(480);
   });
 
+  it("menjumlahkan beberapa cycle tetapi tetap satu hari hadir", () => {
+    const peta = rekapPerKaryawan([
+      catatan({
+        cycles: [
+          { masukMenit: 480, keluarMenit: 600 },
+          { masukMenit: 720, keluarMenit: 900 },
+        ],
+      }),
+    ]);
+    expect(peta.get("u1")).toMatchObject({ hadir: 1, menitKerja: 300 });
+  });
+
   it("daftar kosong menghasilkan peta kosong", () => {
     expect(rekapPerKaryawan([]).size).toBe(0);
   });

@@ -117,6 +117,7 @@ model Shift {
   toleransiMenit Int @default(10)
   /// Target minimum kerja untuk mode fleksibel; null berarti tanpa minimum.
   minimumKerjaMenit Int?
+  maksimalCycle Int @default(1)
 
   jadwal Jadwal[]
 }
@@ -172,6 +173,8 @@ model Absensi {
   modeShift         String  @default("terjadwal")
   minimumKerjaMenit Int?
   kekuranganMenit   Int     @default(0)
+  /// Snapshot batas cycle saat absensi dibuat: terjadwal = 1, fleksibel = 3.
+  maksimalCycle     Int     @default(1)
   masukLat          Float?
   masukLng          Float?
   masukJarakMeter   Int?
@@ -183,6 +186,7 @@ model Absensi {
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   cabang Cabang @relation(fields: [cabangId], references: [id], onDelete: Cascade)
+  cycles AbsensiCycle[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -190,6 +194,27 @@ model Absensi {
   @@unique([userId, tanggal])
   @@index([cabangId, tanggal])
   @@index([tanggal, status])
+}
+
+/// Pasangan masuk-keluar aktual. Shift fleksibel dapat memiliki maksimal tiga
+/// cycle, sedangkan Absensi tetap satu baris per karyawan per tanggal.
+model AbsensiCycle {
+  id       String @id @default(cuid())
+  absensiId String
+  urutan    Int
+  masukMenit Int
+  keluarMenit Int?
+  masukLat Float?
+  masukLng Float?
+  masukJarakMeter Int?
+  keluarLat Float?
+  keluarLng Float?
+  keluarJarakMeter Int?
+
+  absensi Absensi @relation(fields: [absensiId], references: [id], onDelete: Cascade)
+
+  @@unique([absensiId, urutan])
+  @@index([absensiId])
 }
 
 model Kasbon {

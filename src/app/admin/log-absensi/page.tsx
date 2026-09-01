@@ -33,24 +33,35 @@ export default async function AdminLogAbsensiPage({
       orderBy: [{ tanggal: "desc" }, { masukMenit: "asc" }],
       include: {
         user: { select: { name: true, cabang: { select: { nama: true } }, cabangId: true } },
+        cycles: { orderBy: { urutan: "asc" } },
       },
     }),
     db.cabang.findMany({ orderBy: { nama: "asc" }, select: { id: true, nama: true } }),
   ]);
 
   const terlihat = absensi.filter((a) => !lingkup.cabangId || a.user.cabangId === lingkup.cabangId);
-  const rows: BarisLog[] = terlihat.map((a) => ({
+  const rows: BarisLog[] = terlihat.map((a) => {
+    const cycles = a.cycles.length
+      ? a.cycles
+      : a.masukMenit != null
+        ? [{ urutan: 1, masukMenit: a.masukMenit, keluarMenit: a.keluarMenit }]
+        : [];
+    return {
     id: a.id,
     nama: a.user.name,
     cabang: a.user.cabang?.nama ?? "—",
     tanggal: a.tanggal,
-    masuk: a.masukMenit,
-    keluar: a.keluarMenit,
+    masuk: cycles[0]?.masukMenit ?? a.masukMenit,
+    keluar: cycles.at(-1)?.keluarMenit ?? a.keluarMenit,
     status: bacaStatusAbsensi(a.status),
-    menitKerja: a.masukMenit !== null && a.keluarMenit !== null ? durasiMenit(a.masukMenit, a.keluarMenit) : null,
+    menitKerja: cycles.length
+      ? cycles.reduce((total, cycle) => total + (cycle.keluarMenit == null ? 0 : durasiMenit(cycle.masukMenit, cycle.keluarMenit)), 0)
+      : a.masukMenit !== null && a.keluarMenit !== null ? durasiMenit(a.masukMenit, a.keluarMenit) : null,
     menitTelat: a.menitTelat,
     catatan: a.editedBy ?? null,
-  }));
+    cycles: cycles.map((cycle) => ({ urutan: cycle.urutan, masukMenit: cycle.masukMenit, keluarMenit: cycle.keluarMenit })),
+  };
+  });
 
   const jumlahHari = selisihHari(rentang.dari, rentang.sampai) + 1;
   const totalJam = rows.reduce((acc, r) => acc + (r.menitKerja ?? 0), 0);
@@ -59,8 +70,7 @@ export default async function AdminLogAbsensiPage({
     { header: "Nama", cell: (r) => r.nama, rowHeader: true },
     { header: "Cabang", cell: (r) => <span className="text-muted">{r.cabang}</span> },
     { header: "Tanggal", cell: (r) => <span className="tabular-nums">{r.tanggal}</span> },
-    { header: "Masuk", cell: (r) => (r.masuk !== null ? keJam(r.masuk) : "—"), numeric: true },
-    { header: "Keluar", cell: (r) => (r.keluar !== null ? keJam(r.keluar) : "—"), numeric: true },
+    { header: "Cycle", cell: (r) => r.cycles.length ? <div className="space-y-0.5 tabular-nums">{r.cycles.map((cycle) => <p key={cycle.urutan}>{cycle.urutan}. {keJam(cycle.masukMenit)}–{cycle.keluarMenit == null ? "aktif" : keJam(cycle.keluarMenit)}</p>)}</div> : "—" },
     { header: "Jam kerja", cell: (r) => (r.menitKerja !== null ? formatDurasi(r.menitKerja) : "—"), numeric: true },
     { header: "Telat", cell: (r) => (r.menitTelat > 0 ? `${r.menitTelat} m` : "0"), numeric: true },
     { header: "Status", cell: (r) => <StatusLabel status={r.status} /> },

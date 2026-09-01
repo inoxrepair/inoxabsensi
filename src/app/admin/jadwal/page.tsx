@@ -122,6 +122,7 @@ export default async function AdminJadwalPage({
     lintasTengahMalam: s.selesaiMenit <= s.mulaiMenit,
     mode: s.mode === "fleksibel" ? "fleksibel" : "terjadwal",
     minimumKerjaMenit: s.minimumKerjaMenit,
+    maksimalCycle: s.maksimalCycle,
   }));
   const terjadwal = jadwal.filter((j) => j.shiftId).length;
   const labelTanggal = pakaiRentang

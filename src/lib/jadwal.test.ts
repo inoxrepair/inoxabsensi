@@ -30,6 +30,7 @@ describe("shiftSkema", () => {
         selesaiMenit: 1020,
         toleransiMenit: 10,
         minimumKerjaMenit: null,
+        maksimalCycle: 1,
       });
     }
   });
@@ -87,6 +88,17 @@ describe("shiftSkema", () => {
   it("mode fleksibel boleh tanpa minimum", () => {
     const h = shiftSkema.safeParse(formShift({ mode: "fleksibel", minimumKerjaJam: "" }));
     if (h.success) expect(h.data.minimumKerjaMenit).toBeNull();
+  });
+
+  it("mode fleksibel menerima maksimal tiga cycle", () => {
+    const h = shiftSkema.safeParse(formShift({ mode: "fleksibel", maksimalCycle: "3" }));
+    expect(h.success).toBe(true);
+    if (h.success) expect(h.data.maksimalCycle).toBe(3);
+  });
+
+  it("shift terjadwal selalu dipaksa satu cycle", () => {
+    const h = shiftSkema.safeParse(formShift({ maksimalCycle: "3" }));
+    if (h.success) expect(h.data.maksimalCycle).toBe(1);
   });
 });
 

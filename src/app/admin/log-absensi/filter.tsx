@@ -16,6 +16,7 @@ export type BarisLog = {
   menitKerja: number | null;
   menitTelat: number;
   catatan: string | null;
+  cycles: { urutan: number; masukMenit: number; keluarMenit: number | null }[];
 };
 
 export function FilterLog({

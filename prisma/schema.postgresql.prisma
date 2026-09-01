@@ -87,6 +87,7 @@ model Shift {
   selesaiMenit   Int
   toleransiMenit Int @default(10)
   minimumKerjaMenit Int?
+  maksimalCycle Int @default(1)
   jadwal Jadwal[]
 }
 
@@ -128,6 +129,7 @@ model Absensi {
   modeShift       String  @default("terjadwal")
   minimumKerjaMenit Int?
   kekuranganMenit Int     @default(0)
+  maksimalCycle   Int     @default(1)
   masukLat        Float?
   masukLng        Float?
   masukJarakMeter Int?
@@ -138,11 +140,29 @@ model Absensi {
   editedBy        String?
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   cabang Cabang @relation(fields: [cabangId], references: [id], onDelete: Cascade)
+  cycles AbsensiCycle[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@unique([userId, tanggal])
   @@index([cabangId, tanggal])
   @@index([tanggal, status])
+}
+
+model AbsensiCycle {
+  id                 String @id @default(cuid())
+  absensiId          String
+  urutan             Int
+  masukMenit         Int
+  keluarMenit        Int?
+  masukLat           Float?
+  masukLng           Float?
+  masukJarakMeter    Int?
+  keluarLat          Float?
+  keluarLng          Float?
+  keluarJarakMeter   Int?
+  absensi Absensi @relation(fields: [absensiId], references: [id], onDelete: Cascade)
+  @@unique([absensiId, urutan])
+  @@index([absensiId])
 }
 
 model Kasbon {

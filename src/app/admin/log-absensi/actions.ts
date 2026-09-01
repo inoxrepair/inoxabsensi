@@ -40,23 +40,32 @@ export async function simpanEditAbsensi(formData: FormData): Promise<HasilAbsens
   });
 
   const { masuk, keluar, status, catatan } = parsed.data;
+  const jumlahCycle = await db.absensiCycle.count({ where: { absensiId: absensi.id } });
+  const masukAkhir = jumlahCycle > 1 ? absensi.masukMenit : masuk;
+  const keluarAkhir = jumlahCycle > 1 ? absensi.keluarMenit : keluar;
   const menitTelat = hitungMenitTelatKoreksi(
     status,
-    masuk,
+    masukAkhir,
     jadwal?.shift ?? null,
   );
   await db.absensi.update({
     where: { id: parsed.data.id },
     data: {
       status,
-      masukMenit: masuk,
-      keluarMenit: keluar,
+      masukMenit: masukAkhir,
+      keluarMenit: keluarAkhir,
       menitTelat,
       // Kesalahan input membuat data lokasi tidak lagi dianggap akurat.
       catatan: [catatan, "Diedit manual."].filter(Boolean).join(" · "),
       editedBy: admin.id,
     },
   });
+  if (jumlahCycle === 1 && masukAkhir !== null) {
+    await db.absensiCycle.updateMany({
+      where: { absensiId: absensi.id, urutan: 1 },
+      data: { masukMenit: masukAkhir, keluarMenit: keluarAkhir },
+    });
+  }
 
   revalidatePath("/admin/log-absensi");
   revalidatePath("/admin");

@@ -14,6 +14,7 @@ export type CatatanAbsensi = {
   /** Menit keterlambatan tersimpan saat check-in. */
   menitTelat: number;
   kekuranganMenit: number;
+  cycles?: { masukMenit: number; keluarMenit: number | null }[];
 };
 
 export type BarisRekap = {
@@ -61,9 +62,14 @@ export function rekapPerKaryawan(
     baris.menitTelat += c.menitTelat;
     baris.kekuranganMenit += c.kekuranganMenit;
 
-    if (c.masukMenit !== null) {
-      if (c.keluarMenit !== null) {
-        baris.menitKerja += durasiMenit(c.masukMenit, c.keluarMenit);
+    const cycles = c.cycles?.length
+      ? c.cycles
+      : c.masukMenit !== null
+        ? [{ masukMenit: c.masukMenit, keluarMenit: c.keluarMenit }]
+        : [];
+    for (const cycle of cycles) {
+      if (cycle.keluarMenit !== null) {
+        baris.menitKerja += durasiMenit(cycle.masukMenit, cycle.keluarMenit);
       } else {
         baris.belumKeluar += 1;
       }

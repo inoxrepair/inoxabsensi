@@ -2,7 +2,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { db } from "@/lib/db";
 import { bacaStatusAbsensi } from "@/lib/domain";
 import { wajibLogin } from "@/lib/session";
-import { keJam, menitLokal, namaHari, tanggalLokal } from "@/lib/waktu";
+import { formatDurasi, keJam, menitLokal, namaHari, tanggalLokal, durasiMenit } from "@/lib/waktu";
 import { TombolAbsen } from "./tombol-absen";
 
 export const dynamic = "force-dynamic";
@@ -33,19 +33,30 @@ export default async function KaryawanAbsenPage() {
     }),
     db.absensi.findUnique({
       where: { userId_tanggal: { userId: sesi.id, tanggal } },
-      select: { status: true, masukMenit: true, keluarMenit: true },
+       select: { status: true, masukMenit: true, keluarMenit: true, maksimalCycle: true, cycles: { orderBy: { urutan: "asc" } } },
     }),
   ]);
 
   const shift = jadwal?.shift ?? null;
   const status = absensi ? bacaStatusAbsensi(absensi.status) : null;
 
-  const mode =
-    absensi?.keluarMenit != null
-      ? "selesai"
-      : absensi?.masukMenit != null
-        ? "keluar"
-        : "masuk";
+  const cycles = absensi?.cycles.length
+    ? absensi.cycles
+    : absensi?.masukMenit != null
+      ? [{ id: "legacy", urutan: 1, masukMenit: absensi.masukMenit, keluarMenit: absensi.keluarMenit }]
+      : [];
+  const cycleAktif = cycles.find((cycle) => cycle.keluarMenit === null);
+  const jumlahCycle = cycles.length;
+  const maksimalCycle = absensi?.maksimalCycle ?? (shift?.mode === "fleksibel" ? shift.maksimalCycle : 1) ?? 1;
+  const mode = cycleAktif
+    ? "keluar"
+    : jumlahCycle < maksimalCycle
+      ? "masuk"
+      : "selesai";
+  const totalMenit = cycles.reduce(
+    (total, cycle) => total + (cycle.keluarMenit == null ? 0 : durasiMenit(cycle.masukMenit, cycle.keluarMenit)),
+    0,
+  );
 
   return (
     <>
@@ -72,7 +83,7 @@ export default async function KaryawanAbsenPage() {
             </p>
             {shift?.mode === "fleksibel" ? (
               <p className="mt-1 text-xs text-muted">
-                Fleksibel · tanpa hitung telat
+                 Fleksibel · maksimal {maksimalCycle} cycle · tanpa hitung telat
                 {shift.minimumKerjaMenit != null
                   ? ` · target ${shift.minimumKerjaMenit / 60} jam`
                   : " · tanpa minimum jam"}
@@ -110,7 +121,26 @@ export default async function KaryawanAbsenPage() {
         </dl>
       </section>
 
-      <TombolAbsen mode={mode} />
+      {shift?.mode === "fleksibel" && jumlahCycle > 0 ? (
+        <section className="mt-3 rounded-xl border border-line bg-paper p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium">Cycle hari ini</p>
+            <p className="text-xs tabular-nums text-muted">{jumlahCycle}/{maksimalCycle} digunakan · {formatDurasi(totalMenit)}</p>
+          </div>
+          <ul className="mt-3 space-y-2 border-t border-line pt-3 text-sm">
+            {cycles.map((cycle) => (
+              <li key={cycle.id} className="flex justify-between gap-3 tabular-nums">
+                <span>Cycle {cycle.urutan}</span>
+                <span className="text-muted">
+                  {keJam(cycle.masukMenit)} – {cycle.keluarMenit == null ? "belum keluar" : keJam(cycle.keluarMenit)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <TombolAbsen mode={mode} cycleKe={jumlahCycle + 1} maksimalCycle={maksimalCycle} mulaiMenit={cycleAktif?.masukMenit ?? null} />
 
       <p className="mt-3 text-center text-xs text-muted">
         Lokasi diverifikasi terhadap koordinat cabang saat tombol ditekan.

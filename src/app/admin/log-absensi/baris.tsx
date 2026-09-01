@@ -40,14 +40,21 @@ function EditBaris({ row, onSelesai, onBatal }: { row: BarisLog; onSelesai: (pes
     <form onSubmit={kirim} className="rounded-lg border border-line p-2 space-y-2 text-xs">
       <input type="hidden" name="id" value={row.id} />
       <input type="hidden" name="tanggal" value={row.tanggal} />
+      {row.cycles.length > 1 ? (
+        <>
+          <input type="hidden" name="masuk" value={row.masuk !== null ? menitToTime(row.masuk) : ""} />
+          <input type="hidden" name="keluar" value={row.keluar !== null ? menitToTime(row.keluar) : ""} />
+        </>
+      ) : null}
+      {row.cycles.length > 1 ? <p className="rounded bg-surface p-2 text-muted">Catatan memiliki {row.cycles.length} cycle. Jam per cycle dipertahankan; form ini hanya mengubah status dan catatan.</p> : null}
       <div className="grid grid-cols-2 gap-2">
         <label className="block">
           <span className="text-muted">Masuk</span>
-          <input type="time" name="masuk" defaultValue={row.masuk !== null ? menitToTime(row.masuk) : ""} className="mt-0.5 w-full rounded border px-2 py-1" />
+          <input type="time" name="masuk" disabled={row.cycles.length > 1} defaultValue={row.masuk !== null ? menitToTime(row.masuk) : ""} className="mt-0.5 w-full rounded border px-2 py-1 disabled:bg-surface" />
         </label>
         <label className="block">
           <span className="text-muted">Keluar</span>
-          <input type="time" name="keluar" defaultValue={row.keluar !== null ? menitToTime(row.keluar) : ""} className="mt-0.5 w-full rounded border px-2 py-1" />
+          <input type="time" name="keluar" disabled={row.cycles.length > 1} defaultValue={row.keluar !== null ? menitToTime(row.keluar) : ""} className="mt-0.5 w-full rounded border px-2 py-1 disabled:bg-surface" />
         </label>
       </div>
       <label className="block">

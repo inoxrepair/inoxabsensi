@@ -23,10 +23,11 @@ function isSecureContext(): boolean {
  * ke server action. Validasi radius tetap dilakukan di server; nilai di
  * klien hanya untuk umpan balik cepat.
  */
-export function TombolAbsen({ mode }: { mode: Mode }) {
+export function TombolAbsen({ mode, cycleKe, maksimalCycle, mulaiMenit }: { mode: Mode; cycleKe: number; maksimalCycle: number; mulaiMenit: number | null }) {
   const [hasil, setHasil] = useState<HasilAbsen | null>(null);
   const [mengambilLokasi, setMengambilLokasi] = useState(false);
   const [mengirim, mulaiTransisi] = useTransition();
+  const [konfirmasi, setKonfirmasi] = useState(false);
 
   const sibuk = mengambilLokasi || mengirim;
 
@@ -105,11 +106,15 @@ export function TombolAbsen({ mode }: { mode: Mode }) {
     );
   }
 
+  function bukaKonfirmasi() {
+    if (!sibuk) setKonfirmasi(true);
+  }
+
   return (
     <>
       <button
         type="button"
-        onClick={jalankan}
+        onClick={bukaKonfirmasi}
         disabled={sibuk}
         className="mt-5 w-full rounded-2xl bg-ink px-6 py-6 text-lg font-semibold text-paper disabled:opacity-40"
       >
@@ -118,9 +123,29 @@ export function TombolAbsen({ mode }: { mode: Mode }) {
           : mengirim
             ? "Menyimpan…"
             : mode === "masuk"
-              ? "Absen Masuk"
+              ? cycleKe > 1 ? `Absen Masuk Cycle ${cycleKe}` : "Absen Masuk"
               : "Absen Keluar"}
       </button>
+      {konfirmasi ? (
+        <div className="fixed inset-0 z-20 grid place-items-center bg-ink/40 p-4" role="dialog" aria-modal="true" aria-labelledby="konfirmasi-absen">
+          <div className="w-full max-w-sm rounded-2xl border border-line bg-paper p-5 shadow-xl">
+            <h2 id="konfirmasi-absen" className="font-semibold">
+              {mode === "keluar" ? `Akhiri Cycle ${cycleKe - 1}?` : `Mulai Cycle ${cycleKe} dari maksimal ${maksimalCycle}?`}
+            </h2>
+            <p className="mt-2 text-sm text-muted">
+              {mode === "keluar" && mulaiMenit != null
+                ? `Cycle dimulai pukul ${String(Math.floor(mulaiMenit / 60)).padStart(2, "0")}.${String(mulaiMenit % 60).padStart(2, "0")}. Waktu keluar menggunakan waktu server.`
+                : "Lokasi akan diverifikasi dan waktu absensi menggunakan waktu server."}
+            </p>
+            <div className="mt-4 flex gap-2">
+              <button type="button" onClick={() => setKonfirmasi(false)} className="flex-1 rounded-lg border border-line px-3 py-2 text-sm font-medium">Batal</button>
+              <button type="button" onClick={() => { setKonfirmasi(false); jalankan(); }} className="flex-1 rounded-lg bg-ink px-3 py-2 text-sm font-medium text-paper">
+                {mode === "keluar" ? "Ya, Absen Keluar" : "Ya, Absen Masuk"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <Pesan hasil={hasil} />
     </>
   );

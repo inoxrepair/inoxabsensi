@@ -51,6 +51,7 @@ export default async function AdminDashboardPage() {
           status: true,
           masukMenit: true,
           keluarMenit: true,
+          cycles: { orderBy: { urutan: "asc" }, select: { masukMenit: true, keluarMenit: true } },
         },
       }),
     ]);
@@ -71,8 +72,10 @@ export default async function AdminDashboardPage() {
             ? `${j.shift.nama} (Fleksibel)`
             : `${j.shift.nama} (${keJam(j.shift.mulaiMenit)}–${keJam(j.shift.selesaiMenit)})`
           : "—",
-        masuk: a?.masukMenit ?? null,
-        keluar: a?.keluarMenit ?? null,
+         masuk: a?.cycles[0]?.masukMenit ?? a?.masukMenit ?? null,
+         keluar: a?.cycles.at(-1)?.keluarMenit ?? a?.keluarMenit ?? null,
+         sedangBekerja: a?.cycles.some((cycle) => cycle.keluarMenit === null) ?? (a?.masukMenit != null && a?.keluarMenit == null),
+         jumlahCycle: a?.cycles.length ?? (a?.masukMenit != null ? 1 : 0),
         status: a ? bacaStatusAbsensi(a.status) : null,
       };
     })
@@ -80,7 +83,7 @@ export default async function AdminDashboardPage() {
 
   const sudahAbsen = baris.filter((b) => b.masuk !== null).length;
   const sedangBekerja = baris.filter(
-    (b) => b.masuk !== null && b.keluar === null,
+    (b) => b.sedangBekerja,
   ).length;
   const telat = baris.filter((b) => b.status === "telat").length;
 
@@ -167,7 +170,7 @@ export default async function AdminDashboardPage() {
                       <td className="py-2.5 pr-4 text-muted">{row.cabang}</td>
                       <td className="py-2.5 pr-4 text-muted">{row.shift}</td>
                       <td className="py-2.5 pr-4 tabular-nums">
-                        {row.masuk !== null ? keJam(row.masuk) : "—"}
+                        {row.masuk !== null ? `${keJam(row.masuk)}${row.jumlahCycle > 1 ? ` (${row.jumlahCycle} cycle)` : ""}` : "—"}
                       </td>
                       <td className="py-2.5 pr-4 tabular-nums">
                         {row.keluar !== null ? keJam(row.keluar) : "—"}

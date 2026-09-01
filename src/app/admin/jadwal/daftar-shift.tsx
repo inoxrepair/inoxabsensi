@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { TOLERANSI_MAKS } from "@/lib/jadwal";
+import { CYCLE_MAKS, TOLERANSI_MAKS } from "@/lib/jadwal";
 import { hapusShift, simpanShift, type Hasil } from "./actions";
 
 export type ShiftLengkap = {
@@ -14,6 +14,7 @@ export type ShiftLengkap = {
   lintasTengahMalam: boolean;
   mode: "terjadwal" | "fleksibel";
   minimumKerjaMenit: number | null;
+  maksimalCycle: number;
 };
 
 const KELAS_INPUT =
@@ -61,7 +62,7 @@ export function DaftarShift({
                   </p>
                   <p className="mt-1 text-xs text-muted">
                     {s.mode === "fleksibel"
-                      ? `Fleksibel${s.minimumKerjaMenit != null ? ` · target ${s.minimumKerjaMenit / 60} jam` : " · tanpa minimum"}`
+                       ? `Fleksibel · maksimal ${s.maksimalCycle} cycle${s.minimumKerjaMenit != null ? ` · target ${s.minimumKerjaMenit / 60} jam` : " · tanpa minimum"}`
                       : `Toleransi ${s.toleransiMenit} menit`} · dipakai {s.dipakai} hari
                   </p>
                 </div>
@@ -172,6 +173,16 @@ function FormShift({
             maxLength={30}
             className={KELAS_INPUT}
           />
+        </div>
+        <div>
+          <label htmlFor="maksimalCycle" className="text-xs text-muted">
+            Maksimal cycle absensi
+          </label>
+          <select id="maksimalCycle" name="maksimalCycle" defaultValue={s?.maksimalCycle ?? (s?.mode === "fleksibel" ? 3 : 1)} className={`${KELAS_INPUT} tabular-nums`}>
+            {Array.from({ length: CYCLE_MAKS }, (_, i) => i + 1).map((jumlah) => (
+              <option key={jumlah} value={jumlah}>{jumlah} cycle</option>
+            ))}
+          </select>
         </div>
         <div>
           <label htmlFor="mode" className="text-xs text-muted">
