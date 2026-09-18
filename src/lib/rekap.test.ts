@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   bacaRentang,
+  daftarTanggal,
   labelPeriode,
   labelRentang,
+  petaStatusHarian,
   periodeTerakhir,
   periodeValid,
   persenKehadiran,
   rekapPerKaryawan,
   rentangPeriode,
+  SIMBOL_STATUS,
   tanggalValid,
   totalRekap,
   type CatatanAbsensi,
@@ -16,6 +19,7 @@ import {
 function catatan(ubah: Partial<CatatanAbsensi> = {}): CatatanAbsensi {
   return {
     userId: "u1",
+    tanggal: "2026-08-01",
     status: "hadir",
     masukMenit: 540,
     keluarMenit: 1020,
@@ -102,6 +106,68 @@ describe("rekapPerKaryawan", () => {
 
   it("daftar kosong menghasilkan peta kosong", () => {
     expect(rekapPerKaryawan([]).size).toBe(0);
+  });
+});
+
+describe("petaStatusHarian", () => {
+  it("memetakan status per karyawan per tanggal", () => {
+    const peta = petaStatusHarian([
+      catatan({ userId: "a", tanggal: "2026-08-01", status: "hadir" }),
+      catatan({ userId: "a", tanggal: "2026-08-02", status: "telat" }),
+      catatan({ userId: "b", tanggal: "2026-08-01", status: "izin" }),
+    ]);
+    expect(peta.get("a")?.get("2026-08-01")).toBe("hadir");
+    expect(peta.get("a")?.get("2026-08-02")).toBe("telat");
+    expect(peta.get("b")?.get("2026-08-01")).toBe("izin");
+  });
+
+  it("tanggal tanpa catatan tidak memiliki key", () => {
+    const peta = petaStatusHarian([catatan({ tanggal: "2026-08-05" })]);
+    expect(peta.get("u1")?.has("2026-08-06")).toBe(false);
+    expect(peta.get("u1")?.get("2026-08-06")).toBeUndefined();
+  });
+
+  it("daftar kosong menghasilkan peta kosong", () => {
+    expect(petaStatusHarian([]).size).toBe(0);
+  });
+});
+
+describe("daftarTanggal", () => {
+  it("mencakup kedua ujung rentang", () => {
+    expect(daftarTanggal({ dari: "2026-08-01", sampai: "2026-08-03" })).toEqual([
+      "2026-08-01",
+      "2026-08-02",
+      "2026-08-03",
+    ]);
+  });
+
+  it("rentang satu hari menghasilkan satu elemen", () => {
+    expect(daftarTanggal({ dari: "2026-08-07", sampai: "2026-08-07" })).toEqual([
+      "2026-08-07",
+    ]);
+  });
+
+  it("melintasi batas bulan dan tahun", () => {
+    expect(
+      daftarTanggal({ dari: "2025-12-30", sampai: "2026-01-02" }),
+    ).toEqual([
+      "2025-12-30",
+      "2025-12-31",
+      "2026-01-01",
+      "2026-01-02",
+    ]);
+  });
+
+  it("menangani Februari kabisat", () => {
+    const t = daftarTanggal({ dari: "2028-02-27", sampai: "2028-03-01" });
+    expect(t).toEqual(["2028-02-27", "2028-02-28", "2028-02-29", "2028-03-01"]);
+  });
+});
+
+describe("SIMBOL_STATUS", () => {
+  it("mempunyai simbol unik untuk tiap status", () => {
+    const simbol = Object.values(SIMBOL_STATUS);
+    expect(new Set(simbol).size).toBe(simbol.length);
   });
 });
 

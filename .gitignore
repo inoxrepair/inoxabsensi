@@ -13,3 +13,4 @@ tsconfig.tsbuildinfo
 *.log
 *.pem
 *.key
+backup/

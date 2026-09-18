@@ -1,8 +1,10 @@
 import { db } from "@/lib/db";
 import { bacaStatusAbsensi, roleTerbatasCabang } from "@/lib/domain";
+import type { StatusAbsensi } from "@/lib/domain";
 import type { Pengguna } from "@/lib/session";
 import {
   bacaRentang,
+  petaStatusHarian,
   rekapPerKaryawan,
   type CatatanAbsensi,
   type Rentang,
@@ -26,6 +28,8 @@ export type BarisTabel = {
   menitTelat: number;
   belumKeluar: number;
   kekuranganMenit: number;
+  /** Status per tanggal pada rentang aktif; hari tanpa catatan tidak ada key. */
+  statusHarian: Map<string, StatusAbsensi>;
 };
 
 export type LingkupRekap = Rentang & {
@@ -66,6 +70,7 @@ export async function ambilRekap(lingkup: LingkupRekap) {
       },
       select: {
         userId: true,
+        tanggal: true,
         status: true,
         masukMenit: true,
         keluarMenit: true,
@@ -78,6 +83,7 @@ export async function ambilRekap(lingkup: LingkupRekap) {
 
   const bersih: CatatanAbsensi[] = catatan.map((c) => ({
     userId: c.userId,
+    tanggal: c.tanggal,
     status: bacaStatusAbsensi(c.status),
     masukMenit: c.masukMenit,
     keluarMenit: c.keluarMenit,
@@ -87,6 +93,7 @@ export async function ambilRekap(lingkup: LingkupRekap) {
   }));
 
   const peta = rekapPerKaryawan(bersih);
+  const petaHarian = petaStatusHarian(bersih);
 
   // Karyawan tanpa catatan tetap ditampilkan dengan nilai nol, supaya
   // admin bisa melihat siapa yang belum pernah absen sama sekali.
@@ -104,6 +111,7 @@ export async function ambilRekap(lingkup: LingkupRekap) {
       menitTelat: r?.menitTelat ?? 0,
       belumKeluar: r?.belumKeluar ?? 0,
       kekuranganMenit: r?.kekuranganMenit ?? 0,
+      statusHarian: petaHarian.get(k.id) ?? new Map<string, StatusAbsensi>(),
     };
   });
 

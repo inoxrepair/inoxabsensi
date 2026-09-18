@@ -16,6 +16,7 @@ export function FilterRekap({
   daftarCabang,
   rentang,
   urlExport,
+  labelExport = "Unduh",
 }: {
   periode: string;
   daftarPeriode: string[];
@@ -23,6 +24,7 @@ export function FilterRekap({
   daftarCabang: { id: string; nama: string }[];
   rentang: { dari: string; sampai: string; kustom: boolean };
   urlExport: string;
+  labelExport?: string;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -179,7 +181,7 @@ export function FilterRekap({
           href={urlExport}
           className="ml-auto rounded-lg border border-line px-3 py-1.5 text-sm font-medium"
         >
-          Unduh CSV
+          {labelExport}
         </a>
       </div>
     </div>

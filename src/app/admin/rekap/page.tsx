@@ -1,54 +1,119 @@
 import { DataTable, type Kolom } from "@/components/ui/data-table";
 import { Card, PageHeader, StatCard } from "@/components/ui/primitives";
 import { db } from "@/lib/db";
-import { roleTerbatasCabang } from "@/lib/domain";
+import { roleTerbatasCabang, type StatusAbsensi } from "@/lib/domain";
 import { wajibAkses } from "@/lib/session";
 import {
+  daftarTanggal,
   labelRentang,
   periodeTerakhir,
   persenKehadiran,
+  SIMBOL_STATUS,
   totalRekap,
 } from "@/lib/rekap";
-import { formatDurasi, selisihHari, tanggalLokal } from "@/lib/waktu";
+import { formatDurasi, namaHari, selisihHari, tanggalLokal } from "@/lib/waktu";
 import { FilterRekap } from "./filter-rekap";
 import { ambilRekap, bacaLingkup, type BarisTabel } from "./data";
 
 export const dynamic = "force-dynamic";
 
-const kolom: Kolom<BarisTabel>[] = [
-  { header: "Nama", cell: (r) => r.nama, rowHeader: true },
-  {
-    header: "Cabang",
-    cell: (r) => <span className="text-muted">{r.cabang}</span>,
-  },
-  { header: "Hadir", cell: (r) => r.hadir, numeric: true },
-  {
-    header: "Telat",
-    cell: (r) => (
-      <>
-        <span className={r.telat === 0 ? "text-muted" : undefined}>
-          {r.telat} kali
+/** Warna teks per status, memakai aksen tema yang memang hanya untuk status. */
+const WARNA_STATUS: Record<StatusAbsensi, string> = {
+  hadir: "text-status-hadir",
+  telat: "text-status-izin",
+  izin: "text-status-izin",
+  alpa: "text-status-alpa",
+  libur: "text-muted",
+};
+
+/** Header "01 Sel" agar kolom tanggal tetap terbaca saat sangat sempit. */
+function labelTanggal(iso: string): string {
+  return `${iso.slice(8)} ${namaHari(iso, true)}`;
+}
+
+function kolomAgregat(): Kolom<BarisTabel>[] {
+  return [
+    { header: "Nama", cell: (r) => r.nama, rowHeader: true },
+    {
+      header: "Cabang",
+      cell: (r) => <span className="text-muted">{r.cabang}</span>,
+    },
+    { header: "Hadir", cell: (r) => r.hadir, numeric: true },
+    {
+      header: "Telat",
+      cell: (r) => (
+        <>
+          <span className={r.telat === 0 ? "text-muted" : undefined}>
+            {r.telat} kali
+          </span>
+          <span className="block text-xs font-normal text-muted">
+            {r.menitTelat} menit terlambat
+          </span>
+        </>
+      ),
+      numeric: true,
+    },
+    { header: "Izin", cell: (r) => r.izin, numeric: true },
+    { header: "Alpa", cell: (r) => r.alpa, numeric: true },
+    {
+      header: "Jam kerja",
+      cell: (r) => (r.menitKerja ? formatDurasi(r.menitKerja) : "—"),
+      numeric: true,
+    },
+    {
+      header: "Kurang jam",
+      cell: (r) =>
+        r.kekuranganMenit > 0 ? formatDurasi(r.kekuranganMenit) : "—",
+      numeric: true,
+    },
+  ];
+}
+
+function kolomTanggal(tanggal: string[]): Kolom<BarisTabel>[] {
+  return tanggal.map((iso) => ({
+    header: labelTanggal(iso),
+    cell: (r) => {
+      const status = r.statusHarian.get(iso);
+      if (!status) return <span className="text-muted">·</span>;
+      return (
+        <span
+          className={`font-medium ${WARNA_STATUS[status]}`}
+          title={`${labelTanggal(iso)}: ${status}`}
+        >
+          {SIMBOL_STATUS[status]}
         </span>
-        <span className="block text-xs font-normal text-muted">
-          {r.menitTelat} menit terlambat
-        </span>
-      </>
-    ),
+      );
+    },
     numeric: true,
-  },
-  { header: "Izin", cell: (r) => r.izin, numeric: true },
-  { header: "Alpa", cell: (r) => r.alpa, numeric: true },
-  {
-    header: "Jam kerja",
-    cell: (r) => (r.menitKerja ? formatDurasi(r.menitKerja) : "—"),
-    numeric: true,
-  },
-  {
-    header: "Kurang jam",
-    cell: (r) => (r.kekuranganMenit > 0 ? formatDurasi(r.kekuranganMenit) : "—"),
-    numeric: true,
-  },
+  }));
+}
+
+const LEGENDA: { status: StatusAbsensi; teks: string }[] = [
+  { status: "hadir", teks: "Hadir" },
+  { status: "telat", teks: "Telat" },
+  { status: "izin", teks: "Izin" },
+  { status: "alpa", teks: "Alpa" },
+  { status: "libur", teks: "Libur" },
 ];
+
+function LegendStatus() {
+  return (
+    <ul className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+      {LEGENDA.map((l) => (
+        <li key={l.status} className="inline-flex items-center gap-1.5">
+          <span className={`font-semibold ${WARNA_STATUS[l.status]}`}>
+            {SIMBOL_STATUS[l.status]}
+          </span>
+          {l.teks}
+        </li>
+      ))}
+      <li className="inline-flex items-center gap-1.5">
+        <span className="font-semibold">·</span>
+        Belum ada catatan
+      </li>
+    </ul>
+  );
+}
 
 export default async function AdminRekapPage({
   searchParams,
@@ -79,6 +144,12 @@ export default async function AdminRekapPage({
   const persen = persenKehadiran(total);
   const jumlahHari = selisihHari(lingkup.dari, lingkup.sampai) + 1;
   const adaData = total.hadir + total.izin + total.alpa > 0;
+
+  const tanggal = daftarTanggal(lingkup);
+  const kolom: Kolom<BarisTabel>[] = [
+    ...kolomAgregat(),
+    ...kolomTanggal(tanggal),
+  ];
 
   const paramExport = new URLSearchParams(
     lingkup.kustom
@@ -128,12 +199,15 @@ export default async function AdminRekapPage({
           daftarCabang={cabang}
           rentang={lingkup}
           urlExport={`/admin/rekap/export?${paramExport}`}
+          labelExport="Unduh Excel"
         />
+
+        <LegendStatus />
 
         <Card
           footer={
             adaData
-              ? "Angka di bawah kolom Telat adalah akumulasi keterlambatan setelah dikurangi toleransi shift. Jam kerja hanya dari hari yang sudah absen keluar."
+              ? "Angka di bawah kolom Telat adalah akumulasi keterlambatan setelah dikurangi toleransi shift. Jam kerja hanya dari hari yang sudah absen keluar. Kolom tanggal memakai simbol H/T/I/A/L; titik berarti belum ada catatan."
               : "Belum ada catatan absensi pada rentang ini."
           }
         >

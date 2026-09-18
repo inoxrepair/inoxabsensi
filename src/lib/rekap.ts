@@ -8,6 +8,8 @@ import { durasiMenit } from "@/lib/waktu";
 
 export type CatatanAbsensi = {
   userId: string;
+  /** Tanggal lokal "yyyy-mm-dd"; dipakai kolom per tanggal. */
+  tanggal: string;
   status: StatusAbsensi;
   masukMenit: number | null;
   keluarMenit: number | null;
@@ -84,6 +86,66 @@ export function rekapPerKaryawan(
   }
 
   return peta;
+}
+
+/**
+ * Peta status per karyawan per tanggal, dipakai kolom harian pada rekap.
+ * Tanggal yang sama tidak mungkin dobel karena Absensi unik pada
+ * (userId, tanggal); pemanggilan tetap aman bila data tidak konsisten.
+ */
+export function petaStatusHarian(
+  catatan: CatatanAbsensi[],
+): Map<string, Map<string, StatusAbsensi>> {
+  const peta = new Map<string, Map<string, StatusAbsensi>>();
+
+  for (const c of catatan) {
+    const perUser = peta.get(c.userId) ?? new Map<string, StatusAbsensi>();
+    perUser.set(c.tanggal, c.status);
+    peta.set(c.userId, perUser);
+  }
+
+  return peta;
+}
+
+/** Simbol ringkas status untuk kolom tanggal yang sempit. */
+export const SIMBOL_STATUS: Record<StatusAbsensi, string> = {
+  hadir: "H",
+  telat: "T",
+  alpa: "A",
+  izin: "I",
+  libur: "L",
+};
+
+/** Label panjang status, dipakai legend dan sel Excel yang lebih lega. */
+export const LABEL_STATUS: Record<StatusAbsensi, string> = {
+  hadir: "Hadir",
+  telat: "Telat",
+  alpa: "Alpa",
+  izin: "Izin",
+  libur: "Libur",
+};
+
+/** Daftar tanggal "yyyy-mm-dd" inklusif dari `dari` sampai `sampai`. */
+export function daftarTanggal(r: Rentang): string[] {
+  const jumlah = Math.max(0, selisihHariIso(r.dari, r.sampai));
+  return Array.from({ length: jumlah + 1 }, (_, i) => geserHariIso(r.dari, i));
+}
+
+const SEHARI_MS_REKAP = 86_400_000;
+
+function keUtcRekap(iso: string): number {
+  const [y, m, d] = iso.split("-").map(Number);
+  return Date.UTC(y, m - 1, d);
+}
+
+function geserHariIso(iso: string, hari: number): string {
+  return new Date(keUtcRekap(iso) + hari * SEHARI_MS_REKAP)
+    .toISOString()
+    .slice(0, 10);
+}
+
+function selisihHariIso(a: string, b: string): number {
+  return Math.round((keUtcRekap(b) - keUtcRekap(a)) / SEHARI_MS_REKAP);
 }
 
 export type TotalRekap = {
