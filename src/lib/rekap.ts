@@ -165,18 +165,31 @@ export type JadwalHarian = {
  * - ada baris absensi -> status absensi (hadir/telat/izin/alpa/libur);
  * - tidak ada absensi tetapi ada shift -> "alpa";
  * - tidak ada absensi dan tidak ada shift -> "off".
+ *
+ * `tanggal` berisi seluruh tanggal rentang aktif. Hari yang tidak punya baris
+ * jadwal sama sekali (bukan hanya shiftId null) tetap diisi "off", karena di
+ * sistem ini hari libur sering kali tidak dibuatkan baris Jadwal.
  */
 export function keadaanHarian(
   catatan: CatatanAbsensi[],
   jadwal: JadwalHarian[],
+  tanggal: string[],
 ): Map<string, Map<string, KeadaanHari>> {
   const peta = new Map<string, Map<string, KeadaanHari>>();
 
-  const set = (userId: string, tanggal: string, nilai: KeadaanHari) => {
+  const set = (userId: string, tgl: string, nilai: KeadaanHari) => {
     const perUser = peta.get(userId) ?? new Map<string, KeadaanHari>();
-    perUser.set(tanggal, nilai);
+    perUser.set(tgl, nilai);
     peta.set(userId, perUser);
   };
+
+  // Isi default "off" lebih dulu; jadwal dan absensi menimpanya bila ada.
+  const pelaku = new Set<string>();
+  for (const j of jadwal) pelaku.add(j.userId);
+  for (const c of catatan) pelaku.add(c.userId);
+  for (const userId of pelaku) {
+    for (const tgl of tanggal) set(userId, tgl, "off");
+  }
 
   for (const j of jadwal) {
     set(j.userId, j.tanggal, j.shiftNama === null ? "off" : "alpa");

@@ -3,6 +3,7 @@ import { bacaStatusAbsensi, roleTerbatasCabang } from "@/lib/domain";
 import type { Pengguna } from "@/lib/session";
 import {
   bacaRentang,
+  daftarTanggal,
   keadaanHarian,
   rekapPerKaryawan,
   shiftFull,
@@ -115,6 +116,7 @@ export async function ambilRekap(lingkup: LingkupRekap) {
       tanggal: j.tanggal,
       shiftNama: j.shift?.nama ?? null,
     })),
+    daftarTanggal({ dari, sampai }),
   );
 
   // Kumpulkan tanggal bershift Full per karyawan agar bisa ditandai di kolom.

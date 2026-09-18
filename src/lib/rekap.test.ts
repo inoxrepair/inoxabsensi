@@ -113,6 +113,8 @@ describe("rekapPerKaryawan", () => {
 });
 
 describe("keadaanHarian", () => {
+  const rentang = ["2026-08-01", "2026-08-02", "2026-08-03"];
+
   it("memetakan status absensi per karyawan per tanggal", () => {
     const peta = keadaanHarian(
       [
@@ -121,6 +123,7 @@ describe("keadaanHarian", () => {
         catatan({ userId: "b", tanggal: "2026-08-01", status: "izin" }),
       ],
       [],
+      rentang,
     );
     expect(peta.get("a")?.get("2026-08-01")).toBe("hadir");
     expect(peta.get("a")?.get("2026-08-02")).toBe("telat");
@@ -131,16 +134,24 @@ describe("keadaanHarian", () => {
     const peta = keadaanHarian(
       [],
       [{ userId: "a", tanggal: "2026-08-03", shiftNama: "Pagi" }],
+      rentang,
     );
     expect(peta.get("a")?.get("2026-08-03")).toBe("alpa");
   });
 
-  it("hari tanpa jadwal dianggap off", () => {
+  it("hari tanpa baris jadwal sama sekali dianggap off", () => {
+    const peta = keadaanHarian([catatan({ tanggal: "2026-08-05" })], [], rentang);
+    expect(peta.get("u1")?.get("2026-08-02")).toBe("off");
+    expect(peta.get("u1")?.get("2026-08-03")).toBe("off");
+  });
+
+  it("hari berjadwal tanpa shift dianggap off", () => {
     const peta = keadaanHarian(
       [],
-      [{ userId: "a", tanggal: "2026-08-04", shiftNama: null }],
+      [{ userId: "a", tanggal: "2026-08-02", shiftNama: null }],
+      rentang,
     );
-    expect(peta.get("a")?.get("2026-08-04")).toBe("off");
+    expect(peta.get("a")?.get("2026-08-02")).toBe("off");
   });
 
   it("absen yang tercatat menimpa hasil dari jadwal", () => {
@@ -150,17 +161,20 @@ describe("keadaanHarian", () => {
     const peta = keadaanHarian(
       [catatan({ userId: "a", tanggal: "2026-08-01", status: "hadir" })],
       jadwal,
+      rentang,
     );
     expect(peta.get("a")?.get("2026-08-01")).toBe("hadir");
   });
 
-  it("tanggal di luar data tidak memiliki key", () => {
-    const peta = keadaanHarian([catatan({ tanggal: "2026-08-05" })], []);
-    expect(peta.get("u1")?.has("2026-08-06")).toBe(false);
+  it("setiap tanggal rentang terisi untuk karyawan yang punya data", () => {
+    const peta = keadaanHarian([catatan({ tanggal: "2026-08-01" })], [], rentang);
+    for (const t of rentang) {
+      expect(peta.get("u1")?.has(t)).toBe(true);
+    }
   });
 
-  it("daftar kosong menghasilkan peta kosong", () => {
-    expect(keadaanHarian([], []).size).toBe(0);
+  it("tanpa data dan tanpa rentang menghasilkan peta kosong", () => {
+    expect(keadaanHarian([], [], []).size).toBe(0);
   });
 });
 
