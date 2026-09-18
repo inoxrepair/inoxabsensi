@@ -1,15 +1,17 @@
 import { DataTable, type Kolom } from "@/components/ui/data-table";
 import { Card, PageHeader, StatCard } from "@/components/ui/primitives";
 import { db } from "@/lib/db";
-import { roleTerbatasCabang, type StatusAbsensi } from "@/lib/domain";
+import { roleTerbatasCabang } from "@/lib/domain";
 import { wajibAkses } from "@/lib/session";
 import {
   daftarTanggal,
   labelRentang,
   periodeTerakhir,
   persenKehadiran,
-  SIMBOL_STATUS,
+  SIMBOL_HARI,
+  LABEL_HARI,
   totalRekap,
+  type KeadaanHari,
 } from "@/lib/rekap";
 import { formatDurasi, namaHari, selisihHari, tanggalLokal } from "@/lib/waktu";
 import { FilterRekap } from "./filter-rekap";
@@ -17,13 +19,14 @@ import { ambilRekap, bacaLingkup, type BarisTabel } from "./data";
 
 export const dynamic = "force-dynamic";
 
-/** Warna teks per status, memakai aksen tema yang memang hanya untuk status. */
-const WARNA_STATUS: Record<StatusAbsensi, string> = {
+/** Warna teks per keadaan, memakai aksen tema yang memang hanya untuk status. */
+const WARNA_STATUS: Record<KeadaanHari, string> = {
   hadir: "text-status-hadir",
   telat: "text-status-izin",
   izin: "text-status-izin",
   alpa: "text-status-alpa",
   libur: "text-muted",
+  off: "text-muted",
 };
 
 /** Header "01 Sel" agar kolom tanggal tetap terbaca saat sangat sempit. */
@@ -73,14 +76,30 @@ function kolomTanggal(tanggal: string[]): Kolom<BarisTabel>[] {
   return tanggal.map((iso) => ({
     header: labelTanggal(iso),
     cell: (r) => {
-      const status = r.statusHarian.get(iso);
-      if (!status) return <span className="text-muted">·</span>;
+      const keadaan = r.statusHarian.get(iso);
+      // Karyawan yang jadwalnya shift Full diberi penanda F kecil agar
+      // keterangan pagi-siang tetap terlihat, termasuk saat hadir/telat.
+      const penuh = r.jadwalFull.has(iso);
+
+      if (!keadaan) {
+        return penuh ? (
+          <span className="font-medium text-muted" title="Shift Full, belum ada data">
+            F
+          </span>
+        ) : (
+          <span className="text-muted">·</span>
+        );
+      }
+
+      const simbol = penuh
+        ? `F${SIMBOL_HARI[keadaan]}`
+        : SIMBOL_HARI[keadaan];
       return (
         <span
-          className={`font-medium ${WARNA_STATUS[status]}`}
-          title={`${labelTanggal(iso)}: ${status}`}
+          className={`font-medium ${WARNA_STATUS[keadaan]}`}
+          title={`${labelTanggal(iso)}: ${penuh ? "Shift Full · " : ""}${LABEL_HARI[keadaan]}`}
         >
-          {SIMBOL_STATUS[status]}
+          {simbol}
         </span>
       );
     },
@@ -88,28 +107,29 @@ function kolomTanggal(tanggal: string[]): Kolom<BarisTabel>[] {
   }));
 }
 
-const LEGENDA: { status: StatusAbsensi; teks: string }[] = [
-  { status: "hadir", teks: "Hadir" },
-  { status: "telat", teks: "Telat" },
-  { status: "izin", teks: "Izin" },
-  { status: "alpa", teks: "Alpa" },
-  { status: "libur", teks: "Libur" },
+const LEGENDA: { keadaan: KeadaanHari; teks: string }[] = [
+  { keadaan: "hadir", teks: "Hadir" },
+  { keadaan: "telat", teks: "Telat" },
+  { keadaan: "izin", teks: "Izin" },
+  { keadaan: "alpa", teks: "Alpa (ada jadwal, tanpa absensi)" },
+  { keadaan: "libur", teks: "Libur" },
+  { keadaan: "off", teks: "Off (tanpa jadwal)" },
 ];
 
 function LegendStatus() {
   return (
     <ul className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
       {LEGENDA.map((l) => (
-        <li key={l.status} className="inline-flex items-center gap-1.5">
-          <span className={`font-semibold ${WARNA_STATUS[l.status]}`}>
-            {SIMBOL_STATUS[l.status]}
+        <li key={l.keadaan} className="inline-flex items-center gap-1.5">
+          <span className={`font-semibold ${WARNA_STATUS[l.keadaan]}`}>
+            {SIMBOL_HARI[l.keadaan]}
           </span>
           {l.teks}
         </li>
       ))}
       <li className="inline-flex items-center gap-1.5">
-        <span className="font-semibold">·</span>
-        Belum ada catatan
+        <span className="font-semibold">F</span>
+        Contoh: FH = hadir pada jadwal shift Full (pagi-siang)
       </li>
     </ul>
   );

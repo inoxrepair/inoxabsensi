@@ -3,10 +3,10 @@ import { wajibAkses } from "@/lib/session";
 import {
   daftarTanggal,
   labelRentang,
-  LABEL_STATUS,
-  SIMBOL_STATUS,
+  LABEL_HARI,
+  SIMBOL_HARI,
+  type KeadaanHari,
 } from "@/lib/rekap";
-import type { StatusAbsensi } from "@/lib/domain";
 import { formatDurasi, namaHari } from "@/lib/waktu";
 import { ambilRekap, bacaLingkup } from "../data";
 
@@ -16,13 +16,14 @@ import { ambilRekap, bacaLingkup } from "../data";
  * baca, sedangkan xlsx membawa struktur kolom, tipe, dan lebarnya sendiri.
  */
 
-/** Warna latar ARGB lembut per status agar mudah dibaca sekilas. */
-const WARNA_STATUS: Record<StatusAbsensi, string> = {
+/** Warna latar ARGB lembut per keadaan agar mudah dibaca sekilas. */
+const WARNA_STATUS: Record<KeadaanHari, string> = {
   hadir: "FFDCFCE7",
   telat: "FFFEF9C3",
   izin: "FFFEF3C7",
   alpa: "FFFEE2E2",
   libur: "FFF1F5F9",
+  off: "FFE5E7EB",
 };
 
 const KEPALA_AGREGAT = [
@@ -83,8 +84,10 @@ export async function GET(request: Request) {
       r.menitKerja ? formatDurasi(r.menitKerja) : "0j",
       r.belumKeluar,
       ...tanggal.map((iso) => {
-        const status = r.statusHarian.get(iso);
-        return status ? SIMBOL_STATUS[status] : "";
+        const keadaan = r.statusHarian.get(iso);
+        const penuh = r.jadwalFull.has(iso);
+        if (!keadaan) return penuh ? "F" : "";
+        return penuh ? `F${SIMBOL_HARI[keadaan]}` : SIMBOL_HARI[keadaan];
       }),
     ]);
   }
@@ -117,16 +120,17 @@ export async function GET(request: Request) {
     lembar.getCell(nomorBaris, kolomNama).font = { bold: true };
 
     for (let j = 0; j < tanggal.length; j++) {
-      const status = r.statusHarian.get(tanggal[j]);
-      if (!status) continue;
+      const keadaan = r.statusHarian.get(tanggal[j]);
+      const penuh = r.jadwalFull.has(tanggal[j]);
+      if (!keadaan) continue;
       const sel = lembar.getCell(nomorBaris, kolomPertamaTanggal + j);
       sel.alignment = { horizontal: "center" };
       sel.fill = {
         type: "pattern",
         pattern: "solid",
-        fgColor: { argb: WARNA_STATUS[status] },
+        fgColor: { argb: WARNA_STATUS[keadaan] },
       };
-      sel.note = LABEL_STATUS[status];
+      sel.note = `${penuh ? "Shift Full · " : ""}${LABEL_HARI[keadaan]}`;
     }
   }
 

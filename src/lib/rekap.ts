@@ -107,6 +107,14 @@ export function petaStatusHarian(
   return peta;
 }
 
+/**
+ * Keadaan satu sel tanggal setelah absensi dan jadwal digabung.
+ * - "off": tidak ada jadwal shift (libur)
+ * - "alpa": ada jadwal tetapi tidak ada catatan absensi
+ * - sisanya: status absensi yang tercatat
+ */
+export type KeadaanHari = StatusAbsensi | "off";
+
 /** Simbol ringkas status untuk kolom tanggal yang sempit. */
 export const SIMBOL_STATUS: Record<StatusAbsensi, string> = {
   hadir: "H",
@@ -114,6 +122,15 @@ export const SIMBOL_STATUS: Record<StatusAbsensi, string> = {
   alpa: "A",
   izin: "I",
   libur: "L",
+};
+
+export const SIMBOL_HARI: Record<KeadaanHari, string> = {
+  hadir: "H",
+  telat: "T",
+  alpa: "A",
+  izin: "I",
+  libur: "L",
+  off: "O",
 };
 
 /** Label panjang status, dipakai legend dan sel Excel yang lebih lega. */
@@ -124,6 +141,58 @@ export const LABEL_STATUS: Record<StatusAbsensi, string> = {
   izin: "Izin",
   libur: "Libur",
 };
+
+export const LABEL_HARI: Record<KeadaanHari, string> = {
+  hadir: "Hadir",
+  telat: "Telat",
+  alpa: "Alpa",
+  izin: "Izin",
+  libur: "Libur",
+  off: "Off (tidak ada jadwal)",
+};
+
+/** Jadwal satu hari untuk seorang karyawan; `shiftNama` null berarti off. */
+export type JadwalHarian = {
+  userId: string;
+  tanggal: string;
+  shiftNama: string | null;
+};
+
+/**
+ * Gabungkan absensi dan jadwal menjadi keadaan per karyawan per tanggal.
+ *
+ * Aturan:
+ * - ada baris absensi -> status absensi (hadir/telat/izin/alpa/libur);
+ * - tidak ada absensi tetapi ada shift -> "alpa";
+ * - tidak ada absensi dan tidak ada shift -> "off".
+ */
+export function keadaanHarian(
+  catatan: CatatanAbsensi[],
+  jadwal: JadwalHarian[],
+): Map<string, Map<string, KeadaanHari>> {
+  const peta = new Map<string, Map<string, KeadaanHari>>();
+
+  const set = (userId: string, tanggal: string, nilai: KeadaanHari) => {
+    const perUser = peta.get(userId) ?? new Map<string, KeadaanHari>();
+    perUser.set(tanggal, nilai);
+    peta.set(userId, perUser);
+  };
+
+  for (const j of jadwal) {
+    set(j.userId, j.tanggal, j.shiftNama === null ? "off" : "alpa");
+  }
+
+  for (const c of catatan) {
+    set(c.userId, c.tanggal, c.status);
+  }
+
+  return peta;
+}
+
+/** Apakah shift ini shift Full (pagi sampai malam). */
+export function shiftFull(nama: string | null | undefined): boolean {
+  return (nama ?? "").trim().toLowerCase() === "full";
+}
 
 /** Daftar tanggal "yyyy-mm-dd" inklusif dari `dari` sampai `sampai`. */
 export function daftarTanggal(r: Rentang): string[] {

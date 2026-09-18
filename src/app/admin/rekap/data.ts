@@ -1,12 +1,13 @@
 import { db } from "@/lib/db";
 import { bacaStatusAbsensi, roleTerbatasCabang } from "@/lib/domain";
-import type { StatusAbsensi } from "@/lib/domain";
 import type { Pengguna } from "@/lib/session";
 import {
   bacaRentang,
-  petaStatusHarian,
+  keadaanHarian,
   rekapPerKaryawan,
+  shiftFull,
   type CatatanAbsensi,
+  type KeadaanHari,
   type Rentang,
 } from "@/lib/rekap";
 import { tanggalLokal } from "@/lib/waktu";
@@ -28,8 +29,10 @@ export type BarisTabel = {
   menitTelat: number;
   belumKeluar: number;
   kekuranganMenit: number;
-  /** Status per tanggal pada rentang aktif; hari tanpa catatan tidak ada key. */
-  statusHarian: Map<string, StatusAbsensi>;
+  /** Keadaan per tanggal pada rentang aktif (absensi digabung jadwal). */
+  statusHarian: Map<string, KeadaanHari>;
+  /** Tanggal yang memakai shift Full, untuk keterangan tambahan "F". */
+  jadwalFull: Set<string>;
 };
 
 export type LingkupRekap = Rentang & {
@@ -55,7 +58,7 @@ export async function ambilRekap(lingkup: LingkupRekap) {
   const { dari, sampai, cabangId } = lingkup;
   const filterCabang = cabangId ? { cabangId } : {};
 
-  const [karyawan, catatan] = await Promise.all([
+  const [karyawan, catatan, jadwal] = await Promise.all([
     db.user.findMany({
       where: { aktif: true, role: { not: "super_admin" }, ...filterCabang },
       orderBy: [{ cabang: { nama: "asc" } }, { name: "asc" }],
@@ -79,6 +82,18 @@ export async function ambilRekap(lingkup: LingkupRekap) {
         cycles: { select: { masukMenit: true, keluarMenit: true } },
       },
     }),
+    // Jadwal memberi konteks hari kosong: ada shift = alpa, tanpa shift = off.
+    db.jadwal.findMany({
+      where: {
+        tanggal: { gte: dari, lte: sampai },
+        user: { aktif: true, ...filterCabang },
+      },
+      select: {
+        userId: true,
+        tanggal: true,
+        shift: { select: { nama: true } },
+      },
+    }),
   ]);
 
   const bersih: CatatanAbsensi[] = catatan.map((c) => ({
@@ -93,7 +108,23 @@ export async function ambilRekap(lingkup: LingkupRekap) {
   }));
 
   const peta = rekapPerKaryawan(bersih);
-  const petaHarian = petaStatusHarian(bersih);
+  const petaHarian = keadaanHarian(
+    bersih,
+    jadwal.map((j) => ({
+      userId: j.userId,
+      tanggal: j.tanggal,
+      shiftNama: j.shift?.nama ?? null,
+    })),
+  );
+
+  // Kumpulkan tanggal bershift Full per karyawan agar bisa ditandai di kolom.
+  const petaFull = new Map<string, Set<string>>();
+  for (const j of jadwal) {
+    if (!shiftFull(j.shift?.nama)) continue;
+    const set = petaFull.get(j.userId) ?? new Set<string>();
+    set.add(j.tanggal);
+    petaFull.set(j.userId, set);
+  }
 
   // Karyawan tanpa catatan tetap ditampilkan dengan nilai nol, supaya
   // admin bisa melihat siapa yang belum pernah absen sama sekali.
@@ -111,7 +142,8 @@ export async function ambilRekap(lingkup: LingkupRekap) {
       menitTelat: r?.menitTelat ?? 0,
       belumKeluar: r?.belumKeluar ?? 0,
       kekuranganMenit: r?.kekuranganMenit ?? 0,
-      statusHarian: petaHarian.get(k.id) ?? new Map<string, StatusAbsensi>(),
+      statusHarian: petaHarian.get(k.id) ?? new Map<string, KeadaanHari>(),
+      jadwalFull: petaFull.get(k.id) ?? new Set<string>(),
     };
   });
 

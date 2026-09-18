@@ -2,18 +2,21 @@ import { describe, expect, it } from "vitest";
 import {
   bacaRentang,
   daftarTanggal,
+  keadaanHarian,
   labelPeriode,
   labelRentang,
-  petaStatusHarian,
   periodeTerakhir,
   periodeValid,
   persenKehadiran,
   rekapPerKaryawan,
   rentangPeriode,
+  shiftFull,
+  SIMBOL_HARI,
   SIMBOL_STATUS,
   tanggalValid,
   totalRekap,
   type CatatanAbsensi,
+  type JadwalHarian,
 } from "./rekap";
 
 function catatan(ubah: Partial<CatatanAbsensi> = {}): CatatanAbsensi {
@@ -109,26 +112,71 @@ describe("rekapPerKaryawan", () => {
   });
 });
 
-describe("petaStatusHarian", () => {
-  it("memetakan status per karyawan per tanggal", () => {
-    const peta = petaStatusHarian([
-      catatan({ userId: "a", tanggal: "2026-08-01", status: "hadir" }),
-      catatan({ userId: "a", tanggal: "2026-08-02", status: "telat" }),
-      catatan({ userId: "b", tanggal: "2026-08-01", status: "izin" }),
-    ]);
+describe("keadaanHarian", () => {
+  it("memetakan status absensi per karyawan per tanggal", () => {
+    const peta = keadaanHarian(
+      [
+        catatan({ userId: "a", tanggal: "2026-08-01", status: "hadir" }),
+        catatan({ userId: "a", tanggal: "2026-08-02", status: "telat" }),
+        catatan({ userId: "b", tanggal: "2026-08-01", status: "izin" }),
+      ],
+      [],
+    );
     expect(peta.get("a")?.get("2026-08-01")).toBe("hadir");
     expect(peta.get("a")?.get("2026-08-02")).toBe("telat");
     expect(peta.get("b")?.get("2026-08-01")).toBe("izin");
   });
 
-  it("tanggal tanpa catatan tidak memiliki key", () => {
-    const peta = petaStatusHarian([catatan({ tanggal: "2026-08-05" })]);
+  it("hari berjadwal tanpa absensi dianggap alpa", () => {
+    const peta = keadaanHarian(
+      [],
+      [{ userId: "a", tanggal: "2026-08-03", shiftNama: "Pagi" }],
+    );
+    expect(peta.get("a")?.get("2026-08-03")).toBe("alpa");
+  });
+
+  it("hari tanpa jadwal dianggap off", () => {
+    const peta = keadaanHarian(
+      [],
+      [{ userId: "a", tanggal: "2026-08-04", shiftNama: null }],
+    );
+    expect(peta.get("a")?.get("2026-08-04")).toBe("off");
+  });
+
+  it("absen yang tercatat menimpa hasil dari jadwal", () => {
+    const jadwal: JadwalHarian[] = [
+      { userId: "a", tanggal: "2026-08-01", shiftNama: "Pagi" },
+    ];
+    const peta = keadaanHarian(
+      [catatan({ userId: "a", tanggal: "2026-08-01", status: "hadir" })],
+      jadwal,
+    );
+    expect(peta.get("a")?.get("2026-08-01")).toBe("hadir");
+  });
+
+  it("tanggal di luar data tidak memiliki key", () => {
+    const peta = keadaanHarian([catatan({ tanggal: "2026-08-05" })], []);
     expect(peta.get("u1")?.has("2026-08-06")).toBe(false);
-    expect(peta.get("u1")?.get("2026-08-06")).toBeUndefined();
   });
 
   it("daftar kosong menghasilkan peta kosong", () => {
-    expect(petaStatusHarian([]).size).toBe(0);
+    expect(keadaanHarian([], []).size).toBe(0);
+  });
+});
+
+describe("shiftFull", () => {
+  it("mengenali shift Full tanpa peduli huruf besar/kecil dan spasi", () => {
+    expect(shiftFull("Full")).toBe(true);
+    expect(shiftFull("full")).toBe(true);
+    expect(shiftFull(" full ")).toBe(true);
+  });
+
+  it("menolak shift lain dan nilai kosong", () => {
+    expect(shiftFull("Pagi")).toBe(false);
+    expect(shiftFull("Siang")).toBe(false);
+    expect(shiftFull(null)).toBe(false);
+    expect(shiftFull(undefined)).toBe(false);
+    expect(shiftFull("")).toBe(false);
   });
 });
 
@@ -168,6 +216,14 @@ describe("SIMBOL_STATUS", () => {
   it("mempunyai simbol unik untuk tiap status", () => {
     const simbol = Object.values(SIMBOL_STATUS);
     expect(new Set(simbol).size).toBe(simbol.length);
+  });
+});
+
+describe("SIMBOL_HARI", () => {
+  it("membedakan off dari status absensi", () => {
+    const simbol = Object.values(SIMBOL_HARI);
+    expect(new Set(simbol).size).toBe(simbol.length);
+    expect(SIMBOL_HARI.off).toBe("O");
   });
 });
 
