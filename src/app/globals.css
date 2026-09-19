@@ -51,3 +51,79 @@ textarea {
   outline: 2px solid var(--color-ink);
   outline-offset: 2px;
 }
+
+/* --------------------------------------------------------------------------
+   Animasi umpan balik absensi. Ringan dan murni CSS agar tidak membebani
+   perangkat maupun server. Semua otomatis nonaktif bila pengguna memilih
+   mengurangi gerakan (prefers-reduced-motion).
+   -------------------------------------------------------------------------- */
+
+@keyframes inox-check-muncul {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  70% {
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes inox-check-lingkaran {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes inox-check-centang {
+  0%,
+  25% {
+    opacity: 0;
+    stroke-dashoffset: 48;
+  }
+  55% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+  100% {
+    opacity: 0;
+    stroke-dashoffset: 0;
+  }
+}
+
+.inox-overlay-check {
+  animation: inox-check-muncul 1000ms ease-out forwards;
+}
+
+.inox-lingkaran-check {
+  animation: inox-check-lingkaran 1000ms ease-out forwards;
+}
+
+.inox-centang-check {
+  stroke-dasharray: 48;
+  animation: inox-check-centang 1000ms ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inox-overlay-check,
+  .inox-lingkaran-check,
+  .inox-centang-check {
+    animation-duration: 600ms;
+  }
+}

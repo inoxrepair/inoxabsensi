@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { AnimasiCheck } from "@/components/ui/animasi-check";
 import { absenKeluar, absenMasuk, type HasilAbsen } from "./actions";
 import {
   bukaKamera,
   descriptorDariMedia,
   stopKamera,
 } from "@/lib/face-client";
+import { bunyiCheck, DURASI_ANIMASI_MS } from "@/lib/umpan-balik";
 
 type Mode = "masuk" | "keluar" | "selesai";
 
@@ -48,9 +50,10 @@ export function TombolAbsen({
   const [konfirmasi, setKonfirmasi] = useState(false);
   const [kameraAktif, setKameraAktif] = useState(false);
   const [memprosesWajah, setMemprosesWajah] = useState(false);
+  const [animasi, setAnimasi] = useState<{ judul: string } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const sibuk = mengambilLokasi || mengirim || memprosesWajah;
+  const sibuk = mengambilLokasi || mengirim || memprosesWajah || animasi !== null;
 
   // Pastikan kamera mati saat komponen dilepas.
   useEffect(() => {
@@ -79,9 +82,20 @@ export function TombolAbsen({
 
     mulaiTransisi(async () => {
       const aksi = mode === "masuk" ? absenMasuk : absenKeluar;
-      setHasil(await aksi(data));
+      const jawaban = await aksi(data);
+      setHasil(jawaban);
       stopKamera(videoRef.current);
       setKameraAktif(false);
+
+      // Beri umpan balik jelas sebelum tombol kembali normal, supaya
+      // pengenalan wajah tidak terasa terlalu cepat.
+      if (jawaban.ok) {
+        bunyiCheck();
+        setAnimasi({
+          judul: mode === "masuk" ? "Absen masuk tercatat" : "Absen keluar tercatat",
+        });
+        window.setTimeout(() => setAnimasi(null), DURASI_ANIMASI_MS);
+      }
     });
   }
 
@@ -225,6 +239,7 @@ export function TombolAbsen({
           </div>
         </div>
       ) : null}
+      {animasi ? <AnimasiCheck judul={animasi.judul} /> : null}
       <Pesan hasil={hasil} />
     </>
   );

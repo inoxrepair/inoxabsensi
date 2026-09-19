@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { AnimasiCheck } from "@/components/ui/animasi-check";
 import {
   beberapaDescriptor,
   bukaKamera,
   stopKamera,
 } from "@/lib/face-client";
 import { rataEmbedding } from "@/lib/wajah";
+import { bunyiCheck, DURASI_ANIMASI_MS } from "@/lib/umpan-balik";
 import { simpanWajah, hapusWajah, type HasilWajah } from "./aksi-wajah";
 
 const JUMLAH_SAMPEL = 3;
@@ -35,6 +37,7 @@ export function DaftarWajah({
   const [galat, setGalat] = useState<string | null>(null);
   const [mengirim, mulaiTransisi] = useTransition();
   const [sibuk, setSibuk] = useState(false);
+  const [berhasil, setBerhasil] = useState(false);
 
   // Kamera harus selalu dimatikan saat dialog ditutup atau komponen lepas.
   useEffect(() => {
@@ -86,7 +89,19 @@ export function DaftarWajah({
         const simpan = await simpanWajah(userId, rata);
         stopKamera(video);
         setSibuk(false);
-        onSelesai(simpan);
+
+        // Tampilkan animasi dan bunyi lebih dulu agar pendaftaran terasa
+        // selesai; dialog baru ditutup setelah animasinya habis.
+        if (simpan.ok) {
+          bunyiCheck();
+          setBerhasil(true);
+          window.setTimeout(() => {
+            setBerhasil(false);
+            onSelesai(simpan);
+          }, DURASI_ANIMASI_MS);
+        } else {
+          onSelesai(simpan);
+        }
       });
     } catch {
       setGalat("Gagal memproses wajah. Muat ulang halaman lalu coba lagi.");
@@ -176,6 +191,7 @@ export function DaftarWajah({
           </button>
         </div>
       </div>
+      {berhasil ? <AnimasiCheck judul="Wajah berhasil didaftarkan" /> : null}
     </div>
   );
 }
