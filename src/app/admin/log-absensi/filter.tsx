@@ -74,6 +74,17 @@ export function FilterLog({
         </label>
       ) : null}
       <button type="submit" className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper">Tampilkan</button>
+      <a
+        href={`/admin/log-absensi/arsip?${new URLSearchParams({
+          dari,
+          sampai,
+          ...(cabangTerpilih ? { cabang: cabangTerpilih } : {}),
+        }).toString()}`}
+        className="ml-auto rounded-lg border border-line px-4 py-2 text-sm font-medium"
+        title="Unduh arsip absensi (ZIP berisi PDF per bulan per karyawan)"
+      >
+        Download Arsip
+      </a>
     </form>
   );
 }

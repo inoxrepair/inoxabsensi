@@ -175,6 +175,14 @@ Absensi dapat memverifikasi wajah. Prinsip:
 - `camera=(self)` wajib ada di Permissions-Policy `next.config.ts`.
 - Kamera dan Geolocation sama-sama butuh HTTPS.
 
+Umpan balik absen:
+
+- Animasi centang satu detik (`components/ui/animasi-check.tsx`, keyframes di
+  `globals.css`) dan bunyi "check" Web Audio (`src/lib/suara.ts`).
+- Berlaku saat absen masuk/keluar berhasil dan saat pendaftaran wajah.
+- Semua di perangkat, tidak menambah beban server dan tanpa file audio.
+- `siapkanAudio()` dipanggil pada sentuhan pertama agar audio iOS terbuka.
+
 ## Flexible Shift
 
 `Shift.mode`:
@@ -262,6 +270,20 @@ Menu: `Admin -> Log Absensi`.
 - Edit manual menyimpan `editedBy` dan catatan `Diedit manual.`.
 - Schema validasi harus berada di `src/lib`, bukan diekspor dari file
   `"use server"`; Next.js akan error jika file server export object.
+- Kolom Wajah menampilkan hasil verifikasi wajah dan jaraknya.
+
+## Arsip Absensi
+
+Tombol `Download Arsip` pada Log Absensi mengunduh ZIP berisi PDF per bulan
+per karyawan (`nama/2026-08.pdf`).
+
+- Hanya role dengan akses menu `karyawan` (admin) yang boleh mengunduh.
+- Admin Cabang dipaksa ke cabangnya sendiri di server, bukan lewat query.
+- Rentang maksimal 12 bulan (`MAKS_BULAN_ARSIP` di `src/lib/arsip.ts`).
+- ZIP dibuat streaming dengan `archiver`, PDF dengan `pdf-lib`.
+- Nama folder/file dibersihkan `namaAman()` agar tidak bisa keluar dari ZIP.
+- Route memakai `export const maxDuration = 300` karena banyak PDF.
+- Hari tanpa absensi tetap diarsipkan: ada jadwal = alpa, tanpa jadwal = off.
 
 ## Backup and Restore
 

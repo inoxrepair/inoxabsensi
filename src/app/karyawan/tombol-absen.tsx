@@ -8,7 +8,12 @@ import {
   descriptorDariMedia,
   stopKamera,
 } from "@/lib/face-client";
-import { bunyiCheck, DURASI_ANIMASI_MS } from "@/lib/umpan-balik";
+import {
+  bunyiCheck,
+  bunyiGagal,
+  DURASI_ANIMASI_MS,
+  siapkanAudio,
+} from "@/lib/suara";
 
 type Mode = "masuk" | "keluar" | "selesai";
 
@@ -95,6 +100,8 @@ export function TombolAbsen({
           judul: mode === "masuk" ? "Absen masuk tercatat" : "Absen keluar tercatat",
         });
         window.setTimeout(() => setAnimasi(null), DURASI_ANIMASI_MS);
+      } else {
+        bunyiGagal();
       }
     });
   }
@@ -178,6 +185,9 @@ export function TombolAbsen({
   }
 
   function bukaKonfirmasi() {
+    // Sentuhan pertama membuka kunci audio di iOS Safari supaya bunyi
+    // "check" bisa berbunyi saat absen selesai.
+    siapkanAudio();
     if (!sibuk) setKonfirmasi(true);
   }
 

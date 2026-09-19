@@ -8,7 +8,7 @@ import {
   stopKamera,
 } from "@/lib/face-client";
 import { rataEmbedding } from "@/lib/wajah";
-import { bunyiCheck, DURASI_ANIMASI_MS } from "@/lib/umpan-balik";
+import { bunyiCheck, DURASI_ANIMASI_MS } from "@/lib/suara";
 import { simpanWajah, hapusWajah, type HasilWajah } from "./aksi-wajah";
 
 const JUMLAH_SAMPEL = 3;

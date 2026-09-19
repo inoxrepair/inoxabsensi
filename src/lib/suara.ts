@@ -71,3 +71,6 @@ export function bunyiGagal(): void {
 export function siapkanAudio(): void {
   ambilKonteks();
 }
+
+/** Durasi animasi centang, sejalan dengan keyframes di globals.css. */
+export const DURASI_ANIMASI_MS = 1000;
