@@ -1,7 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { absenKeluar, absenMasuk, type HasilAbsen } from "./actions";
+import {
+  bukaKamera,
+  descriptorDariMedia,
+  stopKamera,
+} from "@/lib/face-client";
 
 type Mode = "masuk" | "keluar" | "selesai";
 
@@ -23,13 +28,34 @@ function isSecureContext(): boolean {
  * ke server action. Validasi radius tetap dilakukan di server; nilai di
  * klien hanya untuk umpan balik cepat.
  */
-export function TombolAbsen({ mode, cycleKe, maksimalCycle, mulaiMenit }: { mode: Mode; cycleKe: number; maksimalCycle: number; mulaiMenit: number | null }) {
+export function TombolAbsen({
+  mode,
+  cycleKe,
+  maksimalCycle,
+  mulaiMenit,
+  wajahTerdaftar,
+}: {
+  mode: Mode;
+  cycleKe: number;
+  maksimalCycle: number;
+  mulaiMenit: number | null;
+  /** Apakah karyawan sudah punya data wajah; menentukan verifikasi dijalankan. */
+  wajahTerdaftar: boolean;
+}) {
   const [hasil, setHasil] = useState<HasilAbsen | null>(null);
   const [mengambilLokasi, setMengambilLokasi] = useState(false);
   const [mengirim, mulaiTransisi] = useTransition();
   const [konfirmasi, setKonfirmasi] = useState(false);
+  const [kameraAktif, setKameraAktif] = useState(false);
+  const [memprosesWajah, setMemprosesWajah] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  const sibuk = mengambilLokasi || mengirim;
+  const sibuk = mengambilLokasi || mengirim || memprosesWajah;
+
+  // Pastikan kamera mati saat komponen dilepas.
+  useEffect(() => {
+    return () => stopKamera(videoRef.current);
+  }, []);
 
   if (mode === "selesai") {
     return (
@@ -43,6 +69,43 @@ export function TombolAbsen({ mode, cycleKe, maksimalCycle, mulaiMenit }: { mode
         <Pesan hasil={hasil} />
       </>
     );
+  }
+
+  function kirimAbsen(coords: GeolocationCoordinates, wajah: number[] | null) {
+    const data = new FormData();
+    data.set("lat", String(coords.latitude));
+    data.set("lng", String(coords.longitude));
+    if (wajah) data.set("wajah", JSON.stringify(wajah));
+
+    mulaiTransisi(async () => {
+      const aksi = mode === "masuk" ? absenMasuk : absenKeluar;
+      setHasil(await aksi(data));
+      stopKamera(videoRef.current);
+      setKameraAktif(false);
+    });
+  }
+
+  /**
+   * Bila wajah sudah terdaftar, nyalakan kamera dan ambil descriptor. Kamera
+   * tetap menyala sampai absen terkirim. Kegagalan kamera tidak memblokir
+   * absensi; absen tetap berjalan dengan verifikasi kosong.
+   */
+  async function ambilWajah(): Promise<number[] | null> {
+    if (!wajahTerdaftar) return null;
+    const video = videoRef.current;
+    if (!video) return null;
+
+    setMemprosesWajah(true);
+    const kamera = await bukaKamera(video);
+    if (!kamera.ok) {
+      setMemprosesWajah(false);
+      return null;
+    }
+    setKameraAktif(true);
+
+    const descriptor = await descriptorDariMedia(video);
+    setMemprosesWajah(false);
+    return descriptor.ok ? descriptor.embedding : null;
   }
 
   function jalankan() {
@@ -70,16 +133,10 @@ export function TombolAbsen({ mode, cycleKe, maksimalCycle, mulaiMenit }: { mode
 
     setMengambilLokasi(true);
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
+      async ({ coords }) => {
         setMengambilLokasi(false);
-        const data = new FormData();
-        data.set("lat", String(coords.latitude));
-        data.set("lng", String(coords.longitude));
-
-        mulaiTransisi(async () => {
-          const aksi = mode === "masuk" ? absenMasuk : absenKeluar;
-          setHasil(await aksi(data));
-        });
+        const wajah = await ambilWajah();
+        kirimAbsen(coords, wajah);
       },
       (galat) => {
         setMengambilLokasi(false);
@@ -112,6 +169,26 @@ export function TombolAbsen({ mode, cycleKe, maksimalCycle, mulaiMenit }: { mode
 
   return (
     <>
+      {wajahTerdaftar ? (
+        <div className="mt-5 overflow-hidden rounded-2xl border border-line bg-paper">
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            className={`aspect-[4/3] w-full object-cover ${kameraAktif ? "" : "hidden"}`}
+          />
+          {!kameraAktif ? (
+            <p className="p-4 text-center text-sm text-muted">
+              Kamera akan aktif otomatis saat Anda absen untuk memverifikasi wajah.
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <p className="mt-5 rounded-2xl border border-line bg-paper p-4 text-center text-sm text-muted">
+          Wajah belum didaftarkan. Hubungi admin agar absen Anda dapat diverifikasi.
+        </p>
+      )}
+
       <button
         type="button"
         onClick={bukaKonfirmasi}
@@ -120,11 +197,13 @@ export function TombolAbsen({ mode, cycleKe, maksimalCycle, mulaiMenit }: { mode
       >
         {mengambilLokasi
           ? "Mendeteksi lokasi…"
-          : mengirim
-            ? "Menyimpan…"
-            : mode === "masuk"
-              ? cycleKe > 1 ? `Absen Masuk Cycle ${cycleKe}` : "Absen Masuk"
-              : "Absen Keluar"}
+          : memprosesWajah
+            ? "Memverifikasi wajah…"
+            : mengirim
+              ? "Menyimpan…"
+              : mode === "masuk"
+                ? cycleKe > 1 ? `Absen Masuk Cycle ${cycleKe}` : "Absen Masuk"
+                : "Absen Keluar"}
       </button>
       {konfirmasi ? (
         <div className="fixed inset-0 z-20 grid place-items-center bg-ink/40 p-4" role="dialog" aria-modal="true" aria-labelledby="konfirmasi-absen">

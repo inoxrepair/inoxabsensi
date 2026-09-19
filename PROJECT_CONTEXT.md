@@ -155,6 +155,26 @@ Authorization:
 - Status Hadir/Izin/Alpa/Libur menghasilkan `menitTelat = 0`.
 - Status Telat menghitung ulang dari shift dan toleransi.
 
+## Face Verification
+
+Absensi dapat memverifikasi wajah. Prinsip:
+
+- Pemrosesan dilakukan di browser dengan `@vladmandic/face-api` + `@tensorflow/tfjs`.
+- Yang dikirim dan disimpan hanya vektor 128 angka (`User.faceEmbedding` JSON),
+  bukan foto. Tidak ada foto yang disimpan di server.
+- Model disajikan dari `public/models` dan tidak memakai CDN.
+- Admin mendaftarkan wajah di menu Karyawan (tombol Daftarkan Wajah) dengan
+  3 sampel yang dirata-ratakan.
+- Saat absen, kamera aktif otomatis bila wajah sudah terdaftar. Karyawan tanpa
+  data wajah tetap dapat absen.
+- Wajah tidak cocok TIDAK memblokir absensi. Hasil disimpan di
+  `Absensi.faceStatus` (cocok | tidak_cocok | belum_daftar) dan `faceJarak`,
+  lalu ditampilkan di Log Absensi untuk audit.
+- Ambang jarak ada di `src/lib/wajah.ts` (`AMBANG_COCOK` = 0.55). Perketat
+  dengan menurunkannya bila ingin verifikasi lebih ketat.
+- `camera=(self)` wajib ada di Permissions-Policy `next.config.ts`.
+- Kamera dan Geolocation sama-sama butuh HTTPS.
+
 ## Flexible Shift
 
 `Shift.mode`:

@@ -34,6 +34,8 @@ export default async function AdminKaryawanPage() {
         tanggalMasuk: true,
         aktif: true,
         cabangId: true,
+        faceDidaftarkan: true,
+        faceEmbedding: true,
         cabang: { select: { nama: true } },
       },
     }),
@@ -58,7 +60,11 @@ export default async function AdminKaryawanPage() {
     role: bacaRole(k.role),
     tanggalMasuk: k.tanggalMasuk,
     aktif: k.aktif,
+    wajahDidaftarkan: k.faceDidaftarkan,
+    punyaWajah: Boolean(k.faceEmbedding),
   }));
+
+  const wajahTerdaftar = rows.filter((r) => r.punyaWajah).length;
 
   const cabang: CabangOption[] = cabangRows;
   const aktif = rows.filter((r) => r.aktif).length;
@@ -67,7 +73,7 @@ export default async function AdminKaryawanPage() {
     <>
       <PageHeader
         title="Karyawan"
-        description={`${rows.length} akun terdaftar · ${aktif} aktif. Kelola profil, role, cabang, dan password.`}
+        description={`${rows.length} akun terdaftar · ${aktif} aktif · ${wajahTerdaftar} wajah terdaftar. Kelola profil, role, cabang, password, dan wajah absen.`}
       />
 
       <DaftarKaryawan

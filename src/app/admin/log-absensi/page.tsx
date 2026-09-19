@@ -5,6 +5,11 @@ import { bacaStatusAbsensi, roleTerbatasCabang } from "@/lib/domain";
 import type { StatusAbsensi } from "@/lib/domain";
 import { bacaRentang, labelRentang } from "@/lib/rekap";
 import { wajibAkses } from "@/lib/session";
+import {
+  bacaStatusWajah,
+  LABEL_STATUS_WAJAH,
+  WARNA_STATUS_WAJAH,
+} from "@/lib/wajah";
 import { formatDurasi, keJam, selisihHari, tanggalLokal, durasiMenit } from "@/lib/waktu";
 import { FilterLog, type BarisLog } from "./filter";
 import { AksiBaris } from "./baris";
@@ -59,6 +64,8 @@ export default async function AdminLogAbsensiPage({
       : a.masukMenit !== null && a.keluarMenit !== null ? durasiMenit(a.masukMenit, a.keluarMenit) : null,
     menitTelat: a.menitTelat,
     catatan: a.editedBy ?? null,
+    faceStatus: bacaStatusWajah(a.faceStatus),
+    faceJarak: a.faceJarak,
     cycles: cycles.map((cycle) => ({ urutan: cycle.urutan, masukMenit: cycle.masukMenit, keluarMenit: cycle.keluarMenit })),
   };
   });
@@ -74,6 +81,7 @@ export default async function AdminLogAbsensiPage({
     { header: "Jam kerja", cell: (r) => (r.menitKerja !== null ? formatDurasi(r.menitKerja) : "—"), numeric: true },
     { header: "Telat", cell: (r) => (r.menitTelat > 0 ? `${r.menitTelat} m` : "0"), numeric: true },
     { header: "Status", cell: (r) => <StatusLabel status={r.status} /> },
+    { header: "Wajah", cell: (r) => <StatusWajahLabel row={r} /> },
     { header: "Aksi", cell: (r) => <AksiBaris row={r} canDelete={admin.role === "super_admin"} /> },
   ];
 
@@ -107,4 +115,20 @@ function StatusLabel({ status }: { status: string }) {
     libur: "Libur",
   };
   return <span className="font-medium">{map[status] ?? status}</span>;
+}
+
+function StatusWajahLabel({ row }: { row: BarisLog }) {
+  if (!row.faceStatus) {
+    return <span className="text-muted">—</span>;
+  }
+  return (
+    <span className={`font-medium ${WARNA_STATUS_WAJAH[row.faceStatus]}`}>
+      {LABEL_STATUS_WAJAH[row.faceStatus]}
+      {row.faceJarak != null ? (
+        <span className="block text-xs font-normal text-muted tabular-nums">
+          jarak {row.faceJarak.toFixed(3)}
+        </span>
+      ) : null}
+    </span>
+  );
 }

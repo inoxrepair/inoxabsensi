@@ -22,6 +22,8 @@ model User {
   jabatan       String    @default("-")
   tanggalMasuk  String
   aktif         Boolean   @default(true)
+  faceEmbedding   String?
+  faceDidaftarkan String?
   cabangId      String?
   cabang        Cabang?   @relation(fields: [cabangId], references: [id], onDelete: SetNull)
   accounts      Account[]
@@ -138,6 +140,8 @@ model Absensi {
   keluarJarakMeter Int?
   catatan         String?
   editedBy        String?
+  faceStatus      String?
+  faceJarak       Float?
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   cabang Cabang @relation(fields: [cabangId], references: [id], onDelete: Cascade)
   cycles AbsensiCycle[]

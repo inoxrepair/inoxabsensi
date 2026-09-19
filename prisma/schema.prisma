@@ -34,6 +34,12 @@ model User {
   tanggalMasuk String
   aktif        Boolean   @default(true)
 
+  /// Vektor wajah (128 angka) hasil face recognition, disimpan sebagai JSON.
+  /// Hanya vektor, bukan foto, sehingga tidak bisa dikembalikan jadi gambar.
+  faceEmbedding   String?
+  /// Tanggal lokal "yyyy-mm-dd" saat wajah terakhir didaftarkan.
+  faceDidaftarkan String?
+
   cabangId String?
   cabang   Cabang? @relation(fields: [cabangId], references: [id], onDelete: SetNull)
 
@@ -183,6 +189,11 @@ model Absensi {
   keluarJarakMeter  Int?
   catatan           String?
   editedBy          String?
+
+  /// Hasil verifikasi wajah saat check-in: cocok | tidak_cocok | belum_daftar.
+  faceStatus        String?
+  /// Jarak Euclidean terkecil ke embedding terdaftar; makin kecil makin mirip.
+  faceJarak         Float?
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   cabang Cabang @relation(fields: [cabangId], references: [id], onDelete: Cascade)

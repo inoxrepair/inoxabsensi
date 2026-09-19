@@ -14,12 +14,58 @@ import {
 } from "@/lib/absensi";
 import { bacaStatusAbsensi } from "@/lib/domain";
 import { menitLokal, tanggalLokal } from "@/lib/waktu";
+import {
+  bacaEmbedding,
+  cariKecocokan,
+  embeddingValid,
+  pesanWajah,
+  type KonteksWajah,
+} from "@/lib/wajah";
+
+/**
+ * Cocokkan vektor dari klien dengan wajah karyawan sendiri. Bila wajah belum
+ * didaftarkan atau vektor tidak valid, kembalikan konteks kosong tanpa
+ * menggagalkan absensi.
+ */
+async function verifikasiWajah(
+  userId: string,
+  teksWajah: string | undefined,
+): Promise<KonteksWajah> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { faceEmbedding: true },
+  });
+  const acuan = bacaEmbedding(user?.faceEmbedding);
+
+  if (!acuan) return { status: "belum_daftar", jarak: null };
+  if (!teksWajah) return { status: null, jarak: null };
+
+  let probe: unknown;
+  try {
+    probe = JSON.parse(teksWajah);
+  } catch {
+    return { status: null, jarak: null };
+  }
+  if (!embeddingValid(probe)) return { status: null, jarak: null };
+
+  const hasil = cariKecocokan(probe, [{ id: userId, embedding: acuan }]);
+  return {
+    status: hasil.cocok ? "cocok" : "tidak_cocok",
+    jarak: hasil.jarak,
+  };
+}
 
 /** Koordinat dari browser; rentang divalidasi agar tidak menyimpan sampah. */
 const posisiSkema = z.object({
   lat: z.coerce.number().min(-90).max(90),
   lng: z.coerce.number().min(-180).max(180),
 });
+
+/**
+ * Vektor wajah dari klien bersifat opsional. Absensi tidak boleh gagal hanya
+ * karena kamera bermasalah, jadi ketidakcocokan hanya dicatat untuk audit.
+ */
+const wajahSkema = z.string().optional();
 
 export type HasilAbsen = { ok: boolean; pesan: string };
 
@@ -94,9 +140,14 @@ export async function absenMasuk(formData: FormData): Promise<HasilAbsen> {
     return { ok: false, pesan: "Koordinat lokasi tidak valid." };
   }
 
+  const wajah = wajahSkema.safeParse(formData.get("wajah") ?? undefined);
   const tanggal = tanggalLokal();
   const sekarang = menitLokal();
-  const { kondisi, cabangId, adaBaris, absensiId, cycles, maksimalCycle } = await kondisiHariIni(user.id, tanggal);
+  const [{ kondisi, cabangId, adaBaris, absensiId, cycles, maksimalCycle }, wajahHasil] =
+    await Promise.all([
+      kondisiHariIni(user.id, tanggal),
+      verifikasiWajah(user.id, wajah.success ? wajah.data : undefined),
+    ]);
 
   const izin = bolehMasuk({ ...kondisi, posisi: posisi.data }, sekarang);
   if (!izin.ok) return { ok: false, pesan: izin.alasan };
@@ -114,6 +165,8 @@ export async function absenMasuk(formData: FormData): Promise<HasilAbsen> {
     masukLat: posisi.data.lat,
     masukLng: posisi.data.lng,
     masukJarakMeter: izin.jarakMeter,
+    faceStatus: wajahHasil.status,
+    faceJarak: wajahHasil.jarak,
   };
 
   // Baris bisa sudah ada (mis. ditandai alpa oleh proses harian), jadi
@@ -163,13 +216,17 @@ export async function absenMasuk(formData: FormData): Promise<HasilAbsen> {
   revalidatePath("/karyawan");
   revalidatePath("/karyawan/riwayat");
 
-  return {
-    ok: true,
-    pesan:
-      izin.status === "telat"
-        ? `Absen masuk cycle ${urutan} tercatat, terlambat ${izin.menitTelat} menit.`
-        : `Absen masuk cycle ${urutan} dari ${maksimalCycle} tercatat. Selamat bekerja.`,
-  };
+  const pesanDasar =
+    izin.status === "telat"
+      ? `Absen masuk cycle ${urutan} tercatat, terlambat ${izin.menitTelat} menit.`
+      : `Absen masuk cycle ${urutan} dari ${maksimalCycle} tercatat. Selamat bekerja.`;
+
+  const infoWajah =
+    wajahHasil.status && wajahHasil.status !== "cocok"
+      ? ` ${pesanWajah(wajahHasil.status)}`
+      : "";
+
+  return { ok: true, pesan: `${pesanDasar}${infoWajah}` };
 }
 
 export async function absenKeluar(formData: FormData): Promise<HasilAbsen> {

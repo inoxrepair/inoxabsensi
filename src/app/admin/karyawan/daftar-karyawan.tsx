@@ -9,6 +9,8 @@ import {
   ubahStatusKaryawan,
   type HasilKaryawan,
 } from "./actions";
+import { DaftarWajah } from "./daftar-wajah";
+import type { HasilWajah } from "./aksi-wajah";
 
 export type CabangOption = { id: string; nama: string };
 export type BarisKaryawan = {
@@ -22,6 +24,9 @@ export type BarisKaryawan = {
   role: RoleKaryawan;
   tanggalMasuk: string;
   aktif: boolean;
+  /** Tanggal "yyyy-mm-dd" pendaftaran wajah terakhir; null bila belum. */
+  wajahDidaftarkan: string | null;
+  punyaWajah: boolean;
 };
 
 const INPUT =
@@ -39,6 +44,7 @@ export function DaftarKaryawan({
   adminCabangId: string | null;
 }) {
   const [dibuka, setDibuka] = useState<string | null>(null);
+  const [wajahUntuk, setWajahUntuk] = useState<BarisKaryawan | null>(null);
   const [pesan, setPesan] = useState<HasilKaryawan | null>(null);
   const [cari, setCari] = useState("");
   const [filterCabang, setFilterCabang] = useState("");
@@ -58,6 +64,11 @@ export function DaftarKaryawan({
   function selesai(h: HasilKaryawan) {
     setDibuka(null);
     setPesan(h);
+  }
+
+  function selesaiWajah(h: HasilWajah) {
+    setWajahUntuk(null);
+    if (h.pesan) setPesan(h);
   }
 
   return (
@@ -171,12 +182,26 @@ export function DaftarKaryawan({
                   setPesan(null);
                   setDibuka(r.id);
                 }}
+                onWajah={() => {
+                  setPesan(null);
+                  setWajahUntuk(r);
+                }}
                 onPesan={setPesan}
               />
             </li>
           ),
         )}
       </ul>
+
+      {wajahUntuk ? (
+        <DaftarWajah
+          userId={wajahUntuk.id}
+          nama={wajahUntuk.nama}
+          sudahDaftar={wajahUntuk.punyaWajah}
+          tanggalDaftar={wajahUntuk.wajahDidaftarkan}
+          onSelesai={selesaiWajah}
+        />
+      ) : null}
     </div>
   );
 }
@@ -184,10 +209,12 @@ export function DaftarKaryawan({
 function Kartu({
   row: r,
   onUbah,
+  onWajah,
   onPesan,
 }: {
   row: BarisKaryawan;
   onUbah: () => void;
+  onWajah: () => void;
   onPesan: (h: HasilKaryawan) => void;
 }) {
   const [menunggu, mulai] = useTransition();
@@ -208,6 +235,17 @@ function Kartu({
             className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium"
           >
             Ubah
+          </button>
+          <button
+            type="button"
+            onClick={onWajah}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${
+              r.punyaWajah
+                ? "border-status-hadir text-status-hadir"
+                : "border-line"
+            }`}
+          >
+            {r.punyaWajah ? "Wajah ✓" : "Daftarkan Wajah"}
           </button>
           <button
             type="button"
@@ -237,6 +275,14 @@ function Kartu({
         <div>
           <dt className="text-xs text-muted">Status</dt>
           <dd>{r.aktif ? "Aktif" : "Nonaktif"}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-muted">Wajah absen</dt>
+          <dd>
+            {r.punyaWajah
+              ? `Terdaftar ${r.wajahDidaftarkan ? formatTanggal(r.wajahDidaftarkan) : ""}`
+              : "Belum terdaftar"}
+          </dd>
         </div>
       </dl>
     </article>

@@ -4,6 +4,7 @@ import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { StatusAbsensi } from "@/lib/domain";
+import type { StatusWajah } from "@/lib/wajah";
 
 export type BarisLog = {
   id: string;
@@ -16,6 +17,8 @@ export type BarisLog = {
   menitKerja: number | null;
   menitTelat: number;
   catatan: string | null;
+  faceStatus: StatusWajah | null;
+  faceJarak: number | null;
   cycles: { urutan: number; masukMenit: number; keluarMenit: number | null }[];
 };
 
