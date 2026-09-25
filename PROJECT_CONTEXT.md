@@ -155,25 +155,22 @@ Authorization:
 - Status Hadir/Izin/Alpa/Libur menghasilkan `menitTelat = 0`.
 - Status Telat menghitung ulang dari shift dan toleransi.
 
-## Face Verification
+## Face Verification (DINONAKTIFKAN)
 
-Absensi dapat memverifikasi wajah. Prinsip:
+Fitur pendaftaran dan verifikasi wajah baru sudah DIHAPUS atas permintaan
+user. Yang tersisa hanya tampilan HISTORI:
 
-- Pemrosesan dilakukan di browser dengan `@vladmandic/face-api` + `@tensorflow/tfjs`.
-- Yang dikirim dan disimpan hanya vektor 128 angka (`User.faceEmbedding` JSON),
-  bukan foto. Tidak ada foto yang disimpan di server.
-- Model disajikan dari `public/models` dan tidak memakai CDN.
-- Admin mendaftarkan wajah di menu Karyawan (tombol Daftarkan Wajah) dengan
-  3 sampel yang dirata-ratakan.
-- Saat absen, kamera aktif otomatis bila wajah sudah terdaftar. Karyawan tanpa
-  data wajah tetap dapat absen.
-- Wajah tidak cocok TIDAK memblokir absensi. Hasil disimpan di
-  `Absensi.faceStatus` (cocok | tidak_cocok | belum_daftar) dan `faceJarak`,
-  lalu ditampilkan di Log Absensi untuk audit.
-- Ambang jarak ada di `src/lib/wajah.ts` (`AMBANG_COCOK` = 0.55). Perketat
-  dengan menurunkannya bila ingin verifikasi lebih ketat.
-- `camera=(self)` wajib ada di Permissions-Policy `next.config.ts`.
-- Kamera dan Geolocation sama-sama butuh HTTPS.
+- Kolom database TIDAK dihapus: `User.faceEmbedding`, `User.faceDidaftarkan`,
+  `Absensi.faceStatus`, `Absensi.faceJarak`. Jangan buat migration drop kolom.
+- `src/lib/wajah.ts` hanya berisi label/warna/status untuk histori Log
+  Absensi dan Arsip PDF. Logika embedding/matching sudah dihapus.
+- File yang dihapus: `src/lib/face-client.ts`,
+  `src/app/admin/karyawan/aksi-wajah.ts`,
+  `src/app/admin/karyawan/daftar-wajah.tsx`, `public/models/`,
+  deps `@vladmandic/face-api` + `@tensorflow/tfjs`.
+- Absensi baru tidak lagi menulis `faceStatus`/`faceJarak` (null).
+- Permissions-Policy tidak lagi meminta `camera`.
+- Kamera dan Geolocation tetap butuh HTTPS untuk GPS.
 
 Umpan balik absen:
 

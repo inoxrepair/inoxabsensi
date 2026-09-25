@@ -21,7 +21,7 @@ export default async function KaryawanAbsenPage() {
   const [user, jadwal, absensi] = await Promise.all([
     db.user.findUniqueOrThrow({
       where: { id: sesi.id },
-      select: { name: true, jabatan: true, cabang: true, faceEmbedding: true },
+      select: { name: true, jabatan: true, cabang: true },
     }),
     db.jadwal.findUnique({
       where: { userId_tanggal: { userId: sesi.id, tanggal } },
@@ -145,12 +145,10 @@ export default async function KaryawanAbsenPage() {
         cycleKe={jumlahCycle + 1}
         maksimalCycle={maksimalCycle}
         mulaiMenit={cycleAktif?.masukMenit ?? null}
-        wajahTerdaftar={Boolean(user.faceEmbedding)}
       />
 
       <p className="mt-3 text-center text-xs text-muted">
-        Lokasi diverifikasi terhadap koordinat cabang dan wajah dicocokkan saat
-        tombol ditekan. Absensi tetap tercatat walau wajah tidak dikenali.
+        Lokasi diverifikasi terhadap koordinat cabang saat tombol ditekan.
       </p>
     </>
   );
