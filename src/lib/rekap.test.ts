@@ -50,14 +50,15 @@ describe("rekapPerKaryawan", () => {
 
   it("mengakumulasi menit telat lintas hari", () => {
     const peta = rekapPerKaryawan([
-      catatan({ status: "telat", menitTelat: 15 }),
-      catatan({ status: "telat", menitTelat: 7 }),
-      catatan({ status: "hadir", menitTelat: 0 }),
+      catatan({ status: "telat", menitTelat: 15, menitToleransi: 10 }),
+      catatan({ status: "telat", menitTelat: 7, menitToleransi: 10 }),
+      catatan({ status: "hadir", menitTelat: 0, menitToleransi: 4 }),
     ]);
     const u = peta.get("u1")!;
     expect(u.telat).toBe(2);
     expect(u.hadir).toBe(3);
     expect(u.menitTelat).toBe(22);
+    expect(u.menitToleransi).toBe(24);
   });
 
   it("memisahkan tiap karyawan", () => {
@@ -244,14 +245,20 @@ describe("SIMBOL_HARI", () => {
 describe("totalRekap", () => {
   it("menjumlahkan seluruh baris", () => {
     const peta = rekapPerKaryawan([
-      catatan({ userId: "a" }),
-      catatan({ userId: "b", status: "telat", menitTelat: 12 }),
+      catatan({ userId: "a", menitToleransi: 3 }),
+      catatan({
+        userId: "b",
+        status: "telat",
+        menitTelat: 12,
+        menitToleransi: 10,
+      }),
     ]);
     const t = totalRekap([...peta.values()]);
     expect(t.hadir).toBe(2);
     expect(t.telat).toBe(1);
     expect(t.menitKerja).toBe(960);
     expect(t.menitTelat).toBe(12);
+    expect(t.menitToleransi).toBe(13);
   });
 
   it("array kosong menghasilkan nol", () => {
@@ -262,13 +269,21 @@ describe("totalRekap", () => {
       alpa: 0,
       menitKerja: 0,
       menitTelat: 0,
+      menitToleransi: 0,
       kekuranganMenit: 0,
     });
   });
 });
 
 describe("persenKehadiran", () => {
-  const dasar = { izin: 0, alpa: 0, menitKerja: 0, menitTelat: 0, kekuranganMenit: 0 };
+  const dasar = {
+    izin: 0,
+    alpa: 0,
+    menitKerja: 0,
+    menitTelat: 0,
+    menitToleransi: 0,
+    kekuranganMenit: 0,
+  };
 
   it("telat tetap dihitung hadir", () => {
     expect(persenKehadiran({ hadir: 10, telat: 2, ...dasar })).toBe(100);

@@ -56,6 +56,20 @@ function kolomAgregat(): Kolom<BarisTabel>[] {
       ),
       numeric: true,
     },
+    {
+      header: "Toleransi",
+      cell: (r) => (
+        <>
+          <span className={r.menitToleransi === 0 ? "text-muted" : undefined}>
+            {r.menitToleransi} m
+          </span>
+          <span className="block text-xs font-normal text-muted">
+            dalam toleransi
+          </span>
+        </>
+      ),
+      numeric: true,
+    },
     { header: "Izin", cell: (r) => r.izin, numeric: true },
     { header: "Alpa", cell: (r) => r.alpa, numeric: true },
     {
@@ -194,7 +208,16 @@ export default async function AdminRekapPage({
         <StatCard
           label="Akumulasi telat"
           value={total.menitTelat > 0 ? formatDurasi(total.menitTelat) : "0j"}
-          hint={`${total.menitTelat} menit`}
+          hint={`${total.menitTelat} menit setelah toleransi`}
+        />
+        <StatCard
+          label="Dalam toleransi"
+          value={
+            total.menitToleransi > 0
+              ? formatDurasi(total.menitToleransi)
+              : "0j"
+          }
+          hint={`${total.menitToleransi} menit diampuni`}
         />
         <StatCard label="Izin / Alpa" value={`${total.izin} / ${total.alpa}`} />
         <StatCard
@@ -227,7 +250,7 @@ export default async function AdminRekapPage({
         <Card
           footer={
             adaData
-              ? "Angka di bawah kolom Telat adalah akumulasi keterlambatan setelah dikurangi toleransi shift. Jam kerja hanya dari hari yang sudah absen keluar. Kolom tanggal memakai simbol H/T/I/A/L; titik berarti belum ada catatan."
+              ? "Kolom Telat adalah akumulasi keterlambatan setelah dikurangi toleransi shift. Kolom Toleransi adalah akumulasi menit dalam toleransi (diampuni). Jam kerja hanya dari hari yang sudah absen keluar. Kolom tanggal memakai simbol H/T/I/A/L; titik berarti belum ada catatan."
               : "Belum ada catatan absensi pada rentang ini."
           }
         >

@@ -7,6 +7,7 @@ import {
   keJam,
   keMenit,
   menitTelat,
+  toleransiTerpakai,
   namaHari,
   selisihHari,
   tanggalGeser,
@@ -76,6 +77,24 @@ describe("menitTelat", () => {
 
   it("menghitung selisih setelah toleransi", () => {
     expect(menitTelat(565, shift)).toBe(15);
+  });
+});
+
+describe("toleransiTerpakai", () => {
+  const shift = { mulaiMenit: 480, toleransiMenit: 10 };
+
+  it("nol bila datang tepat waktu atau lebih awal", () => {
+    expect(toleransiTerpakai(480, shift)).toBe(0);
+    expect(toleransiTerpakai(475, shift)).toBe(0);
+  });
+
+  it("menghitung menit kotor di dalam toleransi", () => {
+    expect(toleransiTerpakai(487, shift)).toBe(7);
+  });
+
+  it("mentok di batas toleransi bila sudah telat", () => {
+    expect(toleransiTerpakai(490, shift)).toBe(10);
+    expect(toleransiTerpakai(492, shift)).toBe(10);
   });
 });
 

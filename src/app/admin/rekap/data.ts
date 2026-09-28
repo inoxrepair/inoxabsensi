@@ -11,7 +11,7 @@ import {
   type KeadaanHari,
   type Rentang,
 } from "@/lib/rekap";
-import { tanggalLokal } from "@/lib/waktu";
+import { tanggalLokal, toleransiTerpakai } from "@/lib/waktu";
 
 /**
  * Query rekap bersama halaman /admin/rekap dan endpoint export CSV,
@@ -28,6 +28,8 @@ export type BarisTabel = {
   alpa: number;
   menitKerja: number;
   menitTelat: number;
+  /** Akumulasi menit yang masih di dalam toleransi shift. */
+  menitToleransi: number;
   belumKeluar: number;
   kekuranganMenit: number;
   /** Keadaan per tanggal pada rentang aktif (absensi digabung jadwal). */
@@ -79,6 +81,7 @@ export async function ambilRekap(lingkup: LingkupRekap) {
         masukMenit: true,
         keluarMenit: true,
         menitTelat: true,
+        modeShift: true,
         kekuranganMenit: true,
         cycles: { select: { masukMenit: true, keluarMenit: true } },
       },
@@ -92,21 +95,42 @@ export async function ambilRekap(lingkup: LingkupRekap) {
       select: {
         userId: true,
         tanggal: true,
-        shift: { select: { nama: true } },
+        shift: {
+          select: {
+            nama: true,
+            mulaiMenit: true,
+            toleransiMenit: true,
+            mode: true,
+          },
+        },
       },
     }),
   ]);
 
-  const bersih: CatatanAbsensi[] = catatan.map((c) => ({
-    userId: c.userId,
-    tanggal: c.tanggal,
-    status: bacaStatusAbsensi(c.status),
-    masukMenit: c.masukMenit,
-    keluarMenit: c.keluarMenit,
-    menitTelat: c.menitTelat,
-    kekuranganMenit: c.kekuranganMenit,
-    cycles: c.cycles,
-  }));
+  const petaShift = new Map(
+    jadwal.map((j) => [`${j.userId}|${j.tanggal}`, j.shift]),
+  );
+
+  const bersih: CatatanAbsensi[] = catatan.map((c) => {
+    const shift = petaShift.get(`${c.userId}|${c.tanggal}`);
+    const fleksibel =
+      c.modeShift === "fleksibel" || shift?.mode === "fleksibel";
+    const menitToleransi =
+      c.masukMenit == null || !shift || fleksibel
+        ? 0
+        : toleransiTerpakai(c.masukMenit, shift);
+    return {
+      userId: c.userId,
+      tanggal: c.tanggal,
+      status: bacaStatusAbsensi(c.status),
+      masukMenit: c.masukMenit,
+      keluarMenit: c.keluarMenit,
+      menitTelat: c.menitTelat,
+      menitToleransi,
+      kekuranganMenit: c.kekuranganMenit,
+      cycles: c.cycles,
+    };
+  });
 
   const peta = rekapPerKaryawan(bersih);
   const petaHarian = keadaanHarian(
@@ -142,6 +166,7 @@ export async function ambilRekap(lingkup: LingkupRekap) {
       alpa: r?.alpa ?? 0,
       menitKerja: r?.menitKerja ?? 0,
       menitTelat: r?.menitTelat ?? 0,
+      menitToleransi: r?.menitToleransi ?? 0,
       belumKeluar: r?.belumKeluar ?? 0,
       kekuranganMenit: r?.kekuranganMenit ?? 0,
       statusHarian: petaHarian.get(k.id) ?? new Map<string, KeadaanHari>(),

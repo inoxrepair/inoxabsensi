@@ -67,6 +67,20 @@ export function menitTelat(
   return Math.max(0, masuk - (shift.mulaiMenit + shift.toleransiMenit));
 }
 
+/**
+ * Menit yang "diampuni" toleransi: bagian keterlambatan kotor yang masih di
+ * dalam batas toleransi. 0 bila datang tepat waktu/lebih awal.
+ * Contoh shift 08:00 toleransi 10: masuk 08:07 -> 7, masuk 08:12 -> 10.
+ */
+export function toleransiTerpakai(
+  masuk: number,
+  shift: { mulaiMenit: number; toleransiMenit: number },
+): number {
+  const kotor = masuk - shift.mulaiMenit;
+  if (kotor <= 0) return 0;
+  return Math.min(kotor, shift.toleransiMenit);
+}
+
 const SEHARI_MS = 86_400_000;
 
 /** Parse "yyyy-mm-dd" sebagai UTC agar bebas pengaruh timezone runtime. */
