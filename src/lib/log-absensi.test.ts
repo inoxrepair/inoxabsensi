@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { editAbsensiSkema, hitungMenitTelatKoreksi } from "./log-absensi";
+import {
+  editAbsensiSkema,
+  hitungMenitTelatKoreksi,
+  statusEfektif,
+} from "./log-absensi";
 
 describe("editAbsensiSkema", () => {
   const valid = {
@@ -62,5 +66,26 @@ describe("hitungMenitTelatKoreksi", () => {
     expect(hitungMenitTelatKoreksi("izin", null, shift)).toBe(0);
     expect(hitungMenitTelatKoreksi("alpa", null, shift)).toBe(0);
     expect(hitungMenitTelatKoreksi("libur", null, shift)).toBe(0);
+  });
+});
+
+describe("statusEfektif", () => {
+  const shift = { mulaiMenit: 540, toleransiMenit: 10 };
+
+  it("meluruskan telat dalam toleransi menjadi hadir", () => {
+    expect(statusEfektif("telat", 550, shift)).toBe("hadir");
+  });
+
+  it("mempertahankan telat yang terbukti lewat toleransi", () => {
+    expect(statusEfektif("telat", 565, shift)).toBe("telat");
+  });
+
+  it("tidak mengubah hadir sebagai pembolehan manual", () => {
+    expect(statusEfektif("hadir", 565, shift)).toBe("hadir");
+  });
+
+  it("tidak mengubah status non-kehadiran", () => {
+    expect(statusEfektif("izin", null, shift)).toBe("izin");
+    expect(statusEfektif("alpa", null, shift)).toBe("alpa");
   });
 });

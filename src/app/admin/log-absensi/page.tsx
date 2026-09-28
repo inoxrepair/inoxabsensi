@@ -34,6 +34,10 @@ export default async function AdminLogAbsensiPage({
     db.absensi.findMany({
       where: {
         tanggal: { gte: rentang.dari, lte: rentang.sampai },
+        // Filter cabang di query agar tidak memuat data cabang lain.
+        ...(lingkup.cabangId
+          ? { user: { cabangId: lingkup.cabangId } }
+          : {}),
       },
       orderBy: [{ tanggal: "desc" }, { masukMenit: "asc" }],
       include: {
@@ -44,7 +48,7 @@ export default async function AdminLogAbsensiPage({
     db.cabang.findMany({ orderBy: { nama: "asc" }, select: { id: true, nama: true } }),
   ]);
 
-  const terlihat = absensi.filter((a) => !lingkup.cabangId || a.user.cabangId === lingkup.cabangId);
+  const terlihat = absensi;
   const rows: BarisLog[] = terlihat.map((a) => {
     const cycles = a.cycles.length
       ? a.cycles
@@ -63,7 +67,8 @@ export default async function AdminLogAbsensiPage({
       ? cycles.reduce((total, cycle) => total + (cycle.keluarMenit == null ? 0 : durasiMenit(cycle.masukMenit, cycle.keluarMenit)), 0)
       : a.masukMenit !== null && a.keluarMenit !== null ? durasiMenit(a.masukMenit, a.keluarMenit) : null,
     menitTelat: a.menitTelat,
-    catatan: a.editedBy ?? null,
+    catatan: a.catatan ?? null,
+    diedit: a.editedBy != null,
     faceStatus: bacaStatusWajah(a.faceStatus),
     faceJarak: a.faceJarak,
     cycles: cycles.map((cycle) => ({ urutan: cycle.urutan, masukMenit: cycle.masukMenit, keluarMenit: cycle.keluarMenit })),
@@ -81,6 +86,22 @@ export default async function AdminLogAbsensiPage({
     { header: "Jam kerja", cell: (r) => (r.menitKerja !== null ? formatDurasi(r.menitKerja) : "—"), numeric: true },
     { header: "Telat", cell: (r) => (r.menitTelat > 0 ? `${r.menitTelat} m` : "0"), numeric: true },
     { header: "Status", cell: (r) => <StatusLabel status={r.status} /> },
+    {
+      header: "Catatan",
+      cell: (r) =>
+        r.catatan ? (
+          <span>
+            {r.catatan}
+            {r.diedit ? (
+              <span className="block text-xs font-normal text-muted">Diedit manual</span>
+            ) : null}
+          </span>
+        ) : r.diedit ? (
+          <span className="text-muted">Diedit manual</span>
+        ) : (
+          <span className="text-muted">—</span>
+        ),
+    },
     { header: "Wajah", cell: (r) => <StatusWajahLabel row={r} /> },
     { header: "Aksi", cell: (r) => <AksiBaris row={r} canDelete={admin.role === "super_admin"} /> },
   ];

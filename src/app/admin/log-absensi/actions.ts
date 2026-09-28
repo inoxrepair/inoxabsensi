@@ -6,6 +6,7 @@ import { roleTerbatasCabang } from "@/lib/domain";
 import {
   editAbsensiSkema,
   hitungMenitTelatKoreksi,
+  statusEfektif,
   type HasilAbsensi,
 } from "@/lib/log-absensi";
 import { wajibAkses } from "@/lib/session";
@@ -20,6 +21,11 @@ export async function simpanEditAbsensi(formData: FormData): Promise<HasilAbsens
     include: { user: { select: { cabangId: true } } },
   });
   if (!absensi) return { ok: false, pesan: "Catatan absensi tidak ditemukan." };
+
+  // Field tanggal tidak bisa diubah; tolak bila form tidak cocok dengan baris.
+  if (parsed.data.tanggal !== absensi.tanggal) {
+    return { ok: false, pesan: "Tanggal catatan berubah. Muat ulang halaman lalu coba lagi." };
+  }
 
   if (roleTerbatasCabang(admin.role)) {
     if (absensi.user.cabangId !== admin.cabangId) {
@@ -39,15 +45,19 @@ export async function simpanEditAbsensi(formData: FormData): Promise<HasilAbsens
     },
   });
 
-  const { masuk, keluar, status, catatan } = parsed.data;
+  const { masuk, keluar, status: statusForm, catatan } = parsed.data;
   const jumlahCycle = await db.absensiCycle.count({ where: { absensiId: absensi.id } });
   const masukAkhir = jumlahCycle > 1 ? absensi.masukMenit : masuk;
   const keluarAkhir = jumlahCycle > 1 ? absensi.keluarMenit : keluar;
   const menitTelat = hitungMenitTelatKoreksi(
-    status,
+    statusForm,
     masukAkhir,
     jadwal?.shift ?? null,
   );
+  // Hindari baris "telat 0 menit": status yang tidak terbukti telat
+  // diluruskan menjadi hadir. Arah sebaliknya (hadir yang lewat toleransi)
+  // tetap 0 sebagai pembolehan manual.
+  const status = statusEfektif(statusForm, masukAkhir, jadwal?.shift ?? null);
   await db.absensi.update({
     where: { id: parsed.data.id },
     data: {
@@ -89,6 +99,7 @@ export async function hapusAbsensi(id: string): Promise<HasilAbsensi> {
   await db.absensi.delete({ where: { id } });
   revalidatePath("/admin/log-absensi");
   revalidatePath("/admin");
+  revalidatePath("/admin/rekap");
   revalidatePath("/karyawan/riwayat");
 
   return {

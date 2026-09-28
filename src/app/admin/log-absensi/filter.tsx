@@ -16,7 +16,10 @@ export type BarisLog = {
   status: StatusAbsensi;
   menitKerja: number | null;
   menitTelat: number;
+  /** Isi catatan manual (kolom Absensi.catatan), null bila belum pernah diedit. */
   catatan: string | null;
+  /** True bila baris pernah diedit manual (kolom Absensi.editedBy terisi). */
+  diedit: boolean;
   faceStatus: StatusWajah | null;
   faceJarak: number | null;
   cycles: { urutan: number; masukMenit: number; keluarMenit: number | null }[];

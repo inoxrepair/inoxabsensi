@@ -20,6 +20,27 @@ export function hitungMenitTelatKoreksi(
   return menitTelat(masuk, shift);
 }
 
+/**
+ * Status efektif setelah koreksi: "telat" yang jamnya masih di dalam
+ * toleransi (atau tanpa shift pembanding) diluruskan menjadi "hadir" agar
+ * Rekap tidak menampilkan "telat 1 kali, 0 menit". Arah sebaliknya sengaja
+ * tidak diubah: "hadir" yang lewat toleransi tetap 0 sebagai bentuk
+ * pembolehan manual oleh admin.
+ */
+export function statusEfektif(
+  status: StatusAbsensi,
+  masuk: number | null,
+  shift: { mulaiMenit: number; toleransiMenit: number } | null,
+): StatusAbsensi {
+  if (
+    status === "telat" &&
+    hitungMenitTelatKoreksi(status, masuk, shift) === 0
+  ) {
+    return "hadir";
+  }
+  return status;
+}
+
 /** Validasi form koreksi log absensi, bukan server action. */
 export const editAbsensiSkema = z
   .object({
