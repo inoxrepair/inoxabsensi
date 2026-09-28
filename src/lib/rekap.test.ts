@@ -50,15 +50,31 @@ describe("rekapPerKaryawan", () => {
 
   it("mengakumulasi menit telat lintas hari", () => {
     const peta = rekapPerKaryawan([
-      catatan({ status: "telat", menitTelat: 15, menitToleransi: 10 }),
-      catatan({ status: "telat", menitTelat: 7, menitToleransi: 10 }),
-      catatan({ status: "hadir", menitTelat: 0, menitToleransi: 4 }),
+      catatan({
+        status: "telat",
+        menitTelat: 15,
+        menitToleransi: 10,
+        menitKotor: 25,
+      }),
+      catatan({
+        status: "telat",
+        menitTelat: 7,
+        menitToleransi: 10,
+        menitKotor: 17,
+      }),
+      catatan({
+        status: "hadir",
+        menitTelat: 0,
+        menitToleransi: 4,
+        menitKotor: 4,
+      }),
     ]);
     const u = peta.get("u1")!;
     expect(u.telat).toBe(2);
     expect(u.hadir).toBe(3);
     expect(u.menitTelat).toBe(22);
     expect(u.menitToleransi).toBe(24);
+    expect(u.menitKotor).toBe(46);
   });
 
   it("memisahkan tiap karyawan", () => {
@@ -245,12 +261,13 @@ describe("SIMBOL_HARI", () => {
 describe("totalRekap", () => {
   it("menjumlahkan seluruh baris", () => {
     const peta = rekapPerKaryawan([
-      catatan({ userId: "a", menitToleransi: 3 }),
+      catatan({ userId: "a", menitToleransi: 3, menitKotor: 3 }),
       catatan({
         userId: "b",
         status: "telat",
         menitTelat: 12,
         menitToleransi: 10,
+        menitKotor: 22,
       }),
     ]);
     const t = totalRekap([...peta.values()]);
@@ -259,6 +276,7 @@ describe("totalRekap", () => {
     expect(t.menitKerja).toBe(960);
     expect(t.menitTelat).toBe(12);
     expect(t.menitToleransi).toBe(13);
+    expect(t.menitKotor).toBe(25);
   });
 
   it("array kosong menghasilkan nol", () => {
@@ -270,6 +288,7 @@ describe("totalRekap", () => {
       menitKerja: 0,
       menitTelat: 0,
       menitToleransi: 0,
+      menitKotor: 0,
       kekuranganMenit: 0,
     });
   });
@@ -282,6 +301,7 @@ describe("persenKehadiran", () => {
     menitKerja: 0,
     menitTelat: 0,
     menitToleransi: 0,
+    menitKotor: 0,
     kekuranganMenit: 0,
   };
 

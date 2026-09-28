@@ -68,6 +68,18 @@ export function menitTelat(
 }
 
 /**
+ * Keterlambatan kotor: selisih jam masuk dengan jam mulai shift tanpa
+ * dikurangi toleransi. 0 bila datang tepat waktu/lebih awal.
+ * Contoh shift 08:00: masuk 08:07 -> 7, masuk 08:12 -> 12.
+ */
+export function keterlambatanKotor(
+  masuk: number,
+  shift: { mulaiMenit: number },
+): number {
+  return Math.max(0, masuk - shift.mulaiMenit);
+}
+
+/**
  * Menit yang "diampuni" toleransi: bagian keterlambatan kotor yang masih di
  * dalam batas toleransi. 0 bila datang tepat waktu/lebih awal.
  * Contoh shift 08:00 toleransi 10: masuk 08:07 -> 7, masuk 08:12 -> 10.

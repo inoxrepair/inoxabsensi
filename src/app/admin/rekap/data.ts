@@ -11,7 +11,7 @@ import {
   type KeadaanHari,
   type Rentang,
 } from "@/lib/rekap";
-import { tanggalLokal, toleransiTerpakai } from "@/lib/waktu";
+import { tanggalLokal, toleransiTerpakai, keterlambatanKotor } from "@/lib/waktu";
 
 /**
  * Query rekap bersama halaman /admin/rekap dan endpoint export CSV,
@@ -30,6 +30,8 @@ export type BarisTabel = {
   menitTelat: number;
   /** Akumulasi menit yang masih di dalam toleransi shift. */
   menitToleransi: number;
+  /** Akumulasi keterlambatan kotor tanpa potong toleransi. */
+  menitKotor: number;
   belumKeluar: number;
   kekuranganMenit: number;
   /** Keadaan per tanggal pada rentang aktif (absensi digabung jadwal). */
@@ -119,6 +121,10 @@ export async function ambilRekap(lingkup: LingkupRekap) {
       c.masukMenit == null || !shift || fleksibel
         ? 0
         : toleransiTerpakai(c.masukMenit, shift);
+    const menitKotor =
+      c.masukMenit == null || !shift || fleksibel
+        ? 0
+        : keterlambatanKotor(c.masukMenit, shift);
     return {
       userId: c.userId,
       tanggal: c.tanggal,
@@ -127,6 +133,7 @@ export async function ambilRekap(lingkup: LingkupRekap) {
       keluarMenit: c.keluarMenit,
       menitTelat: c.menitTelat,
       menitToleransi,
+      menitKotor,
       kekuranganMenit: c.kekuranganMenit,
       cycles: c.cycles,
     };
@@ -167,6 +174,7 @@ export async function ambilRekap(lingkup: LingkupRekap) {
       menitKerja: r?.menitKerja ?? 0,
       menitTelat: r?.menitTelat ?? 0,
       menitToleransi: r?.menitToleransi ?? 0,
+      menitKotor: r?.menitKotor ?? 0,
       belumKeluar: r?.belumKeluar ?? 0,
       kekuranganMenit: r?.kekuranganMenit ?? 0,
       statusHarian: petaHarian.get(k.id) ?? new Map<string, KeadaanHari>(),
