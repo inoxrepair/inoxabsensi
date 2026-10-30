@@ -3,7 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
-import { aturRentang, type Hasil } from "./actions";
+import { aturRentang, previewRentang, type Hasil } from "./actions";
+import {
+  DialogKonfirmasiMassal,
+  type RingkasanMassal,
+} from "./konfirmasi-massal";
 import type { SeragamOption, Shift } from "./matriks-jadwal";
 
 export function FormRentang({
@@ -28,6 +32,10 @@ export function FormRentang({
   const [dipilih, setDipilih] = useState(() => new Set(karyawan.map((k) => k.id)));
   const [galat, setGalat] = useState<string | null>(null);
   const [menunggu, mulai] = useTransition();
+  const [konfirmasi, setKonfirmasi] = useState<{
+    ringkasan: RingkasanMassal;
+    form: FormData;
+  } | null>(null);
   const router = useRouter();
 
   // State lokal untuk date input agar kompatibel dengan iOS Safari
@@ -65,6 +73,32 @@ export function FormRentang({
     const seragamEl = e.currentTarget.elements.namedItem("seragamId") as HTMLSelectElement | null;
     if (seragamEl) form.set("seragamId", seragamEl.value);
 
+    // Langkah 1: preview tanpa menulis. Langkah 2: dialog konfirmasi.
+    mulai(async () => {
+      const preview = await previewRentang(form);
+      if (!preview.ok) {
+        setGalat(preview.pesan);
+        return;
+      }
+      setKonfirmasi({
+        ringkasan: {
+          judul: "Terapkan shift massal?",
+          karyawan: preview.karyawan,
+          dari: preview.dari,
+          sampai: preview.sampai,
+          jumlahHari: preview.jumlahHari,
+          barisDihapus: preview.barisDihapus,
+          barisDibuat: preview.barisDibuat,
+        },
+        form,
+      });
+    });
+  }
+
+  function jalankanKonfirmasi() {
+    if (!konfirmasi) return;
+    const form = konfirmasi.form;
+    setKonfirmasi(null);
     mulai(async () => {
       const hasil = await aturRentang(form);
       if (hasil.ok) {
@@ -79,6 +113,7 @@ export function FormRentang({
   }
 
   return (
+    <>
     <form onSubmit={kirim} className="mb-4 rounded-xl border border-ink bg-paper p-4">
       <p className="text-sm font-semibold">Terapkan shift massal</p>
       <p className="mt-1 text-xs text-muted">
@@ -155,12 +190,21 @@ export function FormRentang({
 
       <div className="mt-4 flex gap-2">
         <button type="submit" disabled={menunggu || dipilih.size === 0} className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper disabled:opacity-40">
-          {menunggu ? "Menerapkan…" : "Terapkan"}
+          {menunggu ? "Menerapkan…" : "Lihat dampak & terapkan"}
         </button>
         <button type="button" onClick={onBatal} className="rounded-lg border border-line px-4 py-2 text-sm font-medium">
           Batal
         </button>
       </div>
     </form>
+    {konfirmasi ? (
+      <DialogKonfirmasiMassal
+        ringkasan={konfirmasi.ringkasan}
+        sedang={menunggu}
+        onBatal={() => setKonfirmasi(null)}
+        onKonfirmasi={jalankanKonfirmasi}
+      />
+    ) : null}
+    </>
   );
 }

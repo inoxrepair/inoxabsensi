@@ -2,6 +2,7 @@ import { DataTable, type Kolom } from "@/components/ui/data-table";
 import { Card, PageHeader, StatCard } from "@/components/ui/primitives";
 import { db } from "@/lib/db";
 import { LABEL_KASBON } from "@/lib/domain";
+import { sisaKasbon } from "@/lib/kasbon";
 import { formatRupiah } from "@/lib/format";
 import { wajibAkses } from "@/lib/session";
 import { formatTanggal } from "@/lib/format";
@@ -14,6 +15,7 @@ type Baris = {
   nama: string;
   cabang: string;
   jumlah: number;
+  jumlahTerbayar: number;
   periode: string;
   keterangan: string | null;
   status: string;
@@ -24,11 +26,13 @@ const kolom: Kolom<Baris>[] = [
   { header: "Karyawan", cell: (r) => r.nama, rowHeader: true },
   { header: "Cabang", cell: (r) => <span className="text-muted">{r.cabang}</span> },
   { header: "Jumlah", cell: (r) => formatRupiah(r.jumlah), numeric: true },
+  { header: "Terbayar", cell: (r) => formatRupiah(r.jumlahTerbayar), numeric: true },
+  { header: "Sisa", cell: (r) => formatRupiah(Math.max(0, r.jumlah - r.jumlahTerbayar)), numeric: true },
   { header: "Periode", cell: (r) => <span className="tabular-nums">{r.periode}</span> },
   { header: "Keterangan", cell: (r) => <span className="text-muted">{r.keterangan ?? "—"}</span> },
   { header: "Status", cell: (r) => <span className="font-medium">{LABEL_KASBON[r.status as keyof typeof LABEL_KASBON] ?? r.status}</span> },
   { header: "Diajukan", cell: (r) => <span className="tabular-nums text-muted">{formatTanggal(r.createdAt)}</span> },
-  { header: "Aksi", cell: (r) => <ProsesKasbonButtons id={r.id} status={r.status} /> },
+  { header: "Aksi", cell: (r) => <ProsesKasbonButtons id={r.id} status={r.status} jumlah={r.jumlah} jumlahTerbayar={r.jumlahTerbayar} /> },
 ];
 
 export default async function AdminKasbonPage() {
@@ -45,6 +49,7 @@ export default async function AdminKasbonPage() {
     nama: c.user.name,
     cabang: c.user.cabang?.nama ?? "—",
     jumlah: c.jumlah,
+    jumlahTerbayar: c.jumlahTerbayar,
     periode: c.periode,
     keterangan: c.keterangan,
     status: c.status,
@@ -54,7 +59,12 @@ export default async function AdminKasbonPage() {
   const pending = baris.filter((r) => r.status === "pending").length;
   const disetujui = baris.filter((r) => r.status === "disetujui").length;
   const lunas = baris.filter((r) => r.status === "lunas").length;
-  const total = baris.reduce((a, r) => a + (r.status === "disetujui" || r.status === "lunas" ? r.jumlah : 0), 0);
+  // Total aktif hanya sisa kasbon yang disetujui. Yang sudah lunas tidak
+  // ikut lagi, dan pembayaran parsial hanya menyisakan selisihnya.
+  const total = baris.reduce(
+    (a, r) => a + (r.status === "disetujui" ? sisaKasbon(r) : 0),
+    0,
+  );
 
   return (
     <>
@@ -64,9 +74,9 @@ export default async function AdminKasbonPage() {
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Pending" value={pending} hint="Menunggu approval" />
-        <StatCard label="Disetujui" value={disetujui} hint="Akan dipotong payroll" />
+        <StatCard label="Disetujui" value={disetujui} hint="Sisa akan dipotong payroll" />
         <StatCard label="Lunas" value={lunas} />
-        <StatCard label="Total kasbon aktif" value={formatRupiah(total)} />
+        <StatCard label="Total kasbon aktif" value={formatRupiah(total)} hint="Hanya sisa kasbon disetujui" />
       </div>
       <div className="mt-6">
         <Card footer="Admin cabang hanya melihat pengajuan dari cabangnya.">

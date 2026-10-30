@@ -13,14 +13,30 @@ describe("spreadsheet", () => {
     expect(shiftByKode("L", shifts)).toBeNull();
     expect(shiftByKode("O", shifts)).toBeNull();
   });
-  it("format export memakai tanggal panjang dan O untuk Off", () => {
+  it("format export memakai dd/mm/yyyy dan O untuk Off", () => {
     const csv = renderSpreadsheetCsv(["2026-07-28"], [{ userId: "u", nama: "A", cabang: "C", hari: [null] }], []);
-    expect(csv).toContain("28 Juli 2026");
+    expect(csv).toContain("28/07/2026");
     expect(csv).toContain(";O");
   });
   it("parse tanggal panjang Indonesia", () => {
     expect(parseTanggalSpreadsheet("28 Juli 2026")).toBe("2026-07-28");
     expect(parseTanggalSpreadsheet("2026-07-28")).toBe("2026-07-28");
+  });
+  it("parse tanggal tampilan dd/mm/yyyy hasil export baru", () => {
+    expect(parseTanggalSpreadsheet("28/07/2026")).toBe("2026-07-28");
+    expect(parseTanggalSpreadsheet("29/10/2026")).toBe("2026-10-29");
+    expect(parseTanggalSpreadsheet("1/2/2026")).toBe("2026-02-01");
+    // Round-trip: header export baru harus bisa diimport kembali.
+    const csv = renderSpreadsheetCsv(["2026-10-29"], [{ userId: "u", nama: "A", cabang: "C", hari: [null] }], []);
+    const header = parseCsv(csv)[0];
+    expect(parseTanggalSpreadsheet(header[2])).toBe("2026-10-29");
+  });
+  it("menolak dd/mm/yyyy yang tidak valid", () => {
+    expect(parseTanggalSpreadsheet("31/02/2026")).toBeNull();
+    expect(parseTanggalSpreadsheet("29/02/2026")).toBeNull();
+    expect(parseTanggalSpreadsheet("32/01/2026")).toBeNull();
+    expect(parseTanggalSpreadsheet("10/13/2026")).toBeNull();
+    expect(parseTanggalSpreadsheet("2026/10/29")).toBeNull();
   });
   it("parse CSV escaped", () => {
     expect(parseCsv('Nama;Catatan\r\nA;"x;y"')).toEqual([["Nama", "Catatan"], ["A", "x;y"]]);

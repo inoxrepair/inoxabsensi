@@ -48,6 +48,14 @@ export default async function KaryawanAbsenPage() {
   const cycleAktif = cycles.find((cycle) => cycle.keluarMenit === null);
   const jumlahCycle = cycles.length;
   const maksimalCycle = absensi?.maksimalCycle ?? (shift?.mode === "fleksibel" ? shift.maksimalCycle : 1) ?? 1;
+  // Alasan masuk sudah pasti ditolak server, jadi tombol tidak ditampilkan
+  // sama sekali (bukan hanya dinonaktifkan): validasi server tetap berlaku
+  // dan tidak berubah; ini hanya mencegah klik yang pasti gagal setelah GPS.
+  const alasanMasukDitolak = !shift
+    ? "Tidak ada jadwal shift hari ini, jadi tidak bisa absen masuk."
+    : status === "izin"
+      ? "Anda tercatat izin hari ini, jadi tidak bisa absen masuk."
+      : null;
   const mode = cycleAktif
     ? "keluar"
     : jumlahCycle < maksimalCycle
@@ -140,12 +148,21 @@ export default async function KaryawanAbsenPage() {
         </section>
       ) : null}
 
-      <TombolAbsen
-        mode={mode}
-        cycleKe={jumlahCycle + 1}
-        maksimalCycle={maksimalCycle}
-        mulaiMenit={cycleAktif?.masukMenit ?? null}
-      />
+      {mode === "masuk" && alasanMasukDitolak ? (
+        <p
+          role="status"
+          className="mt-5 rounded-2xl border border-line bg-paper px-6 py-6 text-center text-sm text-muted"
+        >
+          {alasanMasukDitolak}
+        </p>
+      ) : (
+        <TombolAbsen
+          mode={mode}
+          cycleKe={jumlahCycle + 1}
+          maksimalCycle={maksimalCycle}
+          mulaiMenit={cycleAktif?.masukMenit ?? null}
+        />
+      )}
 
       <p className="mt-3 text-center text-xs text-muted">
         Lokasi diverifikasi terhadap koordinat cabang saat tombol ditekan.

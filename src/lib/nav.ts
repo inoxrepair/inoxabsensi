@@ -13,6 +13,7 @@ export const ADMIN_NAV: NavItem[] = [
   { href: "/admin/cabang", label: "Cabang", menu: "cabang" },
   { href: "/admin/karyawan", label: "Karyawan", menu: "karyawan" },
   { href: "/admin/log-absensi", label: "Log Absensi", menu: "karyawan" },
+  { href: "/admin/izin", label: "Izin", menu: "karyawan" },
   { href: "/admin/jadwal", label: "Jadwal Shift", menu: "jadwal" },
   { href: "/admin/rekap", label: "Rekap Absensi", menu: "rekap" },
   { href: "/admin/kasbon", label: "Kasbon", menu: "kasbon" },
@@ -26,5 +27,6 @@ export const KARYAWAN_NAV: NavItem[] = [
   { href: "/karyawan/jadwal", label: "Jadwal", menu: "jadwal_saya" },
   { href: "/karyawan/riwayat", label: "Riwayat", menu: "riwayat_saya" },
   { href: "/karyawan/kasbon", label: "Kasbon", menu: "kasbon_saya" },
+  { href: "/karyawan/izin", label: "Izin", menu: "izin_saya" },
   { href: "/karyawan/profil", label: "Profil", menu: "profil" },
 ];

@@ -40,3 +40,47 @@ export const prosesKasbonSkema = z.object({
 
 export type DataAjukanKasbon = z.output<typeof ajukanKasbonSkema>;
 export type DataProsesKasbon = z.output<typeof prosesKasbonSkema>;
+
+/** Pembayaran kasbon oleh admin untuk kasbon yang sudah disetujui. */
+export const bayarKasbonSkema = z.object({
+  id: z.string().min(1),
+  jumlahBayar: rupiah("Jumlah bayar"),
+});
+
+export type DataBayarKasbon = z.output<typeof bayarKasbonSkema>;
+
+/** Sisa yang masih harus dipotong payroll: tidak pernah negatif. */
+export function sisaKasbon(kasbon: {
+  jumlah: number;
+  jumlahTerbayar?: number | null;
+}): number {
+  return Math.max(0, kasbon.jumlah - (kasbon.jumlahTerbayar ?? 0));
+}
+
+/**
+ * Total yang boleh ditarik payroll dari daftar kasbon: hanya yang
+ * disetujui, dan hanya sisanya (jumlah - terbayar). Pending, ditolak,
+ * lunas, dan dibatalkan tidak ikut.
+ */
+export function totalKasbonUntukPayroll(
+  daftar: readonly {
+    status: string;
+    jumlah: number;
+    jumlahTerbayar?: number | null;
+  }[],
+): number {
+  return daftar
+    .filter((k) => k.status === "disetujui")
+    .reduce((total, k) => total + sisaKasbon(k), 0);
+}
+
+/**
+ * Status setelah mencatat pembayaran: lunas hanya bila terbayar sudah
+ * mencapai jumlah penuh; selain itu tetap disetujui (parsial).
+ */
+export function statusSetelahBayar(
+  jumlah: number,
+  terbayarBaru: number,
+): "disetujui" | "lunas" {
+  return terbayarBaru >= jumlah ? "lunas" : "disetujui";
+}

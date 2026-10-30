@@ -2,10 +2,12 @@ import { PageHeader, StatCard } from "@/components/ui/primitives";
 import { db } from "@/lib/db";
 import { formatRupiah } from "@/lib/format";
 import { totalPayroll } from "@/lib/payroll";
+import { sisaKasbon } from "@/lib/kasbon";
 import {
   labelPeriode,
   periodeTerakhir,
   periodeValid,
+  rentangPeriode,
 } from "@/lib/rekap";
 import { wajibAkses } from "@/lib/session";
 import { tanggalLokal } from "@/lib/waktu";
@@ -31,22 +33,52 @@ export default async function AdminPayrollPage({
   const cabangId = superAdmin ? (q.cabang ?? "") : "";
   const filterCabang = cabangId ? { cabangId } : {};
 
-  const [karyawan, payroll, cabang] = await Promise.all([
-    db.user.findMany({
-      where: { aktif: true, role: { not: "super_admin" }, ...filterCabang },
-      orderBy: [{ cabang: { nama: "asc" } }, { name: "asc" }],
-      select: { id: true, name: true, cabang: { select: { nama: true } } },
-    }),
-    db.payroll.findMany({
-      where: { periode, user: { aktif: true, ...filterCabang } },
-    }),
-    db.cabang.findMany({
-      orderBy: { nama: "asc" },
-      select: { id: true, nama: true },
-    }),
-  ]);
+  const rentang = rentangPeriode(periode);
+  const [karyawan, payroll, cabang, absensiPeriode, kasbonPeriode] =
+    await Promise.all([
+      db.user.findMany({
+        where: { aktif: true, role: { not: "super_admin" }, ...filterCabang },
+        orderBy: [{ cabang: { nama: "asc" } }, { name: "asc" }],
+        select: { id: true, name: true, cabang: { select: { nama: true } } },
+      }),
+      db.payroll.findMany({
+        where: { periode, user: { aktif: true, ...filterCabang } },
+      }),
+      db.cabang.findMany({
+        orderBy: { nama: "asc" },
+        select: { id: true, nama: true },
+      }),
+      // Menit telat rekap periode ini (angka tersimpan saat check-in).
+      db.absensi.findMany({
+        where: {
+          tanggal: { gte: rentang.dari, lte: rentang.sampai },
+          user: { aktif: true, ...filterCabang },
+        },
+        select: { userId: true, menitTelat: true },
+      }),
+      // Kasbon yang disetujui periode ini, dihitung sisanya saja.
+      db.kasbon.findMany({
+        where: {
+          periode,
+          status: "disetujui",
+          user: { aktif: true, ...filterCabang },
+        },
+        select: { userId: true, jumlah: true, jumlahTerbayar: true },
+      }),
+    ]);
 
   const peta = new Map(payroll.map((p) => [p.userId, p]));
+  const petaTelat = new Map<string, number>();
+  for (const a of absensiPeriode) {
+    petaTelat.set(a.userId, (petaTelat.get(a.userId) ?? 0) + a.menitTelat);
+  }
+  const petaKasbonSisa = new Map<string, number>();
+  for (const k of kasbonPeriode) {
+    petaKasbonSisa.set(
+      k.userId,
+      (petaKasbonSisa.get(k.userId) ?? 0) + sisaKasbon(k),
+    );
+  }
   const baris: BarisPayroll[] = karyawan.map((k) => {
     const p = peta.get(k.id);
     return {
@@ -57,6 +89,8 @@ export default async function AdminPayrollPage({
       tunjangan: p?.tunjangan ?? 0,
       potonganTelat: p?.potonganTelat ?? 0,
       kasbon: p?.kasbon ?? 0,
+      menitTelatRekap: petaTelat.get(k.id) ?? 0,
+      kasbonDisetujuiSisa: petaKasbonSisa.get(k.id) ?? 0,
     };
   });
 

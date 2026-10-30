@@ -106,8 +106,11 @@ export async function absenMasuk(formData: FormData): Promise<HasilAbsen> {
     status: izin.status,
     masukMenit: sekarang,
     // Disimpan agar rekap tidak perlu menghitung ulang dari shift, yang
-    // jamnya bisa diubah admin setelah absensi tercatat.
+    // jamnya bisa diubah admin setelah absensi tercatat. Snapshot lengkap
+    // ini menjaga identitas menitKotor = menitToleransi + menitTelat.
     menitTelat: izin.menitTelat,
+    menitToleransi: izin.menitToleransi,
+    menitKotor: izin.menitKotor,
     modeShift: kondisi.shift?.mode ?? "terjadwal",
     minimumKerjaMenit: kondisi.shift?.minimumKerjaMenit ?? null,
     maksimalCycle,

@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { tanggalValid } from "@/lib/rekap";
-import { keMenit, menitTelat } from "@/lib/waktu";
+import {
+  keMenit,
+  keterlambatanKotor,
+  menitTelat,
+  toleransiTerpakai,
+} from "@/lib/waktu";
 import type { StatusAbsensi } from "@/lib/domain";
 
 const STATUS = ["hadir", "telat", "izin", "alpa", "libur"] as const;
@@ -18,6 +23,27 @@ export function hitungMenitTelatKoreksi(
 ): number {
   if (status !== "telat" || masuk === null || !shift) return 0;
   return menitTelat(masuk, shift);
+}
+
+/**
+ * Snapshot keterlambatan untuk edit log, sejalan dengan snapshot check-in:
+ * menitKotor = menitToleransi + menitTelat. Status bukan telat, tanpa jam
+ * masuk, tanpa shift, atau mode fleksibel menghasilkan ketiganya 0.
+ */
+export function hitungSnapshotKoreksi(
+  status: StatusAbsensi,
+  masuk: number | null,
+  shift: { mulaiMenit: number; toleransiMenit: number } | null,
+  modeShift?: string | null,
+): { menitTelat: number; menitToleransi: number; menitKotor: number } {
+  const nol = { menitTelat: 0, menitToleransi: 0, menitKotor: 0 };
+  if (status !== "telat" || masuk === null || !shift) return nol;
+  if (modeShift === "fleksibel") return nol;
+  return {
+    menitTelat: menitTelat(masuk, shift),
+    menitToleransi: toleransiTerpakai(masuk, shift),
+    menitKotor: keterlambatanKotor(masuk, shift),
+  };
 }
 
 /**
@@ -39,6 +65,20 @@ export function statusEfektif(
     return "hadir";
   }
   return status;
+}
+
+/**
+ * Gabungkan catatan edit tanpa menumpuk suffix "Diedit manual." pada
+ * edit berulang: form sudah terisi catatan lama yang mengandung suffix
+ * itu, jadi buang segmen lama dulu sebelum menambah yang baru.
+ */
+export function gabungCatatanEdit(catatan?: string | null): string {
+  const bersih = (catatan ?? "")
+    .split("·")
+    .map((bagian) => bagian.trim())
+    .filter((bagian) => bagian && bagian !== "Diedit manual.")
+    .join(" · ");
+  return bersih ? `${bersih} · Diedit manual.` : "Diedit manual.";
 }
 
 /** Validasi form koreksi log absensi, bukan server action. */

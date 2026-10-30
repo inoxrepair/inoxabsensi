@@ -5,11 +5,14 @@ import { db } from "@/lib/db";
 import { roleTerbatasCabang } from "@/lib/domain";
 import {
   editAbsensiSkema,
+  gabungCatatanEdit,
   hitungMenitTelatKoreksi,
+  hitungSnapshotKoreksi,
   statusEfektif,
   type HasilAbsensi,
 } from "@/lib/log-absensi";
 import { wajibAkses } from "@/lib/session";
+import { formatTanggal } from "@/lib/format";
 
 export async function simpanEditAbsensi(formData: FormData): Promise<HasilAbsensi> {
   const admin = await wajibAkses("karyawan");
@@ -54,6 +57,12 @@ export async function simpanEditAbsensi(formData: FormData): Promise<HasilAbsens
     masukAkhir,
     jadwal?.shift ?? null,
   );
+  const snapshot = hitungSnapshotKoreksi(
+    statusForm,
+    masukAkhir,
+    jadwal?.shift ?? null,
+    absensi.modeShift,
+  );
   // Hindari baris "telat 0 menit": status yang tidak terbukti telat
   // diluruskan menjadi hadir. Arah sebaliknya (hadir yang lewat toleransi)
   // tetap 0 sebagai pembolehan manual.
@@ -65,8 +74,9 @@ export async function simpanEditAbsensi(formData: FormData): Promise<HasilAbsens
       masukMenit: masukAkhir,
       keluarMenit: keluarAkhir,
       menitTelat,
-      // Kesalahan input membuat data lokasi tidak lagi dianggap akurat.
-      catatan: [catatan, "Diedit manual."].filter(Boolean).join(" · "),
+      menitToleransi: snapshot.menitToleransi,
+      menitKotor: snapshot.menitKotor,
+      catatan: gabungCatatanEdit(catatan),
       editedBy: admin.id,
     },
   });
@@ -92,11 +102,34 @@ export async function hapusAbsensi(id: string): Promise<HasilAbsensi> {
 
   const absensi = await db.absensi.findUnique({
     where: { id },
-    select: { id: true, userId: true, tanggal: true },
+    select: {
+      id: true,
+      userId: true,
+      tanggal: true,
+      status: true,
+      masukMenit: true,
+      keluarMenit: true,
+      menitTelat: true,
+      user: { select: { name: true } },
+    },
   });
   if (!absensi) return { ok: false, pesan: "Catatan tidak ditemukan." };
 
-  await db.absensi.delete({ where: { id } });
+  // Audit dulu, baru hapus, dalam satu transaksi: baris tetap terhapus
+  // (karyawan bisa absen lagi di tanggal itu seperti perilaku lama),
+  // tetapi ringkasannya tersimpan dan bisa dibaca di halaman Log Absensi.
+  await db.$transaction([
+    db.auditLog.create({
+      data: {
+        aksi: "hapus_absensi",
+        targetUserId: absensi.userId,
+        tanggal: absensi.tanggal,
+        ringkasan: `${absensi.user.name} · ${formatTanggal(absensi.tanggal)} · status ${absensi.status} · masuk ${absensi.masukMenit ?? "—"} · keluar ${absensi.keluarMenit ?? "—"} · telat ${absensi.menitTelat} menit`,
+        dilakukanOleh: admin.id,
+      },
+    }),
+    db.absensi.delete({ where: { id } }),
+  ]);
   revalidatePath("/admin/log-absensi");
   revalidatePath("/admin");
   revalidatePath("/admin/rekap");
@@ -104,6 +137,6 @@ export async function hapusAbsensi(id: string): Promise<HasilAbsensi> {
 
   return {
     ok: true,
-    pesan: `Catatan ${absensi.tanggal} dihapus. Pengguna dapat absen lagi.`,
+    pesan: `Catatan ${formatTanggal(absensi.tanggal)} dihapus. Pengguna dapat absen lagi.`,
   };
 }

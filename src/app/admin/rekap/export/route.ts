@@ -7,7 +7,8 @@ import {
   SIMBOL_HARI,
   type KeadaanHari,
 } from "@/lib/rekap";
-import { formatDurasi, namaHari } from "@/lib/waktu";
+import { formatDurasi } from "@/lib/waktu";
+import { formatTanggal } from "@/lib/format";
 import { ambilRekap, bacaLingkup } from "../data";
 
 /**
@@ -37,6 +38,7 @@ const KEPALA_AGREGAT = [
   "Izin",
   "Alpa",
   "Jam kerja",
+  "Kurang jam",
   "Belum absen keluar",
 ];
 
@@ -62,7 +64,7 @@ export async function GET(request: Request) {
     views: [{ state: "frozen", xSplit: 2, ySplit: 3 }],
   });
 
-  const judulRentang = `Rentang: ${lingkup.dari} s.d. ${lingkup.sampai}`;
+  const judulRentang = `Rentang: ${formatTanggal(lingkup.dari)} s.d. ${formatTanggal(lingkup.sampai)}`;
   lembar.addRow([judulRentang]);
   lembar.addRow([`Total karyawan: ${baris.length} · ${tanggal.length} hari`]);
   lembar.addRow([]);
@@ -70,7 +72,7 @@ export async function GET(request: Request) {
   // Kolom agregat lalu kolom tanggal; header tanggal memuat nama hari.
   const kepala = [
     ...KEPALA_AGREGAT,
-    ...tanggal.map((iso) => `${iso.slice(8)} ${namaHari(iso, true)}`),
+    ...tanggal.map((iso) => formatTanggal(iso)),
   ];
   lembar.addRow(kepala);
 
@@ -86,6 +88,7 @@ export async function GET(request: Request) {
       r.izin,
       r.alpa,
       r.menitKerja ? formatDurasi(r.menitKerja) : "0j",
+      r.kekuranganMenit ? formatDurasi(r.kekuranganMenit) : "0j",
       r.belumKeluar,
       ...tanggal.map((iso) => {
         const keadaan = r.statusHarian.get(iso);
@@ -139,7 +142,8 @@ export async function GET(request: Request) {
   }
 
   for (let j = 0; j < tanggal.length; j++) {
-    lembar.getColumn(kolomPertamaTanggal + j).width = 5.5;
+    // Lebar cukup untuk header dd/mm/yyyy (10 karakter).
+    lembar.getColumn(kolomPertamaTanggal + j).width = 12;
   }
 
   const isi = await buku.xlsx.writeBuffer();

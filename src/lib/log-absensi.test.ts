@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   editAbsensiSkema,
+  gabungCatatanEdit,
   hitungMenitTelatKoreksi,
+  hitungSnapshotKoreksi,
   statusEfektif,
 } from "./log-absensi";
 
@@ -87,5 +89,36 @@ describe("statusEfektif", () => {
   it("tidak mengubah status non-kehadiran", () => {
     expect(statusEfektif("izin", null, shift)).toBe("izin");
     expect(statusEfektif("alpa", null, shift)).toBe("alpa");
+  });
+});
+
+describe("hitungSnapshotKoreksi", () => {
+  const shift = { mulaiMenit: 540, toleransiMenit: 10 };
+  it("identitas kotor = toleransi + telat untuk telat", () => {
+    const s = hitungSnapshotKoreksi("telat", 565, shift);
+    expect(s).toEqual({ menitTelat: 15, menitToleransi: 10, menitKotor: 25 });
+    expect(s.menitKotor).toBe(s.menitToleransi + s.menitTelat);
+  });
+  it("fleksibel dan non-telat semuanya nol", () => {
+    expect(hitungSnapshotKoreksi("telat", 565, shift, "fleksibel")).toEqual({
+      menitTelat: 0,
+      menitToleransi: 0,
+      menitKotor: 0,
+    });
+    expect(hitungSnapshotKoreksi("hadir", 565, shift)).toEqual({
+      menitTelat: 0,
+      menitToleransi: 0,
+      menitKotor: 0,
+    });
+  });
+});
+
+describe("gabungCatatanEdit", () => {
+  it("tidak menumpuk suffix pada edit berulang", () => {
+    expect(gabungCatatanEdit("Koreksi · Diedit manual.")).toBe(
+      "Koreksi · Diedit manual.",
+    );
+    expect(gabungCatatanEdit(null)).toBe("Diedit manual.");
+    expect(gabungCatatanEdit("Alasan")).toBe("Alasan · Diedit manual.");
   });
 });

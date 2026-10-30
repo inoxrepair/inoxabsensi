@@ -5,14 +5,23 @@ import { ringkas } from "@/lib/absensi";
 import { wajibLogin } from "@/lib/session";
 import { formatDurasi, durasiMenit, keJam, namaHari, tanggalLokal } from "@/lib/waktu";
 import { formatTanggal } from "@/lib/format";
+import { labelPeriode, periodeTerakhir, periodeValid } from "@/lib/rekap";
 
 export const dynamic = "force-dynamic";
 
-export default async function KaryawanRiwayatPage() {
+export default async function KaryawanRiwayatPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ periode?: string }>;
+}) {
   const sesi = await wajibLogin();
   const tanggal = tanggalLokal();
-  // Periode = bulan berjalan; prefix "yyyy-mm" cukup karena tanggal ISO.
-  const periode = tanggal.slice(0, 7);
+  const q = await searchParams;
+  // Default bulan berjalan; pilihan lain hanya dari daftar 12 bulan
+  // terakhir yang valid, dan query selalu dibatasi ke user yang login.
+  const periode =
+    q.periode && periodeValid(q.periode) ? q.periode : tanggal.slice(0, 7);
+  const daftarPeriode = periodeTerakhir(tanggal.slice(0, 7), 12);
 
   const baris = await db.absensi.findMany({
     where: { userId: sesi.id, tanggal: { startsWith: periode } },
@@ -41,9 +50,31 @@ export default async function KaryawanRiwayatPage() {
     <>
       <h1 className="text-xl font-semibold tracking-tight">Riwayat Absensi</h1>
       <p className="mt-1 text-sm text-muted">
-        Periode {formatTanggal(`${periode}-01`).replace(/^\d+ /, "")} ·{" "}
-        {formatDurasi(totalJam)} tercatat
+        Periode {labelPeriode(periode)} · {formatDurasi(totalJam)} tercatat
       </p>
+      <form method="get" className="mt-4 flex items-center gap-2">
+        <label htmlFor="periode-riwayat" className="text-xs text-muted">
+          Bulan
+        </label>
+        <select
+          id="periode-riwayat"
+          name="periode"
+          defaultValue={periode}
+          className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm"
+        >
+          {daftarPeriode.map((p) => (
+            <option key={p} value={p}>
+              {labelPeriode(p)}
+            </option>
+          ))}
+        </select>
+        <button
+          type="submit"
+          className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium"
+        >
+          Tampilkan
+        </button>
+      </form>
 
       <div className="mt-5 grid grid-cols-4 gap-2 text-center">
         {[
@@ -64,7 +95,7 @@ export default async function KaryawanRiwayatPage() {
 
       {baris.length === 0 ? (
         <div className="mt-4 rounded-xl border border-dashed border-line bg-paper p-8 text-center">
-          <p className="text-sm font-medium">Belum ada catatan bulan ini</p>
+          <p className="text-sm font-medium">Belum ada catatan pada {labelPeriode(periode)}</p>
           <p className="mt-1 text-sm text-muted">
             Riwayat akan muncul setelah Anda melakukan absen masuk.
           </p>

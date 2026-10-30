@@ -7,11 +7,33 @@ import { wajibAkses } from "@/lib/session";
 
 export type HasilBackup = { ok: boolean; pesan: string };
 
-export async function importBackupJadwal(formData: FormData): Promise<HasilBackup> {
-  const admin = await wajibAkses("pengaturan");
-  if (admin.role !== "super_admin") {
-    return { ok: false, pesan: "Hanya Super Admin dapat restore backup." };
-  }
+export type RingkasanRestore = {
+  ok: boolean;
+  pesan: string;
+  karyawan: number;
+  dari: string;
+  sampai: string;
+  jumlahHari: number;
+  barisDihapus: number;
+  barisDibuat: number;
+};
+
+/** Parse + resolusi backup tanpa menulis; dipakai preview dan eksekusi. */
+async function resolusiBackup(
+  formData: FormData,
+): Promise<
+  | { ok: false; pesan: string }
+  | {
+      ok: true;
+      data: {
+        userId: string;
+        tanggal: string;
+        shiftId: string;
+        seragamId: string | null;
+        seragam: string | null;
+      }[];
+    }
+> {
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, pesan: "Pilih file backup JSON." };
@@ -19,7 +41,6 @@ export async function importBackupJadwal(formData: FormData): Promise<HasilBacku
   if (file.size > 10_000_000) {
     return { ok: false, pesan: "File backup maksimal 10 MB." };
   }
-
   let raw: unknown;
   try {
     raw = JSON.parse(await file.text());
@@ -30,7 +51,6 @@ export async function importBackupJadwal(formData: FormData): Promise<HasilBacku
   if (!parsed.success) {
     return { ok: false, pesan: `Backup tidak valid: ${parsed.error.issues[0].message}` };
   }
-
   const [users, shifts, seragam] = await Promise.all([
     db.user.findMany({ select: { id: true, username: true, email: true } }),
     db.shift.findMany({ select: { id: true, nama: true } }),
@@ -40,7 +60,6 @@ export async function importBackupJadwal(formData: FormData): Promise<HasilBacku
   const byEmail = new Map(users.map((u) => [u.email.toLowerCase(), u]));
   const byShift = new Map(shifts.map((s) => [s.nama.toLowerCase(), s]));
   const bySeragam = new Map(seragam.map((s) => [s.kode.toUpperCase(), s]));
-
   const data: {
     userId: string;
     tanggal: string;
@@ -67,6 +86,58 @@ export async function importBackupJadwal(formData: FormData): Promise<HasilBacku
       seragam: uniform?.nama ?? null,
     });
   }
+  return { ok: true, data };
+}
+
+export async function previewRestoreBackup(
+  formData: FormData,
+): Promise<RingkasanRestore> {
+  const gagal = (pesan: string): RingkasanRestore => ({
+    ok: false,
+    pesan,
+    karyawan: 0,
+    dari: "",
+    sampai: "",
+    jumlahHari: 0,
+    barisDihapus: 0,
+    barisDibuat: 0,
+  });
+  const admin = await wajibAkses("pengaturan");
+  if (admin.role !== "super_admin") {
+    return gagal("Hanya Super Admin dapat restore backup.");
+  }
+  const hasil = await resolusiBackup(formData);
+  if (!hasil.ok) return gagal(hasil.pesan);
+  const kelompok = kelompokTanggalRestore(hasil.data);
+  const lama = await db.jadwal.count({
+    where: {
+      OR: kelompok.map(({ userId, tanggal }) => ({
+        userId,
+        tanggal: { in: tanggal },
+      })),
+    },
+  });
+  const tanggal = [...new Set(hasil.data.map((d) => d.tanggal))].sort();
+  return {
+    ok: true,
+    pesan: "Preview siap.",
+    karyawan: new Set(hasil.data.map((d) => d.userId)).size,
+    dari: tanggal[0] ?? "",
+    sampai: tanggal[tanggal.length - 1] ?? "",
+    jumlahHari: tanggal.length,
+    barisDihapus: lama,
+    barisDibuat: hasil.data.length,
+  };
+}
+
+export async function importBackupJadwal(formData: FormData): Promise<HasilBackup> {
+  const admin = await wajibAkses("pengaturan");
+  if (admin.role !== "super_admin") {
+    return { ok: false, pesan: "Hanya Super Admin dapat restore backup." };
+  }
+  const hasil = await resolusiBackup(formData);
+  if (!hasil.ok) return { ok: false, pesan: hasil.pesan };
+  const data = hasil.data;
 
   const kelompok = kelompokTanggalRestore(data);
   const operasi = [

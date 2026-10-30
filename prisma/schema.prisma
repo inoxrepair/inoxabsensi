@@ -49,6 +49,7 @@ model User {
   absensi  Absensi[]
   kasbon   Kasbon[]
   payroll  Payroll[]
+  pengajuanIzin PengajuanIzin[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -176,6 +177,13 @@ model Absensi {
   /// Disimpan saat check-in karena jam shift bisa diubah admin kemudian,
   /// sehingga menghitung ulang dari shift akan mengubah riwayat.
   menitTelat        Int     @default(0)
+  /// Snapshot saat check-in: menit kotor & dalam toleransi pada aturan shift
+  /// yang berlaku saat itu. Null hanya untuk baris legacy sebelum kolom ini
+  /// ada; rekap memakai hitungan lama sebagai fallback untuk baris itu saja.
+  /// Dengan snapshot ini berlaku: menitKotor = menitToleransi + menitTelat
+  /// untuk baris baru (shift fleksibel: ketiganya 0).
+  menitToleransi    Int?
+  menitKotor        Int?
   modeShift         String  @default("terjadwal")
   minimumKerjaMenit Int?
   kekuranganMenit   Int     @default(0)
@@ -233,17 +241,51 @@ model Kasbon {
   userId String
   /// Rupiah, bilangan bulat.
   jumlah Int
-  /// StatusKasbon: pending | disetujui | ditolak | lunas
+  /// StatusKasbon: pending | disetujui | ditolak | lunas | dibatalkan
   status String @default("pending")
   /// Periode payroll "yyyy-mm".
   periode  String
   keterangan String?
+  /// Rupiah yang sudah dibayar dari kasbon yang disetujui. Payroll hanya
+  /// menarik sisa (jumlah - jumlahTerbayar); status jadi lunas otomatis
+  /// bila terbayar >= jumlah.
+  jumlahTerbayar Int @default(0)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
   @@index([userId, periode])
+  @@index([status])
+}
+
+/// Pengajuan izin/sakit. Baris Absensi yang dibuat dari pengajuan yang
+/// disetujui selalu berstatus "izin" (bukan status baru), supaya Rekap dan
+/// persen kehadiran tidak berubah; pembeda izin vs sakit hidup di kolom
+/// jenis ini dan di catatan baris Absensi. Tahap ini tidak ada upload file
+/// dan tidak ada kuota cuti.
+model PengajuanIzin {
+  id     String @id @default(cuid())
+  userId String
+  /// Tanggal lokal "yyyy-mm-dd" (penyimpanan); tampilan memakai dd/mm/yyyy.
+  dari   String
+  sampai String
+  /// JenisIzin: izin | sakit
+  jenis  String
+  alasan String
+  /// Keterangan bukti sebagai teks saja, mis. "surat dokter dikirim via WA".
+  buktiKeterangan String?
+  /// StatusPengajuanIzin: pending | disetujui | ditolak | dibatalkan
+  status       String @default("pending")
+  catatanAdmin String?
+  diprosesOleh String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
   @@index([status])
 }
 
@@ -271,6 +313,23 @@ model Payroll {
 
   @@unique([userId, periode])
   @@index([periode])
+}
+
+/// Jejak audit minimal untuk penghapusan log absensi. Baris absensi tetap
+/// dihapus (agar karyawan bisa absen lagi di tanggal itu), tetapi ringkasan
+/// baris yang dihapus disimpan di sini dan bisa dibaca admin di halaman
+/// Log Absensi. Tidak ada relasi foreign key supaya audit tidak ikut
+/// terhapus bila user dihapus.
+model AuditLog {
+  id           String   @id @default(cuid())
+  aksi         String
+  targetUserId String?
+  tanggal      String?
+  ringkasan    String
+  dilakukanOleh String?
+  dibuatPada   DateTime @default(now())
+
+  @@index([aksi, dibuatPada])
 }
 
 /// Hak akses menu per role. Menggantikan matriks hardcode di halaman

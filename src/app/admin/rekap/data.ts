@@ -83,6 +83,8 @@ export async function ambilRekap(lingkup: LingkupRekap) {
         masukMenit: true,
         keluarMenit: true,
         menitTelat: true,
+        menitToleransi: true,
+        menitKotor: true,
         modeShift: true,
         kekuranganMenit: true,
         cycles: { select: { masukMenit: true, keluarMenit: true } },
@@ -117,12 +119,20 @@ export async function ambilRekap(lingkup: LingkupRekap) {
     const shift = petaShift.get(`${c.userId}|${c.tanggal}`);
     const fleksibel =
       c.modeShift === "fleksibel" || shift?.mode === "fleksibel";
-    const menitToleransi =
-      c.masukMenit == null || !shift || fleksibel
+    // Prinsip snapshot: pakai nilai yang disimpan saat check-in/edit log.
+    // Hanya baris legacy (kedua kolom null) yang memakai hitungan lama dari
+    // shift saat ini; mengubah definisi shift tidak lagi mengubah rekap
+    // baris baru. Untuk baris baru berlaku menitKotor =
+    // menitToleransi + menitTelat (fleksibel ketiganya 0).
+    const pakaiSnapshot = c.menitToleransi != null && c.menitKotor != null;
+    const menitToleransi = pakaiSnapshot
+      ? c.menitToleransi!
+      : c.masukMenit == null || !shift || fleksibel
         ? 0
         : toleransiTerpakai(c.masukMenit, shift);
-    const menitKotor =
-      c.masukMenit == null || !shift || fleksibel
+    const menitKotor = pakaiSnapshot
+      ? c.menitKotor!
+      : c.masukMenit == null || !shift || fleksibel
         ? 0
         : keterlambatanKotor(c.masukMenit, shift);
     return {

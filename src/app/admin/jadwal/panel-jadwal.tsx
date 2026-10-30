@@ -5,7 +5,18 @@ import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Card } from "@/components/ui/primitives";
-import { kosongkanMinggu, salinMinggu, type Hasil } from "./actions";
+import {
+  kosongkanMinggu,
+  previewKosongkanMinggu,
+  previewSalinMinggu,
+  salinMinggu,
+  type Hasil,
+  type RingkasanPreview,
+} from "./actions";
+import {
+  DialogKonfirmasiMassal,
+  type RingkasanMassal,
+} from "./konfirmasi-massal";
 import { DaftarShift, type ShiftLengkap } from "./daftar-shift";
 import { FormRentang } from "./form-rentang";
 import { FilterOverview } from "./filter-overview";
@@ -62,6 +73,63 @@ export function PanelJadwal({
   const [barisLive, setBarisLive] = useState(baris);
   const [formRentang, setFormRentang] = useState(false);
   const [menunggu, mulai] = useTransition();
+  const [konfirmasi, setKonfirmasi] = useState<{
+    ringkasan: RingkasanMassal;
+    aksi: "salin" | "kosongkan";
+  } | null>(null);
+
+  function keRingkasan(
+    judul: string,
+    p: RingkasanPreview,
+  ): RingkasanMassal {
+    return {
+      judul,
+      karyawan: p.karyawan,
+      dari: p.dari,
+      sampai: p.sampai,
+      jumlahHari: p.jumlahHari,
+      barisDihapus: p.barisDihapus,
+      barisDibuat: p.barisDibuat,
+    };
+  }
+
+  function mintaKonfirmasi(aksi: "salin" | "kosongkan") {
+    mulai(async () => {
+      const preview =
+        aksi === "salin"
+          ? await previewSalinMinggu(
+              navigasi.seninSebelumnya,
+              navigasi.seninSekarang,
+            )
+          : await previewKosongkanMinggu(navigasi.seninSekarang);
+      if (!preview.ok) {
+        setPesan({ ok: false, pesan: preview.pesan });
+        return;
+      }
+      setKonfirmasi({
+        ringkasan: keRingkasan(
+          aksi === "salin"
+            ? "Salin jadwal dari minggu lalu?"
+            : "Kosongkan jadwal minggu ini?",
+          preview,
+        ),
+        aksi,
+      });
+    });
+  }
+
+  function jalankanKonfirmasi() {
+    if (!konfirmasi) return;
+    const aksi = konfirmasi.aksi;
+    setKonfirmasi(null);
+    mulai(async () =>
+      selesaiAksi(
+        aksi === "salin"
+          ? await salinMinggu(navigasi.seninSebelumnya, navigasi.seninSekarang)
+          : await kosongkanMinggu(navigasi.seninSekarang),
+      ),
+    );
+  }
   const adaJadwal = barisLive.some((b) => b.hari.some(Boolean));
   const pdfUrl = `/admin/jadwal/export-pdf?dari=${rentangAktif.dari}&sampai=${rentangAktif.sampai}${cabangTerpilih ? `&cabang=${cabangTerpilih}` : ""}`;
 
@@ -156,16 +224,7 @@ export function PanelJadwal({
               <button
                 type="button"
                 disabled={menunggu}
-                onClick={() =>
-                  mulai(async () =>
-                    selesaiAksi(
-                      await salinMinggu(
-                        navigasi.seninSebelumnya,
-                        navigasi.seninSekarang,
-                      ),
-                    ),
-                  )
-                }
+                onClick={() => mintaKonfirmasi("salin")}
                 className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium disabled:opacity-40"
               >
                 Salin dari minggu lalu
@@ -173,11 +232,7 @@ export function PanelJadwal({
               <button
                 type="button"
                 disabled={menunggu || !adaJadwal}
-                onClick={() =>
-                  mulai(async () =>
-                    selesaiAksi(await kosongkanMinggu(navigasi.seninSekarang)),
-                  )
-                }
+                onClick={() => mintaKonfirmasi("kosongkan")}
                 className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted disabled:opacity-40"
               >
                 Kosongkan
@@ -250,6 +305,15 @@ export function PanelJadwal({
           )}
         </Card>
       </div>
+
+      {konfirmasi ? (
+        <DialogKonfirmasiMassal
+          ringkasan={konfirmasi.ringkasan}
+          sedang={menunggu}
+          onBatal={() => setKonfirmasi(null)}
+          onKonfirmasi={jalankanKonfirmasi}
+        />
+      ) : null}
     </>
   );
 }

@@ -41,6 +41,7 @@ export const STATUS_KASBON = [
   "disetujui",
   "ditolak",
   "lunas",
+  "dibatalkan",
 ] as const;
 export type StatusKasbon = (typeof STATUS_KASBON)[number];
 
@@ -49,6 +50,7 @@ export const LABEL_KASBON: Record<StatusKasbon, string> = {
   disetujui: "Disetujui",
   ditolak: "Ditolak",
   lunas: "Lunas",
+  dibatalkan: "Dibatalkan",
 };
 
 function pembaca<T extends string>(daftar: readonly T[], fallback: T) {

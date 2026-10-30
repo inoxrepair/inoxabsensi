@@ -32,6 +32,7 @@ model User {
   absensi       Absensi[]
   kasbon        Kasbon[]
   payroll       Payroll[]
+  pengajuanIzin PengajuanIzin[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   @@index([cabangId, aktif])
@@ -128,6 +129,8 @@ model Absensi {
   masukMenit      Int?
   keluarMenit     Int?
   menitTelat      Int     @default(0)
+  menitToleransi  Int?
+  menitKotor      Int?
   modeShift       String  @default("terjadwal")
   minimumKerjaMenit Int?
   kekuranganMenit Int     @default(0)
@@ -176,9 +179,28 @@ model Kasbon {
   status      String @default("pending")
   periode     String
   keterangan  String?
+  jumlahTerbayar Int @default(0)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   @@index([userId, periode])
+  @@index([status])
+}
+
+model PengajuanIzin {
+  id              String   @id @default(cuid())
+  userId          String
+  dari            String
+  sampai          String
+  jenis           String
+  alasan          String
+  buktiKeterangan String?
+  status          String   @default("pending")
+  catatanAdmin    String?
+  diprosesOleh    String?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId, status])
   @@index([status])
 }
 
@@ -196,6 +218,17 @@ model Payroll {
   updatedAt DateTime @updatedAt
   @@unique([userId, periode])
   @@index([periode])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  aksi         String
+  targetUserId String?
+  tanggal      String?
+  ringkasan    String
+  dilakukanOleh String?
+  dibuatPada   DateTime @default(now())
+  @@index([aksi, dibuatPada])
 }
 
 model RolePermission {

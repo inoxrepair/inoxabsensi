@@ -52,7 +52,10 @@ export default async function KaryawanJadwalPage() {
             >
               <div className="min-w-0">
                 <p className="text-sm font-medium">
-                  {namaHari(tgl)}
+                  {namaHari(tgl)}{" "}
+                  <span className="text-xs font-normal text-muted tabular-nums">
+                    {formatTanggal(tgl)}
+                  </span>
                   {iniHariIni ? (
                     <span className="ml-2 text-xs font-normal text-muted">
                       hari ini

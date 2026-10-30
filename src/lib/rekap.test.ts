@@ -466,6 +466,40 @@ describe("labelRentang", () => {
   it("rentang kustom menampilkan kedua tanggal", () => {
     expect(
       labelRentang({ dari: "2026-08-05", sampai: "2026-08-20", kustom: true }),
-    ).toBe("2026-08-05 s.d. 2026-08-20");
+    ).toBe("05/08/2026 s.d. 20/08/2026");
+  });
+});
+
+describe("identitas keterlambatan rekap", () => {
+  it("menitKotor = menitToleransi + menitTelat untuk baris snapshot", () => {
+    const peta = rekapPerKaryawan([
+      {
+        userId: "u1",
+        tanggal: "2026-08-01",
+        status: "telat",
+        masukMenit: 547,
+        keluarMenit: 1020,
+        menitTelat: 2,
+        menitToleransi: 5,
+        menitKotor: 7,
+        kekuranganMenit: 0,
+      },
+      {
+        userId: "u1",
+        tanggal: "2026-08-02",
+        status: "hadir",
+        masukMenit: 543,
+        keluarMenit: 1020,
+        menitTelat: 0,
+        menitToleransi: 3,
+        menitKotor: 3,
+        kekuranganMenit: 0,
+      },
+    ]);
+    const u = peta.get("u1")!;
+    expect(u.menitKotor).toBe(u.menitToleransi + u.menitTelat);
+    expect(u.menitKotor).toBe(10);
+    expect(u.menitToleransi).toBe(8);
+    expect(u.menitTelat).toBe(2);
   });
 });

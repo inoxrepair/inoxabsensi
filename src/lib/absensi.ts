@@ -1,5 +1,10 @@
 import { periksaRadius, type Koordinat } from "@/lib/geo";
-import { durasiMenit, menitTelat } from "@/lib/waktu";
+import {
+  durasiMenit,
+  keterlambatanKotor,
+  menitTelat,
+  toleransiTerpakai,
+} from "@/lib/waktu";
 import type { StatusAbsensi } from "@/lib/domain";
 
 /**
@@ -39,7 +44,31 @@ export type IzinMasuk = {
   status: Extract<StatusAbsensi, "hadir" | "telat">;
   jarakMeter: number;
   menitTelat: number;
+  /** Snapshot saat check-in; fleksibel ketiganya 0. */
+  menitToleransi: number;
+  menitKotor: number;
 };
+
+/**
+ * Satu-satunya sumber snapshot keterlambatan saat check-in.
+ * Prinsip: menitKotor = menitToleransi + menitTelat selalu berlaku.
+ * Shift fleksibel: ketiganya 0, apa pun jam masuknya.
+ */
+export function snapshotKeterlambatan(
+  masukMenit: number,
+  shift: Shift,
+): { menitTelat: number; menitToleransi: number; menitKotor: number } {
+  if (shift.mode === "fleksibel") {
+    return { menitTelat: 0, menitToleransi: 0, menitKotor: 0 };
+  }
+  const kotor = keterlambatanKotor(masukMenit, shift);
+  const dalamToleransi = toleransiTerpakai(masukMenit, shift);
+  return {
+    menitTelat: menitTelat(masukMenit, shift),
+    menitToleransi: dalamToleransi,
+    menitKotor: kotor,
+  };
+}
 export type IzinKeluar = { ok: true; jarakMeter: number; durasiMenit: number };
 
 /** Validasi bersama check-in dan check-out: lokasi wajib dan harus dalam radius. */
@@ -81,13 +110,14 @@ export function bolehMasuk(
   const lokasi = periksaLokasi(k);
   if (!lokasi.ok) return lokasi;
 
-  const fleksibel = k.shift.mode === "fleksibel";
-  const telat = fleksibel ? 0 : menitTelat(sekarangMenit, k.shift);
+  const snapshot = snapshotKeterlambatan(sekarangMenit, k.shift);
   return {
     ok: true,
-    status: telat > 0 ? "telat" : "hadir",
+    status: snapshot.menitTelat > 0 ? "telat" : "hadir",
     jarakMeter: lokasi.jarak,
-    menitTelat: telat,
+    menitTelat: snapshot.menitTelat,
+    menitToleransi: snapshot.menitToleransi,
+    menitKotor: snapshot.menitKotor,
   };
 }
 

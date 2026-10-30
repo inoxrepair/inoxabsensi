@@ -57,6 +57,9 @@ export async function simpanCabang(
 /**
  * Cabang tidak dihapus permanen bila masih dipakai: relasi User dan Absensi
  * akan kehilangan acuan. Nonaktifkan saja agar riwayat tetap utuh.
+ * Sengaja tidak ada endpoint hapus cabang di file ini; jangan menambahkan
+ * hapus permanen tanpa migrasi audit dan persetujuan pemilik repo, karena
+ * cascade Prisma akan menghapus riwayat Absensi cabang tersebut.
  */
 export async function ubahStatusCabang(
   id: string,

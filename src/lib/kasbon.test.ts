@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { ajukanKasbonSkema, KASBON_MAKS, prosesKasbonSkema } from "./kasbon";
+import {
+  ajukanKasbonSkema,
+  bayarKasbonSkema,
+  KASBON_MAKS,
+  prosesKasbonSkema,
+  sisaKasbon,
+  statusSetelahBayar,
+  totalKasbonUntukPayroll,
+} from "./kasbon";
 
 function formAjukan(ubah: Record<string, string> = {}) {
   return {
@@ -59,5 +67,37 @@ describe("prosesKasbonSkema", () => {
 
   it("menolak status tidak dikenal", () => {
     expect(prosesKasbonSkema.safeParse({ id: "x", status: "pending" }).success).toBe(false);
+  });
+});
+
+describe("sisa dan payroll kasbon", () => {
+  it("sisa tidak pernah negatif", () => {
+    expect(sisaKasbon({ jumlah: 100000, jumlahTerbayar: 40000 })).toBe(60000);
+    expect(sisaKasbon({ jumlah: 100000, jumlahTerbayar: 150000 })).toBe(0);
+    expect(sisaKasbon({ jumlah: 100000 })).toBe(100000);
+  });
+  it("payroll hanya menarik sisa kasbon disetujui", () => {
+    expect(
+      totalKasbonUntukPayroll([
+        { status: "disetujui", jumlah: 100000, jumlahTerbayar: 40000 },
+        { status: "disetujui", jumlah: 50000, jumlahTerbayar: 0 },
+        { status: "pending", jumlah: 999999, jumlahTerbayar: 0 },
+        { status: "ditolak", jumlah: 999999, jumlahTerbayar: 0 },
+        { status: "lunas", jumlah: 999999, jumlahTerbayar: 999999 },
+        { status: "dibatalkan", jumlah: 999999, jumlahTerbayar: 0 },
+      ]),
+    ).toBe(110000);
+  });
+  it("lunas hanya bila terbayar mencapai jumlah penuh", () => {
+    expect(statusSetelahBayar(100000, 99999)).toBe("disetujui");
+    expect(statusSetelahBayar(100000, 100000)).toBe("lunas");
+  });
+  it("skema bayar menolak nol dan melebihi batas kasbon", () => {
+    expect(
+      bayarKasbonSkema.safeParse({ id: "x", jumlahBayar: "0" }).success,
+    ).toBe(false);
+    expect(
+      bayarKasbonSkema.safeParse({ id: "x", jumlahBayar: "50000" }).success,
+    ).toBe(true);
   });
 });

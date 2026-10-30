@@ -14,6 +14,7 @@ import {
   type KeadaanHari,
 } from "@/lib/rekap";
 import { formatDurasi, namaHari, selisihHari, tanggalLokal } from "@/lib/waktu";
+import { formatTanggal } from "@/lib/format";
 import { FilterRekap } from "./filter-rekap";
 import { ambilRekap, bacaLingkup, type BarisTabel } from "./data";
 
@@ -29,9 +30,9 @@ const WARNA_STATUS: Record<KeadaanHari, string> = {
   off: "text-muted",
 };
 
-/** Header "01 Sel" agar kolom tanggal tetap terbaca saat sangat sempit. */
+/** Header kolom tanggal: dd/mm/yyyy. Nama hari hanya di tooltip. */
 function labelTanggal(iso: string): string {
-  return `${iso.slice(8)} ${namaHari(iso, true)}`;
+  return formatTanggal(iso);
 }
 
 function kolomAgregat(): Kolom<BarisTabel>[] {
@@ -97,6 +98,11 @@ function kolomAgregat(): Kolom<BarisTabel>[] {
         r.kekuranganMenit > 0 ? formatDurasi(r.kekuranganMenit) : "—",
       numeric: true,
     },
+    {
+      header: "Belum keluar",
+      cell: (r) => (r.belumKeluar > 0 ? r.belumKeluar : "—"),
+      numeric: true,
+    },
   ];
 }
 
@@ -125,7 +131,7 @@ function kolomTanggal(tanggal: string[]): Kolom<BarisTabel>[] {
       return (
         <span
           className={`font-medium ${WARNA_STATUS[keadaan]}`}
-          title={`${labelTanggal(iso)}: ${penuh ? "Shift Full · " : ""}${LABEL_HARI[keadaan]}`}
+          title={`${labelTanggal(iso)} (${namaHari(iso, true)}): ${penuh ? "Shift Full · " : ""}${LABEL_HARI[keadaan]}`}
         >
           {simbol}
         </span>

@@ -3,7 +3,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Card, PageHeader, StatCard } from "@/components/ui/primitives";
 import { db } from "@/lib/db";
 import { bacaStatusAbsensi, roleTerbatasCabang } from "@/lib/domain";
-import { wajibAkses } from "@/lib/session";
+import { menuDiizinkan, wajibAkses } from "@/lib/session";
 import { keJam, namaHari, tanggalLokal } from "@/lib/waktu";
 import { formatTanggal } from "@/lib/format";
 
@@ -82,6 +82,15 @@ export default async function AdminDashboardPage() {
     })
     .sort((x, y) => x.nama.localeCompare(y.nama, "id"));
 
+  // Badge izin pending hanya untuk role yang bisa membuka /admin/izin
+  // (kunci menu "karyawan"); headstore tidak punya kunci itu.
+  const punyaMenuIzin = (await menuDiizinkan(admin.role)).has("karyawan");
+  const izinPending = punyaMenuIzin
+    ? await db.pengajuanIzin.count({
+        where: { status: "pending", user: { aktif: true, ...lingkupUser } },
+      })
+    : 0;
+
   const sudahAbsen = baris.filter((b) => b.masuk !== null).length;
   const sedangBekerja = baris.filter(
     (b) => b.sedangBekerja,
@@ -123,6 +132,13 @@ export default async function AdminDashboardPage() {
           value={telat}
           hint={telat === 0 ? "Semua tepat waktu" : "Melewati toleransi shift"}
         />
+        {punyaMenuIzin ? (
+          <StatCard
+            label="Izin menunggu"
+            value={izinPending}
+            hint={izinPending === 0 ? "Tidak ada pengajuan pending" : "Buka menu Izin untuk memproses"}
+          />
+        ) : null}
       </div>
 
       <div className="mt-6">

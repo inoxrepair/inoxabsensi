@@ -1,4 +1,5 @@
 import type { StatusAbsensi } from "@/lib/domain";
+import { formatTanggal } from "@/lib/format";
 import { durasiMenit } from "@/lib/waktu";
 
 /**
@@ -16,9 +17,9 @@ export type CatatanAbsensi = {
   /** Menit keterlambatan tersimpan saat check-in. */
   menitTelat: number;
   kekuranganMenit: number;
-  /** Menit yang diampuni toleransi (0-10); dihitung dari jadwal+shift. */
+  /** Menit yang diampuni toleransi; snapshot check-in, fallback hitungan lama untuk legacy. */
   menitToleransi?: number;
-  /** Keterlambatan kotor tanpa potong toleransi; dihitung dari jadwal+shift. */
+  /** Keterlambatan kotor tanpa potong toleransi; snapshot check-in, fallback hitungan lama untuk legacy. */
   menitKotor?: number;
   cycles?: { masukMenit: number; keluarMenit: number | null }[];
 };
@@ -366,7 +367,9 @@ export function bacaRentang(
   return { ...rentangPeriode(periode), kustom: false };
 }
 
-/** Label rentang untuk judul & nama file. */
+/** Label rentang untuk tampilan (bukan nama file): dd/mm/yyyy. */
 export function labelRentang(r: Rentang & { kustom: boolean }): string {
-  return r.kustom ? `${r.dari} s.d. ${r.sampai}` : labelPeriode(r.dari.slice(0, 7));
+  return r.kustom
+    ? `${formatTanggal(r.dari)} s.d. ${formatTanggal(r.sampai)}`
+    : labelPeriode(r.dari.slice(0, 7));
 }

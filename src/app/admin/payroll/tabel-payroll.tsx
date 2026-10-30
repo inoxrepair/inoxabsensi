@@ -13,6 +13,10 @@ export type BarisPayroll = {
   tunjangan: number;
   potonganTelat: number;
   kasbon: number;
+  /** Acuan saja, tidak otomatis jadi potongan (tidak ada tarif di sistem). */
+  menitTelatRekap: number;
+  /** Sisa kasbon disetujui periode ini (jumlah - terbayar). */
+  kasbonDisetujuiSisa: number;
 };
 
 const KOMPONEN = [
@@ -66,6 +70,8 @@ export function TabelPayroll({
                   {label}
                 </th>
               ))}
+              <th className="p-3 text-right font-medium">Telat rekap</th>
+              <th className="p-3 text-right font-medium">Kasbon disetujui (sisa)</th>
               <th className="p-3 text-right font-medium">Diterima</th>
               <th className="p-3 font-medium">Aksi</th>
             </tr>
@@ -86,7 +92,10 @@ export function TabelPayroll({
       </div>
       <p className="text-xs text-muted">
         Nilai disimpan dalam rupiah. Gaji diterima = gaji pokok + tunjangan -
-        potongan - kasbon.
+        potongan - kasbon. Potongan telat tetap diisi manual karena tidak ada
+        tarif rupiah per menit telat di sistem; kolom Telat rekap hanya acuan.
+        Tombol &quot;Isi kasbon dari pengajuan&quot; hanya mengisi kolom, nilai
+        baru tersimpan setelah tombol Simpan ditekan.
       </p>
     </div>
   );
@@ -152,6 +161,14 @@ function Baris({
         </td>
       ))}
       <td className="p-3 text-right tabular-nums">
+        {awal.menitTelatRekap} m
+        <span className="block text-xs font-normal text-muted">periode ini</span>
+      </td>
+      <td className="p-3 text-right tabular-nums">
+        {formatRupiah(awal.kasbonDisetujuiSisa)}
+        <span className="block text-xs font-normal text-muted">sisa disetujui</span>
+      </td>
+      <td className="p-3 text-right tabular-nums">
         <span className={peringatan ? "text-status-alpa" : "font-medium"}>
           {formatRupiah(diterima)}
         </span>
@@ -160,14 +177,27 @@ function Baris({
         ) : null}
       </td>
       <td className="p-3">
-        <button
-          type="button"
-          disabled={menunggu}
-          onClick={simpan}
-          className="rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-paper disabled:opacity-40"
-        >
-          {menunggu ? "Menyimpan…" : "Simpan"}
-        </button>
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            disabled={menunggu}
+            onClick={simpan}
+            className="rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-paper disabled:opacity-40"
+          >
+            {menunggu ? "Menyimpan…" : "Simpan"}
+          </button>
+          <button
+            type="button"
+            disabled={menunggu}
+            title="Isi kolom kasbon dari sisa kasbon disetujui; belum tersimpan sampai Simpan ditekan"
+            onClick={() =>
+              setNilai((n) => ({ ...n, kasbon: String(awal.kasbonDisetujuiSisa) }))
+            }
+            className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium disabled:opacity-40"
+          >
+            Isi kasbon dari pengajuan
+          </button>
+        </div>
       </td>
     </tr>
   );

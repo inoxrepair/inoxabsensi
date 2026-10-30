@@ -11,6 +11,7 @@ import {
   WARNA_STATUS_WAJAH,
 } from "@/lib/wajah";
 import { formatDurasi, keJam, selisihHari, tanggalLokal, durasiMenit } from "@/lib/waktu";
+import { formatTanggal } from "@/lib/format";
 import { FilterLog, type BarisLog } from "./filter";
 import { AksiBaris } from "./baris";
 
@@ -30,7 +31,7 @@ export default async function AdminLogAbsensiPage({
     : (q.cabang ?? "");
   const lingkup = cabangTerpilih ? { cabangId: cabangTerpilih } : {};
 
-  const [absensi, cabang] = await Promise.all([
+  const [absensi, cabang, auditHapus] = await Promise.all([
     db.absensi.findMany({
       where: {
         tanggal: { gte: rentang.dari, lte: rentang.sampai },
@@ -46,6 +47,12 @@ export default async function AdminLogAbsensiPage({
       },
     }),
     db.cabang.findMany({ orderBy: { nama: "asc" }, select: { id: true, nama: true } }),
+    db.auditLog.findMany({
+      where: { aksi: "hapus_absensi" },
+      orderBy: { dibuatPada: "desc" },
+      take: 20,
+      select: { id: true, ringkasan: true, dibuatPada: true },
+    }),
   ]);
 
   const terlihat = absensi;
@@ -81,7 +88,7 @@ export default async function AdminLogAbsensiPage({
   const kolom: Kolom<BarisLog>[] = [
     { header: "Nama", cell: (r) => r.nama, rowHeader: true },
     { header: "Cabang", cell: (r) => <span className="text-muted">{r.cabang}</span> },
-    { header: "Tanggal", cell: (r) => <span className="tabular-nums">{r.tanggal}</span> },
+    { header: "Tanggal", cell: (r) => <span className="tabular-nums">{formatTanggal(r.tanggal)}</span> },
     { header: "Cycle", cell: (r) => r.cycles.length ? <div className="space-y-0.5 tabular-nums">{r.cycles.map((cycle) => <p key={cycle.urutan}>{cycle.urutan}. {keJam(cycle.masukMenit)}–{cycle.keluarMenit == null ? "aktif" : keJam(cycle.keluarMenit)}</p>)}</div> : "—" },
     { header: "Jam kerja", cell: (r) => (r.menitKerja !== null ? formatDurasi(r.menitKerja) : "—"), numeric: true },
     { header: "Telat", cell: (r) => (r.menitTelat > 0 ? `${r.menitTelat} m` : "0"), numeric: true },
@@ -118,10 +125,27 @@ export default async function AdminLogAbsensiPage({
 
       <FilterLog awal={rentang.dari} akhir={rentang.sampai} cabang={cabang} cabangTerpilih={cabangTerpilih} role={admin.role} />
 
-      <Card footer="Edit jam tersedia untuk admin cabang. Hapus baris hanya tersedia untuk Super Admin; baris yang dihapus membuat pengguna dapat absen lagi.">
+      <Card footer="Edit jam tersedia untuk admin cabang. Hapus baris hanya tersedia untuk Super Admin; baris yang dihapus membuat pengguna dapat absen lagi, dan ringkasannya tersimpan di audit di bawah.">
         <div className="overflow-x-auto">
           <DataTable caption="Log absensi" columns={kolom} rows={rows} rowKey={(r) => r.id} />
         </div>
+      </Card>
+
+      <Card title="Audit penghapusan (20 terbaru)">
+        {auditHapus.length === 0 ? (
+          <p className="text-sm text-muted">Belum ada catatan absensi yang dihapus.</p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {auditHapus.map((a) => (
+              <li key={a.id} className="border-b border-line/70 pb-2 last:border-0">
+                <span className="tabular-nums text-muted">
+                  {formatTanggal(a.dibuatPada.toISOString().slice(0, 10))} ·{" "}
+                </span>
+                {a.ringkasan}
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
     </>
   );

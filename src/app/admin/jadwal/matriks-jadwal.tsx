@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { namaHari } from "@/lib/waktu";
+import { formatTanggal } from "@/lib/format";
 import { setJadwal, type Hasil } from "./actions";
 
 export type Shift = {
@@ -67,7 +68,7 @@ export function MatriksJadwal({
               <th key={tgl} scope="col" className="p-3 font-medium">
                 {namaHari(tgl, true)}
                 <span className="ml-1 font-normal normal-case tabular-nums">
-                  {tgl.slice(8)}
+                  {formatTanggal(tgl)}
                 </span>
               </th>
             ))}

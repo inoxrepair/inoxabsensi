@@ -388,3 +388,258 @@ export async function generateJadwalBulanan(formData: FormData): Promise<Hasil> 
   segarkan();
   return { ok: true, pesan: `${data.length} jadwal bulan ${bulan} dibuat dari pola mingguan.` };
 }
+
+/* -------------------------------------------------------------------------- */
+/* Preview operasi massal (tanpa menulis)                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Ringkasan dampak untuk dialog konfirmasi kedua. Semua preview di bawah
+ * hanya membaca database dan menjalankan validasi yang sama dengan aksi
+ * eksekusinya (termasuk fail-fast import); tidak ada satu pun yang menulis.
+ * Angka "dihapus" = baris Jadwal lama yang akan di-deleteMany, angka
+ * "dibuat" = baris baru yang akan di-createMany.
+ */
+export type RingkasanPreview = {
+  ok: boolean;
+  pesan: string;
+  karyawan: number;
+  dari: string;
+  sampai: string;
+  jumlahHari: number;
+  barisDihapus: number;
+  barisDibuat: number;
+};
+
+function ringkasanGagal(pesan: string): RingkasanPreview {
+  return {
+    ok: false,
+    pesan,
+    karyawan: 0,
+    dari: "",
+    sampai: "",
+    jumlahHari: 0,
+    barisDihapus: 0,
+    barisDibuat: 0,
+  };
+}
+
+export async function previewRentang(formData: FormData): Promise<RingkasanPreview> {
+  const admin = await wajibAkses("jadwal");
+  const dariRaw = String(formData.get("dari") ?? "");
+  const sampaiRaw = String(formData.get("sampai") ?? "");
+  const shiftId = String(formData.get("shiftId") ?? "") || null;
+  const seragamId = String(formData.get("seragamId") ?? "") || null;
+  const cabangIdForm = String(formData.get("cabangId") ?? "");
+  const userIds = formData.getAll("userId").map(String).filter(Boolean);
+  if (!tanggalValid(dariRaw) || !tanggalValid(sampaiRaw)) {
+    return ringkasanGagal("Rentang tanggal tidak valid.");
+  }
+  const [dari, sampai] =
+    dariRaw <= sampaiRaw ? [dariRaw, sampaiRaw] : [sampaiRaw, dariRaw];
+  const jumlahHari = selisihHari(dari, sampai) + 1;
+  if (jumlahHari > 62) return ringkasanGagal("Rentang maksimal 62 hari sekali proses.");
+  if (shiftId && (await db.shift.count({ where: { id: shiftId } })) === 0) {
+    return ringkasanGagal("Shift tidak ditemukan.");
+  }
+  if (seragamId) {
+    const seragam = await db.jenisSeragam.findFirst({
+      where: { id: seragamId, aktif: true },
+      select: { id: true },
+    });
+    if (!seragam) return ringkasanGagal("Jenis seragam tidak aktif atau tidak ditemukan.");
+  }
+  const cabangId = roleTerbatasCabang(admin.role)
+    ? admin.cabangId
+    : cabangIdForm || null;
+  const target = await db.user.findMany({
+    where: {
+      id: { in: userIds },
+      aktif: true,
+      role: { not: "super_admin" },
+      ...(cabangId ? { cabangId } : {}),
+    },
+    select: { id: true },
+  });
+  if (target.length === 0) return ringkasanGagal("Pilih minimal satu karyawan dalam lingkup Anda.");
+  if (target.length !== new Set(userIds).size) {
+    return ringkasanGagal("Sebagian karyawan di luar lingkup cabang Anda.");
+  }
+  const tanggal = Array.from({ length: jumlahHari }, (_, i) => tanggalGeser(dari, i));
+  const ids = target.map((u) => u.id);
+  const lama = await db.jadwal.count({
+    where: { userId: { in: ids }, tanggal: { in: tanggal } },
+  });
+  return {
+    ok: true,
+    pesan: "Preview siap.",
+    karyawan: ids.length,
+    dari,
+    sampai,
+    jumlahHari,
+    barisDihapus: lama,
+    barisDibuat: shiftId ? ids.length * jumlahHari : 0,
+  };
+}
+
+export async function previewSalinMinggu(
+  dariSenin: string,
+  keSenin: string,
+): Promise<RingkasanPreview> {
+  const admin = await wajibAkses("jadwal");
+  const asal = Array.from({ length: 7 }, (_, i) => tanggalGeser(dariSenin, i));
+  const tujuan = Array.from({ length: 7 }, (_, i) => tanggalGeser(keSenin, i));
+  const lingkup = roleTerbatasCabang(admin.role)
+    ? { user: { cabangId: admin.cabangId ?? "-" } }
+    : {};
+  const [sumber, lama] = await Promise.all([
+    db.jadwal.findMany({
+      where: { tanggal: { in: asal }, ...lingkup },
+      select: { userId: true, shiftId: true },
+    }),
+    db.jadwal.count({ where: { tanggal: { in: tujuan }, ...lingkup } }),
+  ]);
+  if (sumber.length === 0) return ringkasanGagal("Minggu sumber belum punya jadwal.");
+  const dibuat = sumber.filter((s) => s.shiftId !== null).length;
+  return {
+    ok: true,
+    pesan: "Preview siap.",
+    karyawan: new Set(sumber.map((s) => s.userId)).size,
+    dari: tujuan[0],
+    sampai: tujuan[6],
+    jumlahHari: 7,
+    barisDihapus: lama,
+    barisDibuat: dibuat,
+  };
+}
+
+export async function previewKosongkanMinggu(
+  senin: string,
+): Promise<RingkasanPreview> {
+  const admin = await wajibAkses("jadwal");
+  const minggu = Array.from({ length: 7 }, (_, i) => tanggalGeser(senin, i));
+  const lingkup = roleTerbatasCabang(admin.role)
+    ? { user: { cabangId: admin.cabangId ?? "-" } }
+    : {};
+  const target = await db.jadwal.findMany({
+    where: { tanggal: { in: minggu }, ...lingkup },
+    select: { userId: true },
+  });
+  return {
+    ok: true,
+    pesan: "Preview siap.",
+    karyawan: new Set(target.map((t) => t.userId)).size,
+    dari: minggu[0],
+    sampai: minggu[6],
+    jumlahHari: 7,
+    barisDihapus: target.length,
+    barisDibuat: 0,
+  };
+}
+
+export async function previewGenerateBulanan(
+  formData: FormData,
+): Promise<RingkasanPreview> {
+  const admin = await wajibAkses("jadwal");
+  const bulan = String(formData.get("bulan") ?? "");
+  const polaMulai = String(formData.get("polaMulai") ?? "");
+  const cabangIdForm = String(formData.get("cabangId") ?? "");
+  if (!/^\d{4}-\d{2}$/.test(bulan) || !tanggalValid(polaMulai)) {
+    return ringkasanGagal("Bulan atau tanggal pola tidak valid.");
+  }
+  const cabangId = roleTerbatasCabang(admin.role) ? admin.cabangId : cabangIdForm || null;
+  const lingkup = cabangId ? { user: { cabangId } } : {};
+  const polaDates = Array.from({ length: 7 }, (_, i) => tanggalGeser(polaMulai, i));
+  const pola = await db.jadwal.findMany({
+    where: { tanggal: { in: polaDates }, ...lingkup },
+    select: { userId: true, tanggal: true, shiftId: true },
+  });
+  if (!pola.length) return ringkasanGagal("Minggu pola belum memiliki jadwal.");
+  const [year, month] = bulan.split("-").map(Number);
+  const count = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const dates = Array.from({ length: count }, (_, i) => `${bulan}-${String(i + 1).padStart(2, "0")}`);
+  const users = [...new Set(pola.map((p) => p.userId))];
+  const byUserDay = new Map(pola.map((p) => [`${p.userId}|${polaDates.indexOf(p.tanggal)}`, p]));
+  let dibuat = 0;
+  for (const userId of users) {
+    for (const date of dates) {
+      const idx = (new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7;
+      if (byUserDay.get(`${userId}|${idx}`)?.shiftId) dibuat += 1;
+    }
+  }
+  const lama = await db.jadwal.count({
+    where: { userId: { in: users }, tanggal: { in: dates } },
+  });
+  return {
+    ok: true,
+    pesan: "Preview siap.",
+    karyawan: users.length,
+    dari: dates[0],
+    sampai: dates[dates.length - 1],
+    jumlahHari: dates.length,
+    barisDihapus: lama,
+    barisDibuat: dibuat,
+  };
+}
+
+export async function previewImportCsv(
+  formData: FormData,
+): Promise<RingkasanPreview> {
+  const admin = await wajibAkses("jadwal");
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return ringkasanGagal("Pilih file CSV.");
+  }
+  if (file.size > 2_000_000) return ringkasanGagal("File maksimal 2 MB.");
+  const rows = parseCsv(await file.text());
+  if (rows.length < 2 || rows[0][0] !== "Karyawan" || rows[0][1] !== "Cabang") {
+    return ringkasanGagal("Format CSV tidak sesuai hasil export Jadwal.");
+  }
+  const parsedDates = rows[0].slice(2).map(parseTanggalSpreadsheet);
+  if (parsedDates.length === 0 || parsedDates.length > 62 || parsedDates.some((d) => !d || !tanggalValid(d))) {
+    return ringkasanGagal("Kolom tanggal CSV tidak valid.");
+  }
+  const dates = parsedDates as string[];
+  const cabangId = roleTerbatasCabang(admin.role) ? admin.cabangId : String(formData.get("cabangId") ?? "") || null;
+  const lingkup = cabangId ? { cabangId } : {};
+  const [users, shifts] = await Promise.all([
+    db.user.findMany({ where: { aktif: true, role: { not: "super_admin" }, ...lingkup }, select: { id: true, name: true } }),
+    db.shift.findMany({ orderBy: { mulaiMenit: "asc" } }),
+  ]);
+  const byName = new Map<string, (typeof users)[number]>();
+  for (const user of users) {
+    const key = user.name.trim().toLowerCase();
+    if (byName.has(key)) {
+      return ringkasanGagal(`Nama karyawan "${user.name}" duplikat. Import tidak aman; ubah nama akun lebih spesifik.`);
+    }
+    byName.set(key, user);
+  }
+  const userIds: string[] = [];
+  let dibuat = 0;
+  for (const row of rows.slice(1)) {
+    const user = byName.get((row[0] ?? "").trim().toLowerCase());
+    if (!user) return ringkasanGagal(`Karyawan "${row[0] ?? ""}" tidak ditemukan pada lingkup ini.`);
+    userIds.push(user.id);
+    for (let i = 0; i < dates.length; i++) {
+      const kode = (row[i + 2] ?? "O").trim().toUpperCase();
+      if (!kode || kode === "O" || kode === "L" || kode === "-") continue;
+      const shift = shiftByKode(kode, shifts.map((s) => ({ id: s.id, nama: s.nama, mulai: "", selesai: "" })));
+      if (!shift) return ringkasanGagal(`Kode shift "${kode}" tidak dikenal. Gunakan P/S/F/O.`);
+      dibuat += 1;
+    }
+  }
+  const ids = [...new Set(userIds)];
+  const lama = await db.jadwal.count({
+    where: { userId: { in: ids }, tanggal: { in: dates } },
+  });
+  return {
+    ok: true,
+    pesan: "Preview siap.",
+    karyawan: ids.length,
+    dari: dates[0],
+    sampai: dates[dates.length - 1],
+    jumlahHari: dates.length,
+    barisDihapus: lama,
+    barisDibuat: dibuat,
+  };
+}

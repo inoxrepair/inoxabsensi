@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { LABEL_HARI, labelPeriode, type KeadaanHari } from "@/lib/rekap";
 import { formatDurasi, keJam, namaHari } from "@/lib/waktu";
+import { formatTanggal } from "@/lib/format";
 import { LABEL_STATUS_WAJAH, type StatusWajah } from "@/lib/wajah";
 
 /**
@@ -157,7 +158,7 @@ export async function buatArsipPdf(data: DataArsipPdf): Promise<Uint8Array> {
     const wajah = b.faceStatus ? LABEL_STATUS_WAJAH[b.faceStatus] : "—";
     gambarBaris(
       [
-        b.tanggal,
+        formatTanggal(b.tanggal),
         namaHari(b.tanggal, true),
         b.shiftNama ?? "—",
         b.masukMenit != null ? keJam(b.masukMenit) : "—",

@@ -6,6 +6,7 @@ import { formatTanggal } from "@/lib/format";
 import { wajibLogin } from "@/lib/session";
 import { tanggalLokal } from "@/lib/waktu";
 import { AjukanKasbonForm } from "./form";
+import { BatalkanKasbonButton } from "./batalkan-button";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,9 @@ export default async function KaryawanKasbonPage() {
                   <p className="font-medium">{formatRupiah(c.jumlah)}</p>
                   <p className="text-xs text-muted tabular-nums">
                     {c.periode} · {c.keterangan ?? "Tanpa keterangan"}
+                    {c.jumlahTerbayar > 0
+                      ? ` · Terbayar ${formatRupiah(c.jumlahTerbayar)} · Sisa ${formatRupiah(Math.max(0, c.jumlah - c.jumlahTerbayar))}`
+                      : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted">
@@ -57,6 +61,9 @@ export default async function KaryawanKasbonPage() {
                   <Pill tone={c.status === "ditolak" ? "redup" : "netral"}>
                     {LABEL_KASBON[bacaStatusKasbon(c.status)]}
                   </Pill>
+                  {c.status === "pending" ? (
+                    <BatalkanKasbonButton id={c.id} />
+                  ) : null}
                 </div>
               </li>
             ))}

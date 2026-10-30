@@ -71,10 +71,25 @@ const BULAN_ID = [
   "juli", "agustus", "september", "oktober", "november", "desember",
 ];
 
-/** Menerima ISO atau format export "28 Juli 2026". */
+/**
+ * Menerima ISO (yyyy-mm-dd), format tampilan baru dd/mm/yyyy, atau format
+ * export lama "28 Juli 2026". Ketiganya dikembalikan sebagai ISO untuk
+ * penyimpanan; parser lain yang menerima input pengguna tetap menerima ISO.
+ * Format dd/mm/yyyy divalidasi ketat (hari sesuai jumlah hari bulan itu).
+ */
 export function parseTanggalSpreadsheet(value: string): string | null {
   const text = value.trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+  const slash = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text);
+  if (slash) {
+    const day = Number(slash[1]);
+    const month = Number(slash[2]);
+    const year = Number(slash[3]);
+    if (month < 1 || month > 12) return null;
+    const max = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    if (day < 1 || day > max) return null;
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
   const match = /^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/.exec(text);
   if (!match) return null;
   const month = BULAN_ID.indexOf(match[2].toLowerCase()) + 1;

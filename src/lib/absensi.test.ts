@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bolehKeluar, bolehMasuk, kekuranganKerja, ringkas, ringkasCycle, type KondisiAbsen } from "./absensi";
+import { bolehKeluar, bolehMasuk, kekuranganKerja, ringkas, ringkasCycle, snapshotKeterlambatan, type KondisiAbsen } from "./absensi";
 
 const CABANG = { lat: 0.7333, lng: 124.3167, radiusMeter: 100 };
 const DI_DALAM = { lat: 0.7333 + 0.0003, lng: 124.3167 }; // ~33 m
@@ -172,6 +172,36 @@ describe("ringkas", () => {
       izin: 0,
       alpa: 0,
       libur: 0,
+    });
+  });
+});
+
+describe("snapshotKeterlambatan", () => {
+  const shift = { mulaiMenit: 540, selesaiMenit: 1020, toleransiMenit: 5 };
+  it("dalam toleransi: kotor = toleransi, telat 0", () => {
+    expect(snapshotKeterlambatan(543, shift)).toEqual({
+      menitTelat: 0,
+      menitToleransi: 3,
+      menitKotor: 3,
+    });
+  });
+  it("di luar toleransi: kotor = toleransi + telat", () => {
+    const s = snapshotKeterlambatan(547, shift);
+    expect(s).toEqual({ menitTelat: 2, menitToleransi: 5, menitKotor: 7 });
+    expect(s.menitKotor).toBe(s.menitToleransi + s.menitTelat);
+  });
+  it("fleksibel ketiganya nol apa pun jam masuknya", () => {
+    expect(
+      snapshotKeterlambatan(600, { ...shift, mode: "fleksibel" }),
+    ).toEqual({ menitTelat: 0, menitToleransi: 0, menitKotor: 0 });
+  });
+  it("bolehMasuk membawa snapshot yang sama", () => {
+    const h = bolehMasuk(kondisi(), 551);
+    // SHIFT di file ini toleransi 10: masuk 551 = kotor 11, toleransi 10, telat 1.
+    expect(h).toMatchObject({
+      menitTelat: 1,
+      menitToleransi: 10,
+      menitKotor: 11,
     });
   });
 });

@@ -16,6 +16,9 @@ const ICON: Record<string, React.ReactNode> = {
   kasbon_saya: (
     <path d="M4 7h16v10H4zM8 11h5m4 0h.01" />
   ),
+  izin_saya: (
+    <path d="M5 4h14v16H5zM9 12l2 2 4-4" />
+  ),
   profil: (
     <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8 8c0-3.3-3.6-6-8-6s-8 2.7-8 6" />
   ),
