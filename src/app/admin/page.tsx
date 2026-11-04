@@ -9,6 +9,14 @@ import { formatTanggal } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
+function inisial(nama: string) {
+  return nama
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((k) => k[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 export default async function AdminDashboardPage() {
   const admin = await wajibAkses("dashboard");
   const tanggal = tanggalLokal();
@@ -41,7 +49,11 @@ export default async function AdminDashboardPage() {
           seragam: true,
           shift: { select: { nama: true, mode: true, mulaiMenit: true, selesaiMenit: true } },
           user: {
-            select: { name: true, cabang: { select: { nama: true } } },
+            select: {
+              name: true,
+              image: true,
+              cabang: { select: { nama: true } },
+            },
           },
         },
       }),
@@ -67,6 +79,7 @@ export default async function AdminDashboardPage() {
       return {
         userId: j.userId,
         nama: j.user.name,
+        foto: j.user.image,
         cabang: j.user.cabang?.nama ?? "—",
         shift: j.shift
           ? j.shift.mode === "fleksibel"
@@ -189,7 +202,23 @@ export default async function AdminDashboardPage() {
                         scope="row"
                         className="py-2.5 pr-4 text-left font-medium"
                       >
-                        {row.nama}
+                        <span className="flex items-center gap-2.5">
+                          {row.foto ? (
+                            <img
+                              src={row.foto}
+                              alt={`Foto profil ${row.nama}`}
+                              className="size-8 shrink-0 rounded-full object-cover"
+                            />
+                          ) : (
+                            <span
+                              aria-hidden="true"
+                              className="grid size-8 shrink-0 place-items-center rounded-full bg-ink text-xs font-medium text-paper"
+                            >
+                              {inisial(row.nama)}
+                            </span>
+                          )}
+                          {row.nama}
+                        </span>
                       </th>
                       <td className="py-2.5 pr-4 text-muted">{row.cabang}</td>
                       <td className="py-2.5 pr-4 text-muted">{row.shift}</td>

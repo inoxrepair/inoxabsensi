@@ -23,3 +23,22 @@ export async function bacaLogoAplikasi(): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * Versi logo kustom (waktu terakhir diubah, dalam milidetik) atau null bila
+ * belum ada logo kustom. Dipakai sebagai query `?v=` di src gambar logo,
+ * supaya setelah logo diganti di Pengaturan, header yang tidak di-remount
+ * saat navigasi client-side tetap memuat gambar baru (src berubah, bukan
+ * src yang sama yang dipertahankan browser).
+ */
+export async function bacaVersiLogo(): Promise<string | null> {
+  try {
+    const rows = await db.$queryRaw<{ updatedAt: Date }[]>`
+      SELECT "updatedAt" FROM "Pengaturan" WHERE "kunci" = ${KUNCI_LOGO_APLIKASI}
+    `;
+    const waktu = rows[0]?.updatedAt;
+    return waktu ? String(new Date(waktu).getTime()) : null;
+  } catch {
+    return null;
+  }
+}

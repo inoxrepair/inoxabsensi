@@ -51,11 +51,13 @@ export function AdminLayoutClient({
   menu,
   nama,
   labelRole,
+  versiLogo,
   children,
 }: {
   menu: NavItem[];
   nama: string;
   labelRole: string;
+  versiLogo: string | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -100,7 +102,7 @@ export function AdminLayoutClient({
             ciut ? "justify-center px-2" : "justify-between px-3"
           }`}
         >
-          {!ciut ? <Logo size={28} /> : null}
+          {!ciut ? <Logo size={40} versi={versiLogo} /> : null}
           <button
             type="button"
             onClick={toggleCiut}
@@ -169,7 +171,7 @@ export function AdminLayoutClient({
               ☰
             </button>
             <div className="md:hidden">
-              <Logo size={26} />
+              <Logo size={36} versi={versiLogo} />
             </div>
           </div>
 
@@ -203,7 +205,7 @@ export function AdminLayoutClient({
           />
           <div className="absolute inset-y-0 left-0 flex w-72 flex-col bg-paper shadow-xl">
             <div className="flex h-16 items-center justify-between border-b border-line px-4">
-              <Logo size={26} />
+              <Logo size={36} versi={versiLogo} />
               <button
                 type="button"
                 onClick={() => setDrawerBuka(false)}

@@ -2,6 +2,7 @@ import { AdminLayoutClient } from "@/components/layout/admin-layout-client";
 import { LABEL_ROLE } from "@/lib/domain";
 import { menuDiizinkan, wajibLogin } from "@/lib/session";
 import { ADMIN_NAV } from "@/lib/nav";
+import { bacaVersiLogo } from "@/lib/pengaturan";
 
 export default async function AdminLayout({
   children,
@@ -11,12 +12,14 @@ export default async function AdminLayout({
   const user = await wajibLogin();
   const izin = await menuDiizinkan(user.role);
   const menu = ADMIN_NAV.filter((n) => izin.has(n.menu));
+  const versiLogo = await bacaVersiLogo();
 
   return (
     <AdminLayoutClient
       menu={menu}
       nama={user.nama}
       labelRole={LABEL_ROLE[user.role]}
+      versiLogo={versiLogo}
     >
       {children}
     </AdminLayoutClient>

@@ -7,7 +7,7 @@ import { keJam } from "@/lib/waktu";
 import { DaftarSeragam } from "./seragam";
 import { FormLogo } from "./logo-form";
 import { BackupJadwalPanel } from "./backup-jadwal";
-import { bacaLogoAplikasi } from "@/lib/pengaturan";
+import { bacaLogoAplikasi, bacaVersiLogo } from "@/lib/pengaturan";
 import { tanggalLokal } from "@/lib/waktu";
 
 /** Hak akses dibaca dari database, jadi perubahan tidak perlu deploy. */
@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPengaturanPage() {
   await wajibAkses("pengaturan");
 
-  const [izin, shift, seragam, logo] = await Promise.all([
+  const [izin, shift, seragam, logo, versiLogo] = await Promise.all([
     db.rolePermission.findMany(),
     db.shift.findMany({ orderBy: { mulaiMenit: "asc" } }),
     db.jenisSeragam.findMany({
@@ -24,6 +24,7 @@ export default async function AdminPengaturanPage() {
       include: { _count: { select: { jadwal: true } } },
     }),
     bacaLogoAplikasi(),
+    bacaVersiLogo(),
   ]);
 
   // Set gabungan "role:menu" untuk lookup O(1) saat render matriks.
@@ -92,7 +93,7 @@ export default async function AdminPengaturanPage() {
           title="Logo aplikasi"
           footer="Logo disimpan di database, jadi ikut backup dan tidak hilang saat container di-rebuild. Ikon aplikasi di home screen HP tidak ikut berubah dari sini."
         >
-          <FormLogo adaLogoKustom={logo !== null} />
+          <FormLogo adaLogoKustom={logo !== null} versiLogo={versiLogo} />
         </Card>
       </div>
 

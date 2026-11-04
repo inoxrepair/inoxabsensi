@@ -40,7 +40,13 @@ async function kompresLogo(file: File): Promise<Blob> {
   }
 }
 
-export function FormLogo({ adaLogoKustom }: { adaLogoKustom: boolean }) {
+export function FormLogo({
+  adaLogoKustom,
+  versiLogo,
+}: {
+  adaLogoKustom: boolean;
+  versiLogo: string | null;
+}) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [berkas, setBerkas] = useState<Blob | null>(null);
@@ -107,7 +113,7 @@ export function FormLogo({ adaLogoKustom }: { adaLogoKustom: boolean }) {
         />
       ) : (
         <img
-          src="/api/logo"
+          src={versiLogo ? `/api/logo?v=${versiLogo}` : "/api/logo"}
           alt="Logo aplikasi saat ini"
           className="mt-3 h-16 w-auto max-w-full object-contain"
         />

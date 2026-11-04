@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
+import { bacaVersiLogo } from "@/lib/pengaturan";
 
-export default function Forbidden() {
+export default async function Forbidden() {
+  const versiLogo = await bacaVersiLogo();
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-6 py-12 text-center">
       <div className="flex justify-center">
-        <Logo size={40} />
+        <Logo size={64} versi={versiLogo} />
       </div>
       <h1 className="mt-8 text-lg font-semibold tracking-tight">
         Akses ditolak
