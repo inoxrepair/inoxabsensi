@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { db } from "@/lib/db";
 import { bacaStatusAbsensi } from "@/lib/domain";
@@ -6,6 +7,14 @@ import { formatDurasi, keJam, menitLokal, namaHari, tanggalLokal, durasiMenit } 
 import { TombolAbsen } from "./tombol-absen";
 
 export const dynamic = "force-dynamic";
+
+function inisial(nama: string) {
+  return nama
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((k) => k[0]?.toUpperCase() ?? "")
+    .join("");
+}
 
 function sapaan(menit: number) {
   if (menit < 660) return "Selamat pagi";
@@ -21,7 +30,7 @@ export default async function KaryawanAbsenPage() {
   const [user, jadwal, absensi] = await Promise.all([
     db.user.findUniqueOrThrow({
       where: { id: sesi.id },
-      select: { name: true, jabatan: true, cabang: true },
+      select: { name: true, jabatan: true, image: true, cabang: true },
     }),
     db.jadwal.findUnique({
       where: { userId_tanggal: { userId: sesi.id, tanggal } },
@@ -68,12 +77,34 @@ export default async function KaryawanAbsenPage() {
 
   return (
     <>
-      <header>
-        <p className="text-sm text-muted">{sapaan(menitLokal())},</p>
-        <h1 className="text-xl font-semibold tracking-tight">{user.name}</h1>
-        <p className="mt-0.5 text-sm text-muted">
-          {user.jabatan} · {user.cabang?.nama ?? "Belum ditempatkan"}
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm text-muted">{sapaan(menitLokal())},</p>
+          <h1 className="text-xl font-semibold tracking-tight">{user.name}</h1>
+          <p className="mt-0.5 text-sm text-muted">
+            {user.jabatan} · {user.cabang?.nama ?? "Belum ditempatkan"}
+          </p>
+        </div>
+        <Link
+          href="/karyawan/profil"
+          aria-label="Buka profil saya"
+          className="shrink-0"
+        >
+          {user.image ? (
+            <img
+              src={user.image}
+              alt={`Foto profil ${user.name}`}
+              className="size-14 rounded-full object-cover"
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              className="grid size-14 place-items-center rounded-full bg-ink text-lg font-medium text-paper"
+            >
+              {inisial(user.name)}
+            </span>
+          )}
+        </Link>
       </header>
 
       <section className="mt-5 rounded-xl border border-line bg-paper p-4">

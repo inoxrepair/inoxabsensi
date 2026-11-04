@@ -1,5 +1,4 @@
 import { Logo } from "@/components/brand/logo";
-import { bacaVersiLogo } from "@/lib/pengaturan";
 import { FormLogin } from "./form-login";
 
 export default async function LoginPage({
@@ -11,12 +10,10 @@ export default async function LoginPage({
   const googleAktif = Boolean(
     process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET,
   );
-  const versiLogo = await bacaVersiLogo();
-
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-6 py-12">
       <div className="flex justify-center">
-        <Logo size={64} versi={versiLogo} />
+        <Logo size={64} />
       </div>
 
       <h1 className="mt-8 text-center text-lg font-semibold tracking-tight">

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { Logo } from "@/components/brand/logo";
-import { bacaVersiLogo } from "@/lib/pengaturan";
 
 export default async function HomePage() {
   const sesi = await auth();
@@ -14,11 +13,9 @@ export default async function HomePage() {
     );
   }
 
-  const versiLogo = await bacaVersiLogo();
-
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-12">
-      <Logo size={64} versi={versiLogo} />
+      <Logo size={64} />
 
       <h1 className="mt-8 text-2xl font-semibold tracking-tight">
         Absensi iNox
