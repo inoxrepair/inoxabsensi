@@ -236,3 +236,12 @@ model RolePermission {
   menu String
   @@id([role, menu])
 }
+
+/// Pengaturan global aplikasi (kunci -> nilai), mis. logo_aplikasi yang
+/// isinya data URL gambar. Satu baris per kunci; diubah lewat Pengaturan,
+/// bukan lewat deploy, supaya branding bisa diganti tanpa rilis baru.
+model Pengaturan {
+  kunci     String   @id
+  nilai     String
+  updatedAt DateTime @updatedAt
+}

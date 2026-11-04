@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { LABEL_ROLE } from "@/lib/domain";
 import { wajibLogin } from "@/lib/session";
 import { formatTanggal } from "@/lib/format";
+import { FormFoto } from "./form-foto";
 import { FormPassword } from "./form-password";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,7 @@ export default async function KaryawanProfilPage() {
       jabatan: true,
       role: true,
       tanggalMasuk: true,
+      image: true,
       cabang: { select: { nama: true } },
     },
   });
@@ -35,12 +37,20 @@ export default async function KaryawanProfilPage() {
       <h1 className="text-xl font-semibold tracking-tight">Profil</h1>
 
       <div className="mt-5 flex items-center gap-3.5 rounded-xl border border-line bg-paper p-4">
-        <div
-          aria-hidden="true"
-          className="grid size-14 shrink-0 place-items-center rounded-full bg-ink text-lg font-medium text-paper"
-        >
-          {inisial(user.name)}
-        </div>
+        {user.image ? (
+          <img
+            src={user.image}
+            alt={`Foto profil ${user.name}`}
+            className="size-14 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <div
+            aria-hidden="true"
+            className="grid size-14 shrink-0 place-items-center rounded-full bg-ink text-lg font-medium text-paper"
+          >
+            {inisial(user.name)}
+          </div>
+        )}
         <div className="min-w-0">
           <p className="font-medium">{user.name}</p>
           <p className="text-sm text-muted">{user.jabatan}</p>
@@ -61,6 +71,8 @@ export default async function KaryawanProfilPage() {
           </div>
         ))}
       </dl>
+
+      <FormFoto />
 
       <FormPassword />
 
