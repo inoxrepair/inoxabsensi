@@ -35,14 +35,18 @@ export default async function AdminLogAbsensiPage({
     db.absensi.findMany({
       where: {
         tanggal: { gte: rentang.dari, lte: rentang.sampai },
-        // Filter cabang di query agar tidak memuat data cabang lain.
-        ...(lingkup.cabangId
-          ? { user: { cabangId: lingkup.cabangId } }
-          : {}),
+        // Filter cabang di query memakai cabang yang tercatat pada baris
+        // absensi itu (cabang penempatan saat absen), bukan cabang
+        // penempatan karyawan saat ini — konsisten dengan kolom Cabang.
+        ...(lingkup.cabangId ? { cabangId: lingkup.cabangId } : {}),
       },
       orderBy: [{ tanggal: "desc" }, { masukMenit: "asc" }],
       include: {
-        user: { select: { name: true, cabang: { select: { nama: true } }, cabangId: true } },
+        user: { select: { name: true } },
+        // Cabang diambil dari baris Absensi (snapshot penempatan saat
+        // absen), bukan dari User — supaya baris lama tetap menunjukkan
+        // cabang tempat karyawan itu absen, walau penempatannya pindah.
+        cabang: { select: { nama: true } },
         cycles: { orderBy: { urutan: "asc" } },
       },
     }),
@@ -65,7 +69,7 @@ export default async function AdminLogAbsensiPage({
     return {
     id: a.id,
     nama: a.user.name,
-    cabang: a.user.cabang?.nama ?? "—",
+    cabang: a.cabang?.nama ?? "—",
     tanggal: a.tanggal,
     masuk: cycles[0]?.masukMenit ?? a.masukMenit,
     keluar: cycles.at(-1)?.keluarMenit ?? a.keluarMenit,
