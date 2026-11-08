@@ -22,6 +22,10 @@ export type BarisArsipPdf = {
   menitKerja: number | null;
   menitTelat: number;
   faceStatus: StatusWajah | null;
+  /** Cabang penempatan yang tercatat pada baris absensi hari itu (snapshot
+   * Absensi.cabangId); null bila hari itu tidak ada baris absensi (Alpa/Off),
+   * karena tidak ada cabang tempat absen yang tercatat. */
+  cabang: string | null;
 };
 
 export type DataArsipPdf = {
@@ -97,17 +101,19 @@ export async function buatArsipPdf(data: DataArsipPdf): Promise<Uint8Array> {
     color: rgb(0.1, 0.1, 0.1),
   });
 
-  // Kolom tabel; lebar disesuaikan agar seluruh rentang muat di A4.
+  // Kolom tabel; lebar disesuaikan agar seluruh rentang muat di A4
+  // (total 515, sama dengan lebar area cetak). Cabang ditaruh paling kanan.
   const kolom: { judul: string; lebar: number; rata: "kiri" | "tengah" }[] = [
-    { judul: "Tanggal", lebar: 68, rata: "kiri" },
-    { judul: "Hari", lebar: 44, rata: "kiri" },
-    { judul: "Shift", lebar: 62, rata: "kiri" },
-    { judul: "Masuk", lebar: 52, rata: "tengah" },
-    { judul: "Keluar", lebar: 52, rata: "tengah" },
-    { judul: "Jam kerja", lebar: 60, rata: "tengah" },
-    { judul: "Telat", lebar: 40, rata: "tengah" },
-    { judul: "Status", lebar: 62, rata: "kiri" },
-    { judul: "Wajah", lebar: 75, rata: "kiri" },
+    { judul: "Tanggal", lebar: 62, rata: "kiri" },
+    { judul: "Hari", lebar: 40, rata: "kiri" },
+    { judul: "Shift", lebar: 56, rata: "kiri" },
+    { judul: "Masuk", lebar: 48, rata: "tengah" },
+    { judul: "Keluar", lebar: 48, rata: "tengah" },
+    { judul: "Jam kerja", lebar: 54, rata: "tengah" },
+    { judul: "Telat", lebar: 36, rata: "tengah" },
+    { judul: "Status", lebar: 58, rata: "kiri" },
+    { judul: "Wajah", lebar: 53, rata: "kiri" },
+    { judul: "Cabang", lebar: 60, rata: "kiri" },
   ];
 
   let y = height - MARGIN - 90;
@@ -167,6 +173,7 @@ export async function buatArsipPdf(data: DataArsipPdf): Promise<Uint8Array> {
         b.menitTelat > 0 ? `${b.menitTelat}m` : "0",
         status,
         wajah,
+        b.cabang ?? "—",
       ],
       false,
       b.keadaan ? WARNA_KEADAAN[b.keadaan] : undefined,

@@ -75,6 +75,9 @@ export async function GET(request: Request) {
         keluarMenit: true,
         menitTelat: true,
         faceStatus: true,
+        // Cabang penempatan yang tercatat saat absen hari itu (snapshot),
+        // bukan cabang penempatan karyawan saat ini.
+        cabang: { select: { nama: true } },
         cycles: { select: { masukMenit: true, keluarMenit: true } },
       },
     }),
@@ -147,6 +150,7 @@ export async function GET(request: Request) {
         menitKerja,
         menitTelat: a?.menitTelat ?? 0,
         faceStatus: bacaStatusWajah(a?.faceStatus),
+        cabang: a?.cabang?.nama ?? null,
       });
       perBulan.set(periode, daftar);
     }
