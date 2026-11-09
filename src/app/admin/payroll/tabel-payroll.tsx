@@ -25,7 +25,6 @@ const KOMPONEN = [
   ["tunjangan", "Tunjangan"],
   ["potonganTelat", "Potongan"],
   ["kasbon", "Kasbon"],
-  ["insentif", "Insentif"],
 ] as const;
 
 /** Form payroll per karyawan; semua angka tersimpan sekaligus per baris. */
@@ -74,6 +73,7 @@ export function TabelPayroll({
               ))}
               <th className="p-3 text-right font-medium">Telat rekap</th>
               <th className="p-3 text-right font-medium">Kasbon disetujui (sisa)</th>
+              <th className="p-3 text-right font-medium">Insentif</th>
               <th className="p-3 text-right font-medium">Diterima</th>
               <th className="p-3 font-medium">Aksi</th>
             </tr>
@@ -93,11 +93,13 @@ export function TabelPayroll({
         </table>
       </div>
       <p className="text-xs text-muted">
-        Nilai disimpan dalam rupiah. Gaji diterima = gaji pokok + tunjangan -
-        potongan - kasbon. Potongan telat tetap diisi manual karena tidak ada
-        tarif rupiah per menit telat di sistem; kolom Telat rekap hanya acuan.
-        Tombol &quot;Isi kasbon dari pengajuan&quot; hanya mengisi kolom, nilai
-        baru tersimpan setelah tombol Simpan ditekan.
+        Nilai disimpan dalam rupiah. Gaji diterima = gaji pokok + tunjangan +
+        insentif - potongan - kasbon. Insentif berasal dari sinkron inox.my.id
+        (menu Insentif) dan tidak bisa diubah di sini. Potongan telat tetap
+        diisi manual karena tidak ada tarif rupiah per menit telat di sistem;
+        kolom Telat rekap hanya acuan. Tombol &quot;Isi kasbon dari
+        pengajuan&quot; hanya mengisi kolom, nilai baru tersimpan setelah
+        tombol Simpan ditekan.
       </p>
     </div>
   );
@@ -117,7 +119,6 @@ function Baris({
     tunjangan: String(awal.tunjangan),
     potonganTelat: String(awal.potonganTelat),
     kasbon: String(awal.kasbon),
-    insentif: String(awal.insentif),
   });
   const [menunggu, mulai] = useTransition();
 
@@ -126,7 +127,8 @@ function Baris({
     tunjangan: Number(nilai.tunjangan) || 0,
     potonganTelat: Number(nilai.potonganTelat) || 0,
     kasbon: Number(nilai.kasbon) || 0,
-    insentif: Number(nilai.insentif) || 0,
+    // Insentif dibaca (read-only) dari tabel Insentif, bukan dari form.
+    insentif: awal.insentif,
   };
   const diterima = takeHomePay(angka);
   const peringatan = melebihiPendapatan(angka);
@@ -171,6 +173,10 @@ function Baris({
       <td className="p-3 text-right tabular-nums">
         {formatRupiah(awal.kasbonDisetujuiSisa)}
         <span className="block text-xs font-normal text-muted">sisa disetujui</span>
+      </td>
+      <td className="p-3 text-right tabular-nums">
+        {formatRupiah(awal.insentif)}
+        <span className="block text-xs font-normal text-muted">dari sinkron iNOX</span>
       </td>
       <td className="p-3 text-right tabular-nums">
         <span className={peringatan ? "text-status-alpa" : "font-medium"}>

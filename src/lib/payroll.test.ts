@@ -76,6 +76,14 @@ describe("payrollSkema", () => {
     expect(galat({ periode: "2026-13" })).toMatch(/Periode tidak valid/);
     expect(galat({ periode: "Agustus" })).toMatch(/Periode tidak valid/);
   });
+
+  it("mengabaikan kunci insentif: sumbernya hanya tabel Insentif hasil sinkron", () => {
+    const h = payrollSkema.safeParse(form({ insentif: "999999" } as any));
+    expect(h.success).toBe(true);
+    if (h.success) {
+      expect("insentif" in h.data).toBe(false);
+    }
+  });
 });
 
 describe("takeHomePay", () => {

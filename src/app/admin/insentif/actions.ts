@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { jalankanSinkronInsentif } from "@/lib/insentif";
 import { wajibAkses } from "@/lib/session";
 import { periodeValid } from "@/lib/rekap";
 
@@ -11,7 +12,12 @@ export type HasilSinkronInsentif = {
   detail?: any;
 };
 
-/** Trigger sinkron insentif dari inox.my.id via API route internal. */
+/**
+ * Trigger sinkron insentif dari inox.my.id.
+ * Memanggil jalankanSinkronInsentif langsung (bukan fetch ke API route),
+ * karena cookie sesi tidak ikut terkirim pada fetch server-side dan
+ * route akan menjawab 401.
+ */
 export async function sinkronInsentif(
   periode: string,
 ): Promise<HasilSinkronInsentif> {
@@ -24,36 +30,18 @@ export async function sinkronInsentif(
     return { ok: false, pesan: "Periode tidak valid." };
   }
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://inoxabsensi.cloud";
-
   try {
-    const res = await fetch(`${baseUrl}/api/insentif/sync?periode=${periode}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
-    });
-
-    const json = await res.json();
-
-    if (!res.ok) {
-      return {
-        ok: false,
-        pesan: json?.error ?? "Sinkron gagal.",
-        detail: json,
-      };
-    }
-
+    const hasil = await jalankanSinkronInsentif(periode);
     revalidatePath("/admin/insentif");
     return {
       ok: true,
-      pesan: json?.pesan ?? "Sinkron selesai.",
-      detail: json,
+      pesan: hasil.pesan,
+      detail: hasil,
     };
   } catch (err: any) {
     return {
       ok: false,
-      pesan: err?.message ?? "Gagal memanggil API sinkron.",
+      pesan: err?.message ?? "Sinkron gagal.",
     };
   }
 }
@@ -66,11 +54,16 @@ export async function sinkronInsentifForm(
   await sinkronInsentif(periode);
 }
 
-/** Ambil semua insentif untuk periode (admin). */
+/** Ambil semua insentif untuk periode (admin). Admin cabang hanya tim cabangnya. */
 export async function ambilInsentifAdmin(periode: string) {
   const admin = await wajibAkses("insentif");
   return db.insentif.findMany({
-    where: { periode },
+    where: {
+      periode,
+      ...(admin.role === "admin_cabang" && admin.cabangId
+        ? { user: { cabangId: admin.cabangId } }
+        : {}),
+    },
     include: {
       user: { select: { id: true, name: true, username: true, cabang: { select: { nama: true } } } },
     },

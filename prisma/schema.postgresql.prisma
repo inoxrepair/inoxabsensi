@@ -213,7 +213,6 @@ model Payroll {
   tunjangan     Int @default(0)
   potonganTelat Int @default(0)
   kasbon        Int @default(0)
-  insentif      Int @default(0)
   catatan       String?
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())

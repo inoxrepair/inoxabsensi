@@ -305,8 +305,6 @@ model Payroll {
   tunjangan     Int @default(0)
   potonganTelat Int @default(0)
   kasbon        Int @default(0)
-  /// Insentif dari inox.my.id, diisi otomatis saat sinkron.
-  insentif      Int @default(0)
 
   catatan String?
 

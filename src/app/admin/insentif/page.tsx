@@ -203,6 +203,10 @@ export default async function AdminInsentifPage({
             (<code>service_staff</code> ↔ nama pengguna di iNox Absensi).
           </li>
           <li>
+            Nilai insentif di Payroll diambil dari tabel ini; sinkronisasi
+            adalah satu-satunya sumber nilai tersebut.
+          </li>
+          <li>
             Sinkronisasi tidak realtime; jalankan tombol di atas (atau cron)
             sebelum membuat rekap penggajian.
           </li>

@@ -73,6 +73,11 @@ build ulang image app, jalankan container, lalu cek health lokal
 Certbot / `.env` / database (volume `inox-postgres` tetap) — `.env`, Nginx,
 SSL, dan data tidak hilang saat update.
 
+> Sinkron insentif (sejak commit `748809f`) butuh `INOX_USERNAME` dan
+> `INOX_PASSWORD` di `.env` VPS (`/opt/inoxabsensi/.env`) — kredensial
+> login `inox.my.id`. Tanpa keduanya, tombol Sinkron menjawab error 500.
+> Isi sekali secara manual di VPS, jangan commit ke repo.
+
 Setelah itu cek dari luar:
 
 ```text

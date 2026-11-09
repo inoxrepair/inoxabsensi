@@ -44,7 +44,10 @@ export const payrollSkema = z.object({
   tunjangan: rupiah("Tunjangan"),
   potonganTelat: rupiah("Potongan"),
   kasbon: rupiah("Kasbon"),
-  insentif: rupiah("Insentif"),
+  // Insentif SENGAJA tidak ada di skema ini: satu-satunya sumber nilai
+  // insentif adalah tabel Insentif (hasil sinkron inox.my.id) yang dibaca
+  // halaman Payroll. Form payroll tidak boleh menulisnya, supaya tidak
+  // ada dua sumber kebenaran yang bisa berbeda.
 });
 
 export type DataPayroll = z.output<typeof payrollSkema>;

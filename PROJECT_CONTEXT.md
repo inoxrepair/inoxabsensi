@@ -321,12 +321,20 @@ Payroll:
   tombol "Isi kasbon dari pengajuan"; potongan telat tetap diisi manual
   karena tidak ada tarif rupiah per menit telat di sistem.
 - Disimpan per user dan periode.
-- THP = gaji pokok + tunjangan - potongan - kasbon.
-- BELUM ADA kolom insentif (per 9 Nov 2026). Integrasi insentif dari
-  Laporan Insentif `inox.my.id` masih tahap investigasi: laporan itu
-  per baris transaksi, tanpa API resmi, dan pencocokan karyawan hanya
-  lewat nama display — jangan mengarang endpoint atau kolom insentif
-  sebelum verifikasi itu selesai.
+- THP = gaji pokok + tunjangan + insentif - potongan - kasbon.
+- Insentif (sejak commit `748809f`, diperbaiki setelahnya): data diambil
+  dari Laporan Insentif `inox.my.id` lewat endpoint AJAX
+  `GET /reports/incentive-line-orders` (login sesi + CSRF, tanpa API
+  resmi) dan disimpan ke tabel `Insentif` (satu baris per karyawan per
+  periode). Sinkron manual lewat tombol di menu Admin -> Insentif atau
+  `POST /api/insentif/sync` (hanya super_admin; butuh env
+  `INOX_USERNAME` / `INOX_PASSWORD` di server). Pencocokan karyawan
+  hanya lewat nama (dinormalisasi: huruf kecil, tanpa spasi/simbol,
+  exact saja — tanpa fallback contains); nama yang tidak cocok masuk
+  daftar `tidakDicocokkan` di hasil sinkron untuk ditinjau manual.
+  Tabel `Insentif` adalah satu-satunya sumber nilai insentif di Payroll:
+  kolom insentif tampil read-only di Payroll dan tidak bisa diubah di
+  sana. Admin cabang hanya melihat insentif tim cabangnya.
 
 ## Log Absensi
 
