@@ -3,7 +3,8 @@ import { formatRupiah } from "@/lib/format";
 import { labelPeriode, periodeTerakhir, periodeValid } from "@/lib/rekap";
 import { wajibAkses } from "@/lib/session";
 import { tanggalLokal } from "@/lib/waktu";
-import { ambilInsentifAdmin, sinkronInsentifForm } from "./actions";
+import { ambilInsentifAdmin } from "./actions";
+import { TombolSinkron } from "./tombol-sinkron";
 
 export const dynamic = "force-dynamic";
 
@@ -49,23 +50,7 @@ export default async function AdminInsentifPage({
       <PageHeader
         title="Insentif"
         description={deskripsi}
-        action={
-          superAdmin && (
-            <form action={sinkronInsentifForm} className="flex gap-2">
-              <input
-                type="hidden"
-                name="periode"
-                defaultValue={periode}
-              />
-              <button
-                type="submit"
-                className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-ink/90 transition"
-              >
-                Sinkron Insentif dari inox.my.id
-              </button>
-            </form>
-          )
-        }
+        action={superAdmin && <TombolSinkron periode={periode} />}
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

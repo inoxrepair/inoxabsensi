@@ -46,12 +46,13 @@ export async function sinkronInsentif(
   }
 }
 
-/** Wrapper untuk <form action> — ambil periode dari FormData. */
+/** Wrapper untuk <form action> — ambil periode dari FormData, kembalikan hasil sinkron supaya halaman bisa menampilkannya. */
 export async function sinkronInsentifForm(
+  _prev: HasilSinkronInsentif | undefined,
   formData: FormData,
-): Promise<void> {
+): Promise<HasilSinkronInsentif> {
   const periode = formData.get("periode") as string;
-  await sinkronInsentif(periode);
+  return sinkronInsentif(periode);
 }
 
 /** Ambil semua insentif untuk periode (admin). Admin cabang hanya tim cabangnya. */
