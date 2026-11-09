@@ -42,3 +42,80 @@ export async function bacaVersiLogo(): Promise<string | null> {
     return null;
   }
 }
+
+/** Kunci siklus gajian di tabel Pengaturan. */
+export const KUNCI_SIKLUS_GAJIAN_AWAL = "siklus_gajian_awal";
+export const KUNCI_SIKLUS_GAJIAN_AKHIR = "siklus_gajian_akhir";
+
+/** Default siklus gajian: 28 bulan sebelumnya s.d. 27 bulan periode. */
+export const SIKLUS_GAJIAN_AWAL_DEFAULT = 28;
+export const SIKLUS_GAJIAN_AKHIR_DEFAULT = 27;
+
+export type SiklusGajian = { awal: number; akhir: number };
+
+function bacaTanggal(nilai: string | undefined, cadangan: number): number {
+  const n = Number(nilai);
+  return Number.isInteger(n) && n >= 1 && n <= 31 ? n : cadangan;
+}
+
+/**
+ * Baca siklus gajian dari tabel Pengaturan. Nilai yang belum diatur atau
+ * tidak sah memakai default 28–27.
+ *
+ * Seperti bacaLogoAplikasi: lewat SQL mentah supaya tetap jalan walau
+ * delegate Prisma belum di-generate ulang.
+ */
+export async function ambilSiklusGajian(): Promise<SiklusGajian> {
+  try {
+    const rows = await db.$queryRaw<{ kunci: string; nilai: string }[]>`
+      SELECT "kunci", "nilai" FROM "Pengaturan"
+      WHERE "kunci" IN (${KUNCI_SIKLUS_GAJIAN_AWAL}, ${KUNCI_SIKLUS_GAJIAN_AKHIR})
+    `;
+    const peta = new Map(rows.map((r) => [r.kunci, r.nilai]));
+    return {
+      awal: bacaTanggal(
+        peta.get(KUNCI_SIKLUS_GAJIAN_AWAL),
+        SIKLUS_GAJIAN_AWAL_DEFAULT,
+      ),
+      akhir: bacaTanggal(
+        peta.get(KUNCI_SIKLUS_GAJIAN_AKHIR),
+        SIKLUS_GAJIAN_AKHIR_DEFAULT,
+      ),
+    };
+  } catch {
+    return {
+      awal: SIKLUS_GAJIAN_AWAL_DEFAULT,
+      akhir: SIKLUS_GAJIAN_AKHIR_DEFAULT,
+    };
+  }
+}
+
+/**
+ * Simpan siklus gajian ke tabel Pengaturan (tanggal 1–31). Berlaku untuk
+ * sinkron berikutnya; sinkron ulang periode berjalan bila perlu.
+ */
+export async function simpanSiklusGajian(
+  awal: number,
+  akhir: number,
+): Promise<void> {
+  if (
+    !Number.isInteger(awal) ||
+    !Number.isInteger(akhir) ||
+    awal < 1 ||
+    awal > 31 ||
+    akhir < 1 ||
+    akhir > 31
+  ) {
+    throw new Error("Tanggal siklus gajian harus 1–31.");
+  }
+  await db.$executeRaw`
+    INSERT INTO "Pengaturan" ("kunci", "nilai", "updatedAt")
+    VALUES (${KUNCI_SIKLUS_GAJIAN_AWAL}, ${String(awal)}, CURRENT_TIMESTAMP)
+    ON CONFLICT ("kunci") DO UPDATE SET "nilai" = EXCLUDED."nilai", "updatedAt" = CURRENT_TIMESTAMP
+  `;
+  await db.$executeRaw`
+    INSERT INTO "Pengaturan" ("kunci", "nilai", "updatedAt")
+    VALUES (${KUNCI_SIKLUS_GAJIAN_AKHIR}, ${String(akhir)}, CURRENT_TIMESTAMP)
+    ON CONFLICT ("kunci") DO UPDATE SET "nilai" = EXCLUDED."nilai", "updatedAt" = CURRENT_TIMESTAMP
+  `;
+}

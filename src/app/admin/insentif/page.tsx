@@ -1,9 +1,11 @@
 import { PageHeader, StatCard } from "@/components/ui/primitives";
 import { formatRupiah, formatTanggal } from "@/lib/format";
+import { ambilSiklusGajian } from "@/lib/pengaturan";
 import { labelPeriode, periodeTerakhir, periodeValid, rentangPeriodeGajian } from "@/lib/rekap";
 import { wajibAkses } from "@/lib/session";
 import { tanggalLokal } from "@/lib/waktu";
 import { ambilInsentifAdmin, ambilPemetaanInsentif, ambilPenggunaAktif, hapusPemetaanInsentif } from "./actions";
+import { FormSiklusGajian } from "./form-siklus-gajian";
 import { TombolSinkron } from "./tombol-sinkron";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +21,8 @@ export default async function AdminInsentifPage({
   const periode = q.periode && periodeValid(q.periode) ? q.periode : bulanIni;
 
   const data = await ambilInsentifAdmin(periode);
-  const rentang = rentangPeriodeGajian(periode);
+  const siklus = await ambilSiklusGajian();
+  const rentang = rentangPeriodeGajian(periode, siklus.awal, siklus.akhir);
 
   const superAdmin = admin.role === "super_admin";
   const pemetaan = superAdmin ? await ambilPemetaanInsentif() : [];
@@ -213,6 +216,22 @@ export default async function AdminInsentifPage({
           </li>
         </ul>
       </div>
+
+      {superAdmin ? (
+        <div className="mt-8 rounded-xl border border-line bg-paper p-4">
+          <h2 className="text-sm font-semibold mb-1">Siklus Gajian</h2>
+          <p className="text-sm text-muted mb-3">
+            Periode insentif dan rekap telat Payroll mengikuti tanggal di
+            bawah ini: tanggal awal bulan sebelumnya s.d. tanggal akhir
+            bulan periode (saat ini {formatTanggal(rentang.dari)}–
+            {formatTanggal(rentang.sampai)}). Ubah bila siklus gajian
+            berubah; berlaku untuk sinkron berikutnya tanpa deploy ulang.
+            Bila tanggal tidak muat di bulan itu (mis. 31 di Februari),
+            dipakai hari terakhir bulan itu.
+          </p>
+          <FormSiklusGajian awal={siklus.awal} akhir={siklus.akhir} />
+        </div>
+      ) : null}
 
       {superAdmin ? (
         <div className="mt-8 rounded-xl border border-line bg-paper p-4">

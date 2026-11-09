@@ -434,6 +434,30 @@ describe("rentangPeriodeGajian", () => {
       sampai: "2028-02-27",
     });
   });
+
+  it("memakai tanggal awal/akhir kustom", () => {
+    expect(rentangPeriodeGajian("2026-11", 25, 24)).toEqual({
+      dari: "2026-10-25",
+      sampai: "2026-11-24",
+    });
+    expect(rentangPeriodeGajian("2026-11", 1, 30)).toEqual({
+      dari: "2026-10-01",
+      sampai: "2026-11-30",
+    });
+  });
+
+  it("menjepit tanggal ke hari terakhir bulan itu", () => {
+    // Awal 31 di Februari (28 hari) -> 28 Februari.
+    expect(rentangPeriodeGajian("2026-03", 31, 27)).toEqual({
+      dari: "2026-02-28",
+      sampai: "2026-03-27",
+    });
+    // Akhir 31 di Februari kabisat -> 29 Februari.
+    expect(rentangPeriodeGajian("2028-02", 28, 31)).toEqual({
+      dari: "2028-01-28",
+      sampai: "2028-02-29",
+    });
+  });
 });
 
 describe("bacaRentang", () => {

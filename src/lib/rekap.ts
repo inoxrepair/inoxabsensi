@@ -349,16 +349,30 @@ export function rentangPeriode(periode: string): Rentang {
 }
 
 /**
- * Rentang periode penggajian iNOX: 28 bulan sebelumnya s.d. 27 bulan
- * periode. Mis. periode "2026-11" = 28/10/2026–27/11/2026. Dipakai
- * sinkron insentif dan rekap telat di Payroll. Rekap absensi tetap
- * memakai bulan kalender (rentangPeriode) — itu laporan kehadiran,
- * bukan penggajian.
+ * Rentang periode penggajian iNOX: tanggal `awal` bulan sebelumnya s.d.
+ * tanggal `akhir` bulan periode. Default 28–27 (mis. periode "2026-11"
+ * = 28/10/2026–27/11/2026); tanggal bisa diubah admin lewat Pengaturan
+ * Siklus Gajian di halaman Insentif dan disimpan di tabel Pengaturan.
+ * Tanggal yang melebihi jumlah hari bulan itu dijepit ke hari terakhir
+ * bulan itu (mis. awal 31 di Februari -> 28/29). Dipakai sinkron
+ * insentif dan rekap telat di Payroll. Rekap absensi tetap memakai
+ * bulan kalender (rentangPeriode) — itu laporan kehadiran, bukan
+ * penggajian.
  */
-export function rentangPeriodeGajian(periode: string): Rentang {
+export function rentangPeriodeGajian(
+  periode: string,
+  awal = 28,
+  akhir = 27,
+): Rentang {
   const [y, m] = periode.split("-").map(Number);
-  const dari = new Date(Date.UTC(y, m - 2, 28)).toISOString().slice(0, 10);
-  const sampai = new Date(Date.UTC(y, m - 1, 27)).toISOString().slice(0, 10);
+  const hariBulanLalu = new Date(Date.UTC(y, m - 1, 0)).getUTCDate();
+  const hariBulanIni = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const dariHari = Math.min(Math.max(awal, 1), hariBulanLalu);
+  const sampaiHari = Math.min(Math.max(akhir, 1), hariBulanIni);
+  const dari = new Date(Date.UTC(y, m - 2, dariHari)).toISOString().slice(0, 10);
+  const sampai = new Date(Date.UTC(y, m - 1, sampaiHari))
+    .toISOString()
+    .slice(0, 10);
   return { dari, sampai };
 }
 

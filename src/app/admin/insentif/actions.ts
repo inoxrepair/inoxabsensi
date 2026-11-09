@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { jalankanSinkronInsentif, normalisasiNama } from "@/lib/insentif";
+import { simpanSiklusGajian } from "@/lib/pengaturan";
 import { wajibAkses } from "@/lib/session";
 import { periodeValid } from "@/lib/rekap";
 
@@ -159,4 +160,47 @@ export async function hapusPemetaanInsentif(formData: FormData): Promise<void> {
   if (!id) return;
   await db.pemetaanInsentif.delete({ where: { id } }).catch(() => null);
   revalidatePath("/admin/insentif");
+}
+
+export type HasilSiklusGajian = {
+  ok: boolean;
+  pesan: string;
+};
+
+/**
+ * Ubah tanggal siklus gajian (super_admin). Berlaku untuk sinkron dan
+ * rekap telat Payroll berikutnya; sinkron ulang periode berjalan bila
+ * angkanya perlu dihitung ulang dengan tanggal baru.
+ */
+export async function simpanSiklusGajianForm(
+  _prev: HasilSiklusGajian | undefined,
+  formData: FormData,
+): Promise<HasilSiklusGajian> {
+  const admin = await wajibAkses("insentif");
+  if (admin.role !== "super_admin") {
+    return { ok: false, pesan: "Hanya super_admin dapat mengubah siklus gajian." };
+  }
+  const awal = Number(formData.get("awal"));
+  const akhir = Number(formData.get("akhir"));
+  if (
+    !Number.isInteger(awal) ||
+    !Number.isInteger(akhir) ||
+    awal < 1 ||
+    awal > 31 ||
+    akhir < 1 ||
+    akhir > 31
+  ) {
+    return { ok: false, pesan: "Tanggal awal dan akhir harus angka 1–31." };
+  }
+  try {
+    await simpanSiklusGajian(awal, akhir);
+  } catch (err: any) {
+    return { ok: false, pesan: err?.message ?? "Gagal menyimpan siklus gajian." };
+  }
+  revalidatePath("/admin/insentif");
+  revalidatePath("/admin/payroll");
+  return {
+    ok: true,
+    pesan: `Siklus gajian diubah ke ${awal}–${akhir}. Berlaku untuk sinkron berikutnya; sinkron ulang periode berjalan bila perlu.`,
+  };
 }

@@ -12,6 +12,8 @@
  */
 
 import { db } from "@/lib/db";
+import { formatTanggal } from "@/lib/format";
+import { ambilSiklusGajian } from "@/lib/pengaturan";
 import { periodeValid, rentangPeriodeGajian } from "@/lib/rekap";
 
 /** Normalisasi nama untuk pencocokan: huruf kecil, buang semua spasi/simbol. */
@@ -281,8 +283,13 @@ export async function jalankanSinkronInsentif(
   const csrfMatch = reportHtml.match(/name="csrf-token"\s+content="([^"]+)"/);
   const csrfToken = csrfMatch ? csrfMatch[1] : "";
 
-  // 3. Ambil data insentif untuk periode ini (siklus gajian 28–27)
-  const { dari, sampai } = rentangPeriodeGajian(periode);
+  // 3. Ambil data insentif untuk periode ini (siklus gajian yang diatur admin)
+  const siklus = await ambilSiklusGajian();
+  const { dari, sampai } = rentangPeriodeGajian(
+    periode,
+    siklus.awal,
+    siklus.akhir,
+  );
   const data = await ambilDataInsentifInox({
     cookieJar,
     csrfToken,
@@ -353,7 +360,7 @@ export async function jalankanSinkronInsentif(
     totalUserDisinkron: hasil.length,
     totalTransaksi: data.length,
     tidakDicocokkan: Array.from(tidakDicocokkan),
-    pesan: `Sinkron selesai: ${hasil.length} karyawan, ${data.length} transaksi.`,
+    pesan: `Sinkron selesai: ${hasil.length} karyawan, ${data.length} transaksi (${formatTanggal(dari)}–${formatTanggal(sampai)}).`,
   };
 }
 
