@@ -1,6 +1,6 @@
 import { PageHeader, StatCard } from "@/components/ui/primitives";
-import { formatRupiah } from "@/lib/format";
-import { labelPeriode, periodeTerakhir, periodeValid } from "@/lib/rekap";
+import { formatRupiah, formatTanggal } from "@/lib/format";
+import { labelPeriode, periodeTerakhir, periodeValid, rentangPeriodeGajian } from "@/lib/rekap";
 import { wajibAkses } from "@/lib/session";
 import { tanggalLokal } from "@/lib/waktu";
 import { ambilInsentifAdmin, ambilPemetaanInsentif, ambilPenggunaAktif, hapusPemetaanInsentif } from "./actions";
@@ -19,6 +19,7 @@ export default async function AdminInsentifPage({
   const periode = q.periode && periodeValid(q.periode) ? q.periode : bulanIni;
 
   const data = await ambilInsentifAdmin(periode);
+  const rentang = rentangPeriodeGajian(periode);
 
   const superAdmin = admin.role === "super_admin";
   const pemetaan = superAdmin ? await ambilPemetaanInsentif() : [];
@@ -69,6 +70,7 @@ export default async function AdminInsentifPage({
         <StatCard
           label="Periode"
           value={labelPeriode(periode)}
+          hint={`${formatTanggal(rentang.dari)} – ${formatTanggal(rentang.sampai)}`}
         />
       </div>
 
@@ -184,6 +186,11 @@ export default async function AdminInsentifPage({
           <li>
             Data diambil dari endpoint <code>reports/incentive-line-orders</code>
             di inox.my.id (read-only, tidak mengubah data di sana).
+          </li>
+          <li>
+            Periode mengikuti siklus gajian: 28 bulan sebelumnya s.d. 27
+            bulan periode (mis. November 2026 = 28/10/2026–27/11/2026).
+            Transaksi 28–31 bulan berjalan masuk periode berikutnya.
           </li>
           <li>
             Pencocokan karyawan dilakukan berdasarkan nama

@@ -10,6 +10,7 @@ import {
   persenKehadiran,
   rekapPerKaryawan,
   rentangPeriode,
+  rentangPeriodeGajian,
   shiftFull,
   SIMBOL_HARI,
   SIMBOL_STATUS,
@@ -405,6 +406,33 @@ describe("rentangPeriode", () => {
     expect(rentangPeriode("2026-09").sampai).toBe("2026-09-30");
     expect(rentangPeriode("2028-02").sampai).toBe("2028-02-29");
     expect(rentangPeriode("2027-02").sampai).toBe("2027-02-28");
+  });
+});
+
+describe("rentangPeriodeGajian", () => {
+  it("28 bulan sebelumnya s.d. 27 bulan periode", () => {
+    expect(rentangPeriodeGajian("2026-11")).toEqual({
+      dari: "2026-10-28",
+      sampai: "2026-11-27",
+    });
+    expect(rentangPeriodeGajian("2026-02")).toEqual({
+      dari: "2026-01-28",
+      sampai: "2026-02-27",
+    });
+  });
+
+  it("melewati pergantian tahun", () => {
+    expect(rentangPeriodeGajian("2026-01")).toEqual({
+      dari: "2025-12-28",
+      sampai: "2026-01-27",
+    });
+  });
+
+  it("Februari kabisat tetap 28 Januari s.d. 27 Februari", () => {
+    expect(rentangPeriodeGajian("2028-02")).toEqual({
+      dari: "2028-01-28",
+      sampai: "2028-02-27",
+    });
   });
 });
 

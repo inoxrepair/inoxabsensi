@@ -12,7 +12,7 @@
  */
 
 import { db } from "@/lib/db";
-import { periodeValid } from "@/lib/rekap";
+import { periodeValid, rentangPeriodeGajian } from "@/lib/rekap";
 
 /** Normalisasi nama untuk pencocokan: huruf kecil, buang semua spasi/simbol. */
 export function normalisasiNama(nama: string): string {
@@ -236,14 +236,6 @@ async function loginInox(username: string, password: string): Promise<string> {
   return setCookieAfterLogin || "";
 }
 
-/** Ambil rentang tanggal untuk periode "yyyy-mm". */
-function rentangTanggalPeriode(periode: string): { dari: string; sampai: string } {
-  const [tahun, bulan] = periode.split("-").map(Number);
-  const awal = new Date(Date.UTC(tahun, bulan - 1, 1)).toISOString().slice(0, 10);
-  const akhir = new Date(Date.UTC(tahun, bulan, 0)).toISOString().slice(0, 10);
-  return { dari: awal, sampai: akhir };
-}
-
 export type HasilSinkronInsentif = {
   ok: true;
   periode: string;
@@ -289,8 +281,8 @@ export async function jalankanSinkronInsentif(
   const csrfMatch = reportHtml.match(/name="csrf-token"\s+content="([^"]+)"/);
   const csrfToken = csrfMatch ? csrfMatch[1] : "";
 
-  // 3. Ambil data insentif untuk periode ini
-  const { dari, sampai } = rentangTanggalPeriode(periode);
+  // 3. Ambil data insentif untuk periode ini (siklus gajian 28–27)
+  const { dari, sampai } = rentangPeriodeGajian(periode);
   const data = await ambilDataInsentifInox({
     cookieJar,
     csrfToken,

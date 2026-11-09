@@ -349,6 +349,20 @@ export function rentangPeriode(periode: string): Rentang {
 }
 
 /**
+ * Rentang periode penggajian iNOX: 28 bulan sebelumnya s.d. 27 bulan
+ * periode. Mis. periode "2026-11" = 28/10/2026–27/11/2026. Dipakai
+ * sinkron insentif dan rekap telat di Payroll. Rekap absensi tetap
+ * memakai bulan kalender (rentangPeriode) — itu laporan kehadiran,
+ * bukan penggajian.
+ */
+export function rentangPeriodeGajian(periode: string): Rentang {
+  const [y, m] = periode.split("-").map(Number);
+  const dari = new Date(Date.UTC(y, m - 2, 28)).toISOString().slice(0, 10);
+  const sampai = new Date(Date.UTC(y, m - 1, 27)).toISOString().slice(0, 10);
+  return { dari, sampai };
+}
+
+/**
  * Tentukan rentang aktif dari query. Prioritas: rentang kustom bila kedua
  * tanggal sah, lalu periode bulanan, lalu bulan berjalan. Tanggal yang
  * terbalik ditukar otomatis agar tidak menghasilkan hasil kosong.
