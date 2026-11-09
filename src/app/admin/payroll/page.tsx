@@ -2,6 +2,7 @@ import { PageHeader, StatCard } from "@/components/ui/primitives";
 import { db } from "@/lib/db";
 import { formatRupiah } from "@/lib/format";
 import { totalPayroll } from "@/lib/payroll";
+import { ambilSemuaInsentifPeriode } from "@/lib/insentif";
 import { sisaKasbon } from "@/lib/kasbon";
 import {
   labelPeriode,
@@ -34,7 +35,7 @@ export default async function AdminPayrollPage({
   const filterCabang = cabangId ? { cabangId } : {};
 
   const rentang = rentangPeriode(periode);
-  const [karyawan, payroll, cabang, absensiPeriode, kasbonPeriode] =
+  const [karyawan, payroll, cabang, absensiPeriode, kasbonPeriode, insentifPeriode] =
     await Promise.all([
       db.user.findMany({
         where: { aktif: true, role: { not: "super_admin" }, ...filterCabang },
@@ -65,6 +66,8 @@ export default async function AdminPayrollPage({
         },
         select: { userId: true, jumlah: true, jumlahTerbayar: true },
       }),
+      // Insentif dari inox.my.id (periode ini).
+      ambilSemuaInsentifPeriode(periode),
     ]);
 
   const peta = new Map(payroll.map((p) => [p.userId, p]));
@@ -79,6 +82,7 @@ export default async function AdminPayrollPage({
       (petaKasbonSisa.get(k.userId) ?? 0) + sisaKasbon(k),
     );
   }
+  const petaInsentif = new Map(insentifPeriode.map((i) => [i.userId, i.jumlah]));
   const baris: BarisPayroll[] = karyawan.map((k) => {
     const p = peta.get(k.id);
     return {
@@ -89,6 +93,7 @@ export default async function AdminPayrollPage({
       tunjangan: p?.tunjangan ?? 0,
       potonganTelat: p?.potonganTelat ?? 0,
       kasbon: p?.kasbon ?? 0,
+      insentif: petaInsentif.get(k.id) ?? 0,
       menitTelatRekap: petaTelat.get(k.id) ?? 0,
       kasbonDisetujuiSisa: petaKasbonSisa.get(k.id) ?? 0,
     };
@@ -115,6 +120,7 @@ export default async function AdminPayrollPage({
           label="Potongan / Kasbon"
           value={formatRupiah(total.potonganTelat + total.kasbon)}
         />
+        <StatCard label="Insentif" value={formatRupiah(total.insentif)} />
       </div>
 
       <div className="mt-6">

@@ -43,6 +43,8 @@ model User {
   cabangId String?
   cabang   Cabang? @relation(fields: [cabangId], references: [id], onDelete: SetNull)
 
+  insentif Insentif[]
+
   accounts Account[]
   sessions Session[]
   jadwal   Jadwal[]
@@ -303,6 +305,8 @@ model Payroll {
   tunjangan     Int @default(0)
   potonganTelat Int @default(0)
   kasbon        Int @default(0)
+  /// Insentif dari inox.my.id, diisi otomatis saat sinkron.
+  insentif      Int @default(0)
 
   catatan String?
 
@@ -348,6 +352,29 @@ model Pengaturan {
   kunci     String   @id
   nilai     String
   updatedAt DateTime @updatedAt
+}
+
+/// Insentif karyawan dari laporan inox.my.id. Satu baris per karyawan per
+/// periode "yyyy-mm". Dihasilkan dari sinkronisasi endpoint
+/// /reports/incentive-line-orders di inox.my.id.
+model Insentif {
+  id        String @id @default(cuid())
+  userId    String
+  periode   String
+  /// Total nominal insentif dalam rupiah (integer) untuk periode ini.
+  jumlah    Int
+  /// Jumlah baris transaksi yang dijumlahkan.
+  jumlahTransaksi Int @default(0)
+  /// Tanggal lokal "yyyy-mm-dd" pertama dan terakhir data yang disinkron.
+  tanggalAwal   String?
+  tanggalAkhir  String?
+  sinkronPada   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, periode])
+  @@index([periode])
+  @@index([userId, periode])
 }
 
 /// Snapshot sebelum perubahan jadwal; dipakai untuk membatalkan aksi terakhir.

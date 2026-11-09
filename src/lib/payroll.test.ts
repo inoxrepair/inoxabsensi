@@ -86,6 +86,7 @@ describe("takeHomePay", () => {
         tunjangan: 400_000,
         potonganTelat: 50_000,
         kasbon: 500_000,
+        insentif: 0,
       }),
     ).toBe(3_350_000);
   });
@@ -97,6 +98,7 @@ describe("takeHomePay", () => {
         tunjangan: 0,
         potonganTelat: 0,
         kasbon: 500_000,
+        insentif: 0,
       }),
     ).toBe(-400_000);
   });
@@ -108,6 +110,7 @@ describe("takeHomePay", () => {
         tunjangan: 0,
         potonganTelat: 0,
         kasbon: 0,
+        insentif: 0,
       }),
     ).toBe(0);
   });
@@ -121,6 +124,7 @@ describe("melebihiPendapatan", () => {
         tunjangan: 0,
         potonganTelat: 600_000,
         kasbon: 600_000,
+        insentif: 0,
       }),
     ).toBe(true);
   });
@@ -132,6 +136,7 @@ describe("melebihiPendapatan", () => {
         tunjangan: 0,
         potonganTelat: 500_000,
         kasbon: 500_000,
+        insentif: 0,
       }),
     ).toBe(false);
   });
@@ -140,12 +145,13 @@ describe("melebihiPendapatan", () => {
 describe("totalPayroll", () => {
   it("menjumlahkan seluruh komponen dan gaji diterima", () => {
     const t = totalPayroll([
-      { gajiPokok: 1_000_000, tunjangan: 100_000, potonganTelat: 0, kasbon: 0 },
+      { gajiPokok: 1_000_000, tunjangan: 100_000, potonganTelat: 0, kasbon: 0, insentif: 0 },
       {
         gajiPokok: 2_000_000,
         tunjangan: 200_000,
         potonganTelat: 50_000,
         kasbon: 100_000,
+        insentif: 0,
       },
     ]);
     expect(t.gajiPokok).toBe(3_000_000);
@@ -161,6 +167,7 @@ describe("totalPayroll", () => {
       tunjangan: 0,
       potonganTelat: 0,
       kasbon: 0,
+      insentif: 0,
       diterima: 0,
     });
   });

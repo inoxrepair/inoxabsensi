@@ -18,6 +18,7 @@ export const ADMIN_NAV: NavItem[] = [
   { href: "/admin/rekap", label: "Rekap Absensi", menu: "rekap" },
   { href: "/admin/kasbon", label: "Kasbon", menu: "kasbon" },
   { href: "/admin/payroll", label: "Payroll", menu: "payroll" },
+  { href: "/admin/insentif", label: "Insentif", menu: "insentif" },
   { href: "/admin/pengaturan", label: "Pengaturan", menu: "pengaturan" },
 ];
 

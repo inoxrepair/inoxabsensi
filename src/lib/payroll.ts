@@ -14,6 +14,7 @@ export const RUPIAH_MAKS = 1_000_000_000;
 function rupiah(label: string) {
   return z.preprocess(
     (v) => {
+      if (v === undefined || v === null) return 0;
       if (typeof v !== "string") return v;
       const teks = v.trim();
       if (teks === "") return 0;
@@ -43,6 +44,7 @@ export const payrollSkema = z.object({
   tunjangan: rupiah("Tunjangan"),
   potonganTelat: rupiah("Potongan"),
   kasbon: rupiah("Kasbon"),
+  insentif: rupiah("Insentif"),
 });
 
 export type DataPayroll = z.output<typeof payrollSkema>;
@@ -52,11 +54,12 @@ export type KomponenGaji = {
   tunjangan: number;
   potonganTelat: number;
   kasbon: number;
+  insentif: number;
 };
 
-/** Gaji bersih yang diterima karyawan. */
+/** Gaji bersih yang diterima karyawan (termasuk insentif). */
 export function takeHomePay(k: KomponenGaji): number {
-  return k.gajiPokok + k.tunjangan - k.potonganTelat - k.kasbon;
+  return k.gajiPokok + k.tunjangan + k.insentif - k.potonganTelat - k.kasbon;
 }
 
 /**
@@ -73,6 +76,7 @@ export function totalPayroll(baris: KomponenGaji[]) {
     tunjangan: number;
     potonganTelat: number;
     kasbon: number;
+    insentif: number;
     diterima: number;
   }>(
     (a, b) => ({
@@ -80,8 +84,9 @@ export function totalPayroll(baris: KomponenGaji[]) {
       tunjangan: a.tunjangan + b.tunjangan,
       potonganTelat: a.potonganTelat + b.potonganTelat,
       kasbon: a.kasbon + b.kasbon,
+      insentif: a.insentif + b.insentif,
       diterima: a.diterima + takeHomePay(b),
     }),
-    { gajiPokok: 0, tunjangan: 0, potonganTelat: 0, kasbon: 0, diterima: 0 },
+    { gajiPokok: 0, tunjangan: 0, potonganTelat: 0, kasbon: 0, insentif: 0, diterima: 0 },
   );
 }

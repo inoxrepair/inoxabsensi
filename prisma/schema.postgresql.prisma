@@ -26,6 +26,7 @@ model User {
   faceDidaftarkan String?
   cabangId      String?
   cabang        Cabang?   @relation(fields: [cabangId], references: [id], onDelete: SetNull)
+  insentif      Insentif[]
   accounts      Account[]
   sessions      Session[]
   jadwal        Jadwal[]
@@ -212,6 +213,7 @@ model Payroll {
   tunjangan     Int @default(0)
   potonganTelat Int @default(0)
   kasbon        Int @default(0)
+  insentif      Int @default(0)
   catatan       String?
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -244,4 +246,24 @@ model Pengaturan {
   kunci     String   @id
   nilai     String
   updatedAt DateTime @updatedAt
+}
+
+/// Insentif karyawan dari laporan inox.my.id. Satu baris per karyawan per
+/// periode "yyyy-mm". Dihasilkan dari sinkronisasi endpoint
+/// /reports/incentive-line-orders di inox.my.id.
+model Insentif {
+  id        String @id @default(cuid())
+  userId    String
+  periode   String
+  jumlah    Int
+  jumlahTransaksi Int @default(0)
+  tanggalAwal   String?
+  tanggalAkhir  String?
+  sinkronPada   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, periode])
+  @@index([periode])
+  @@index([userId, periode])
 }

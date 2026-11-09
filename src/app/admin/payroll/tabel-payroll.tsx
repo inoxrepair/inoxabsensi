@@ -13,6 +13,7 @@ export type BarisPayroll = {
   tunjangan: number;
   potonganTelat: number;
   kasbon: number;
+  insentif: number;
   /** Acuan saja, tidak otomatis jadi potongan (tidak ada tarif di sistem). */
   menitTelatRekap: number;
   /** Sisa kasbon disetujui periode ini (jumlah - terbayar). */
@@ -24,6 +25,7 @@ const KOMPONEN = [
   ["tunjangan", "Tunjangan"],
   ["potonganTelat", "Potongan"],
   ["kasbon", "Kasbon"],
+  ["insentif", "Insentif"],
 ] as const;
 
 /** Form payroll per karyawan; semua angka tersimpan sekaligus per baris. */
@@ -115,6 +117,7 @@ function Baris({
     tunjangan: String(awal.tunjangan),
     potonganTelat: String(awal.potonganTelat),
     kasbon: String(awal.kasbon),
+    insentif: String(awal.insentif),
   });
   const [menunggu, mulai] = useTransition();
 
@@ -123,6 +126,7 @@ function Baris({
     tunjangan: Number(nilai.tunjangan) || 0,
     potonganTelat: Number(nilai.potonganTelat) || 0,
     kasbon: Number(nilai.kasbon) || 0,
+    insentif: Number(nilai.insentif) || 0,
   };
   const diterima = takeHomePay(angka);
   const peringatan = melebihiPendapatan(angka);
