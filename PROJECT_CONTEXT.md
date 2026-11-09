@@ -326,15 +326,13 @@ Payroll:
   dari Laporan Insentif `inox.my.id` lewat endpoint AJAX
   `GET /reports/incentive-line-orders` (login sesi + CSRF, tanpa API
   resmi) dan disimpan ke tabel `Insentif` (satu baris per karyawan per
-  periode). Periode mengikuti siklus gajian: sinkron periode
-  "yyyy-mm" menarik transaksi tanggal awal bulan sebelumnya s.d.
-  tanggal akhir bulan periode (`rentangPeriodeGajian` di
-  `src/lib/rekap.ts`); rekap menit telat di halaman Payroll memakai
-  rentang yang sama. Tanggal awal/akhir TIDAK hardcode — default 28–27,
-  diubah admin lewat form Siklus Gajian di halaman Insentif dan disimpan
-  di tabel `Pengaturan` (kunci `siklus_gajian_awal` /
-  `siklus_gajian_akhir`); berlaku untuk sinkron berikutnya tanpa deploy
-  ulang. Sinkron manual lewat tombol di menu Admin -> Insentif atau
+  periode). Rentang transaksi yang disinkron dipilih di filter halaman
+  Insentif (Periode + Dari/Sampai, pola yang sama dengan filter Log
+  Absensi); bila tidak dipilih, dipakai siklus gajian default 28–27
+  (`rentangPeriodeGajian` di `src/lib/rekap.ts`: 28 bulan sebelumnya
+  s.d. 27 bulan periode). Ganti Periode di filter mengembalikan
+  Dari/Sampai ke siklus default bulan itu. Rekap menit telat di halaman
+  Payroll memakai siklus default yang sama. Sinkron manual lewat tombol di menu Admin -> Insentif atau
   `POST /api/insentif/sync` (hanya super_admin; butuh env
   `INOX_USERNAME` / `INOX_PASSWORD` di server — WAJIB didaftarkan juga
   di `environment:` service app pada file compose yang dipakai

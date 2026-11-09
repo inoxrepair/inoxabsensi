@@ -16,9 +16,13 @@ import { FormPemetaan } from "./form-pemetaan";
  */
 export function TombolSinkron({
   periode,
+  dari,
+  sampai,
   pengguna,
 }: {
   periode: string;
+  dari: string;
+  sampai: string;
   pengguna: Array<{ id: string; name: string }>;
 }) {
   const [hasil, kirim, sedangProses] = useActionState<
@@ -32,6 +36,8 @@ export function TombolSinkron({
     <div>
       <form action={kirim} className="flex gap-2">
         <input type="hidden" name="periode" defaultValue={periode} />
+        <input type="hidden" name="dari" defaultValue={dari} />
+        <input type="hidden" name="sampai" defaultValue={sampai} />
         <button
           type="submit"
           disabled={sedangProses}

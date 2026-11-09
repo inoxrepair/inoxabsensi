@@ -3,7 +3,6 @@ import { db } from "@/lib/db";
 import { formatRupiah, formatTanggal } from "@/lib/format";
 import { totalPayroll } from "@/lib/payroll";
 import { ambilSemuaInsentifPeriode } from "@/lib/insentif";
-import { ambilSiklusGajian } from "@/lib/pengaturan";
 import { sisaKasbon } from "@/lib/kasbon";
 import {
   labelPeriode,
@@ -35,8 +34,7 @@ export default async function AdminPayrollPage({
   const cabangId = superAdmin ? (q.cabang ?? "") : "";
   const filterCabang = cabangId ? { cabangId } : {};
 
-  const siklus = await ambilSiklusGajian();
-  const rentang = rentangPeriodeGajian(periode, siklus.awal, siklus.akhir);
+  const rentang = rentangPeriodeGajian(periode);
   const [karyawan, payroll, cabang, absensiPeriode, kasbonPeriode, insentifPeriode] =
     await Promise.all([
       db.user.findMany({

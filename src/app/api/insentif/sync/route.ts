@@ -34,13 +34,15 @@ export async function POST(req: Request): Promise<Response> {
 
   const { searchParams } = new URL(req.url);
   const periode = searchParams.get("periode") || new Date().toISOString().slice(0, 7); // yyyy-mm
+  const dari = searchParams.get("dari") || undefined;
+  const sampai = searchParams.get("sampai") || undefined;
 
   if (!periodeValid(periode)) {
     return NextResponse.json({ error: "Periode tidak valid." }, { status: 400 });
   }
 
   try {
-    const hasil = await jalankanSinkronInsentif(periode);
+    const hasil = await jalankanSinkronInsentif(periode, dari, sampai);
     return NextResponse.json(hasil);
   } catch (err: any) {
     console.error("Sinkron insentif gagal:", err);

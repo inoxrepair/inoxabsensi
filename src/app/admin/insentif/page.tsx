@@ -1,11 +1,10 @@
 import { PageHeader, StatCard } from "@/components/ui/primitives";
 import { formatRupiah, formatTanggal } from "@/lib/format";
-import { ambilSiklusGajian } from "@/lib/pengaturan";
-import { labelPeriode, periodeTerakhir, periodeValid, rentangPeriodeGajian } from "@/lib/rekap";
+import { labelPeriode, periodeTerakhir, periodeValid, rentangPeriodeGajian, tanggalValid } from "@/lib/rekap";
 import { wajibAkses } from "@/lib/session";
 import { tanggalLokal } from "@/lib/waktu";
 import { ambilInsentifAdmin, ambilPemetaanInsentif, ambilPenggunaAktif, hapusPemetaanInsentif } from "./actions";
-import { FormSiklusGajian } from "./form-siklus-gajian";
+import { FilterInsentif } from "./filter-insentif";
 import { TombolSinkron } from "./tombol-sinkron";
 
 export const dynamic = "force-dynamic";
@@ -13,16 +12,24 @@ export const dynamic = "force-dynamic";
 export default async function AdminInsentifPage({
   searchParams,
 }: {
-  searchParams: Promise<{ periode?: string }>;
+  searchParams: Promise<{ periode?: string; dari?: string; sampai?: string }>;
 }) {
   const admin = await wajibAkses("insentif");
   const q = await searchParams;
   const bulanIni = tanggalLokal().slice(0, 7);
   const periode = q.periode && periodeValid(q.periode) ? q.periode : bulanIni;
 
+  // Rentang transaksi: yang dipilih di filter (seperti Log Absensi);
+  // bila tidak dipilih, dipakai siklus gajian default bulan itu
+  // (28 bulan sebelumnya s.d. 27 bulan periode).
+  const rentang =
+    q.dari && q.sampai && tanggalValid(q.dari) && tanggalValid(q.sampai)
+      ? q.dari <= q.sampai
+        ? { dari: q.dari, sampai: q.sampai }
+        : { dari: q.sampai, sampai: q.dari }
+      : rentangPeriodeGajian(periode);
+
   const data = await ambilInsentifAdmin(periode);
-  const siklus = await ambilSiklusGajian();
-  const rentang = rentangPeriodeGajian(periode, siklus.awal, siklus.akhir);
 
   const superAdmin = admin.role === "super_admin";
   const pemetaan = superAdmin ? await ambilPemetaanInsentif() : [];
@@ -56,7 +63,7 @@ export default async function AdminInsentifPage({
       <PageHeader
         title="Insentif"
         description={deskripsi}
-        action={superAdmin && <TombolSinkron periode={periode} pengguna={pengguna} />}
+        action={superAdmin && <TombolSinkron periode={periode} dari={rentang.dari} sampai={rentang.sampai} pengguna={pengguna} />}
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -77,25 +84,7 @@ export default async function AdminInsentifPage({
         />
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-4 items-end">
-        <form className="flex gap-2">
-          <label className="text-sm text-muted flex items-center gap-2">
-            Periode{" "}
-            <input
-              name="periode"
-              type="month"
-              defaultValue={periode}
-              className="ml-2 rounded border bg-paper px-2 py-1 text-sm"
-            />
-          </label>
-          <button
-            type="submit"
-            className="rounded border bg-paper px-3 py-1 text-sm hover:bg-muted transition"
-          >
-            Lihat
-          </button>
-        </form>
-      </div>
+      <FilterInsentif periode={periode} dari={rentang.dari} sampai={rentang.sampai} />
 
       <div className="mt-6">
         {superAdmin ? (
@@ -191,9 +180,11 @@ export default async function AdminInsentifPage({
             di inox.my.id (read-only, tidak mengubah data di sana).
           </li>
           <li>
-            Periode mengikuti siklus gajian: 28 bulan sebelumnya s.d. 27
-            bulan periode (mis. November 2026 = 28/10/2026–27/11/2026).
-            Transaksi 28–31 bulan berjalan masuk periode berikutnya.
+            Sinkron menarik transaksi dalam rentang Dari–Sampai yang
+            dipilih di filter di atas (seperti filter Log Absensi).
+            Bila tidak dipilih, dipakai siklus gajian default: 28 bulan
+            sebelumnya s.d. 27 bulan periode (mis. November 2026 =
+            28/10/2026–27/11/2026).
           </li>
           <li>
             Pencocokan karyawan dilakukan berdasarkan nama
@@ -216,22 +207,6 @@ export default async function AdminInsentifPage({
           </li>
         </ul>
       </div>
-
-      {superAdmin ? (
-        <div className="mt-8 rounded-xl border border-line bg-paper p-4">
-          <h2 className="text-sm font-semibold mb-1">Siklus Gajian</h2>
-          <p className="text-sm text-muted mb-3">
-            Periode insentif dan rekap telat Payroll mengikuti tanggal di
-            bawah ini: tanggal awal bulan sebelumnya s.d. tanggal akhir
-            bulan periode (saat ini {formatTanggal(rentang.dari)}–
-            {formatTanggal(rentang.sampai)}). Ubah bila siklus gajian
-            berubah; berlaku untuk sinkron berikutnya tanpa deploy ulang.
-            Bila tanggal tidak muat di bulan itu (mis. 31 di Februari),
-            dipakai hari terakhir bulan itu.
-          </p>
-          <FormSiklusGajian awal={siklus.awal} akhir={siklus.akhir} />
-        </div>
-      ) : null}
 
       {superAdmin ? (
         <div className="mt-8 rounded-xl border border-line bg-paper p-4">

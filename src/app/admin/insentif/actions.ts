@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { jalankanSinkronInsentif, normalisasiNama } from "@/lib/insentif";
-import { simpanSiklusGajian } from "@/lib/pengaturan";
 import { wajibAkses } from "@/lib/session";
 import { periodeValid } from "@/lib/rekap";
 
@@ -17,10 +16,13 @@ export type HasilSinkronInsentif = {
  * Trigger sinkron insentif dari inox.my.id.
  * Memanggil jalankanSinkronInsentif langsung (bukan fetch ke API route),
  * karena cookie sesi tidak ikut terkirim pada fetch server-side dan
- * route akan menjawab 401.
+ * route akan menjawab 401. Rentang dari/sampai diambil dari filter
+ * halaman (bila tidak diberikan, dipakai siklus gajian default).
  */
 export async function sinkronInsentif(
   periode: string,
+  dari?: string,
+  sampai?: string,
 ): Promise<HasilSinkronInsentif> {
   const admin = await wajibAkses("insentif");
   if (admin.role !== "super_admin") {
@@ -32,7 +34,7 @@ export async function sinkronInsentif(
   }
 
   try {
-    const hasil = await jalankanSinkronInsentif(periode);
+    const hasil = await jalankanSinkronInsentif(periode, dari, sampai);
     revalidatePath("/admin/insentif");
     return {
       ok: true,
@@ -47,13 +49,15 @@ export async function sinkronInsentif(
   }
 }
 
-/** Wrapper untuk <form action> — ambil periode dari FormData, kembalikan hasil sinkron supaya halaman bisa menampilkannya. */
+/** Wrapper untuk <form action> — ambil periode dan rentang dari FormData, kembalikan hasil sinkron supaya halaman bisa menampilkannya. */
 export async function sinkronInsentifForm(
   _prev: HasilSinkronInsentif | undefined,
   formData: FormData,
 ): Promise<HasilSinkronInsentif> {
   const periode = formData.get("periode") as string;
-  return sinkronInsentif(periode);
+  const dari = (formData.get("dari") as string) || undefined;
+  const sampai = (formData.get("sampai") as string) || undefined;
+  return sinkronInsentif(periode, dari, sampai);
 }
 
 /** Ambil semua insentif untuk periode (admin). Admin cabang hanya tim cabangnya. */
@@ -160,47 +164,4 @@ export async function hapusPemetaanInsentif(formData: FormData): Promise<void> {
   if (!id) return;
   await db.pemetaanInsentif.delete({ where: { id } }).catch(() => null);
   revalidatePath("/admin/insentif");
-}
-
-export type HasilSiklusGajian = {
-  ok: boolean;
-  pesan: string;
-};
-
-/**
- * Ubah tanggal siklus gajian (super_admin). Berlaku untuk sinkron dan
- * rekap telat Payroll berikutnya; sinkron ulang periode berjalan bila
- * angkanya perlu dihitung ulang dengan tanggal baru.
- */
-export async function simpanSiklusGajianForm(
-  _prev: HasilSiklusGajian | undefined,
-  formData: FormData,
-): Promise<HasilSiklusGajian> {
-  const admin = await wajibAkses("insentif");
-  if (admin.role !== "super_admin") {
-    return { ok: false, pesan: "Hanya super_admin dapat mengubah siklus gajian." };
-  }
-  const awal = Number(formData.get("awal"));
-  const akhir = Number(formData.get("akhir"));
-  if (
-    !Number.isInteger(awal) ||
-    !Number.isInteger(akhir) ||
-    awal < 1 ||
-    awal > 31 ||
-    akhir < 1 ||
-    akhir > 31
-  ) {
-    return { ok: false, pesan: "Tanggal awal dan akhir harus angka 1–31." };
-  }
-  try {
-    await simpanSiklusGajian(awal, akhir);
-  } catch (err: any) {
-    return { ok: false, pesan: err?.message ?? "Gagal menyimpan siklus gajian." };
-  }
-  revalidatePath("/admin/insentif");
-  revalidatePath("/admin/payroll");
-  return {
-    ok: true,
-    pesan: `Siklus gajian diubah ke ${awal}–${akhir}. Berlaku untuk sinkron berikutnya; sinkron ulang periode berjalan bila perlu.`,
-  };
 }

@@ -13,8 +13,7 @@
 
 import { db } from "@/lib/db";
 import { formatTanggal } from "@/lib/format";
-import { ambilSiklusGajian } from "@/lib/pengaturan";
-import { periodeValid, rentangPeriodeGajian } from "@/lib/rekap";
+import { periodeValid, rentangPeriodeGajian, tanggalValid } from "@/lib/rekap";
 
 /** Normalisasi nama untuk pencocokan: huruf kecil, buang semua spasi/simbol. */
 export function normalisasiNama(nama: string): string {
@@ -252,13 +251,28 @@ export type HasilSinkronInsentif = {
  * Dipakai langsung oleh API route DAN server action — jangan panggil API
  * route lewat fetch dari server action, karena cookie sesi tidak ikut
  * terkirim dan route akan menjawab 401.
+ *
+ * Rentang transaksi yang ditarik adalah `dari`–`sampai` bila keduanya
+ * diberikan dan sah (yang dipilih di filter halaman Insentif, seperti
+ * filter Dari/Sampai di Log Absensi); bila tidak, dipakai siklus gajian
+ * default periode itu (28 bulan sebelumnya s.d. 27 bulan periode).
  */
 export async function jalankanSinkronInsentif(
   periode: string,
+  dari?: string,
+  sampai?: string,
 ): Promise<HasilSinkronInsentif> {
   if (!periodeValid(periode)) {
     throw new Error("Periode tidak valid.");
   }
+
+  const rentang =
+    dari && sampai && tanggalValid(dari) && tanggalValid(sampai)
+      ? dari <= sampai
+        ? { dari, sampai }
+        : { dari: sampai, sampai: dari }
+      : rentangPeriodeGajian(periode);
+  const { dari: tanggalDari, sampai: tanggalSampai } = rentang;
 
   const INOX_USERNAME = process.env.INOX_USERNAME;
   const INOX_PASSWORD = process.env.INOX_PASSWORD;
@@ -283,18 +297,12 @@ export async function jalankanSinkronInsentif(
   const csrfMatch = reportHtml.match(/name="csrf-token"\s+content="([^"]+)"/);
   const csrfToken = csrfMatch ? csrfMatch[1] : "";
 
-  // 3. Ambil data insentif untuk periode ini (siklus gajian yang diatur admin)
-  const siklus = await ambilSiklusGajian();
-  const { dari, sampai } = rentangPeriodeGajian(
-    periode,
-    siklus.awal,
-    siklus.akhir,
-  );
+  // 3. Ambil data insentif untuk rentang yang dipilih
   const data = await ambilDataInsentifInox({
     cookieJar,
     csrfToken,
-    startDate: dari,
-    endDate: sampai,
+    startDate: tanggalDari,
+    endDate: tanggalSampai,
   });
 
   // 4. Ambil semua user untuk matching nama + pemetaan manual
@@ -360,7 +368,7 @@ export async function jalankanSinkronInsentif(
     totalUserDisinkron: hasil.length,
     totalTransaksi: data.length,
     tidakDicocokkan: Array.from(tidakDicocokkan),
-    pesan: `Sinkron selesai: ${hasil.length} karyawan, ${data.length} transaksi (${formatTanggal(dari)}–${formatTanggal(sampai)}).`,
+    pesan: `Sinkron selesai: ${hasil.length} karyawan, ${data.length} transaksi (${formatTanggal(tanggalDari)}–${formatTanggal(tanggalSampai)}).`,
   };
 }
 
