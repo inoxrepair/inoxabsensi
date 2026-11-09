@@ -59,7 +59,7 @@ export default async function AdminInsentifPage({
               />
               <button
                 type="submit"
-                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition"
+                className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-ink/90 transition"
               >
                 Sinkron Insentif dari inox.my.id
               </button>
