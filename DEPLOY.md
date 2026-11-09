@@ -4,14 +4,27 @@ Dokumen ini memakai PostgreSQL untuk production. SQLite `prisma/dev.db` hanya
 untuk development lokal dan tidak cocok untuk hosting serverless/container
 yang filesystem-nya ephemeral.
 
+> Status per 9 Nov 2026, HEAD `311767f`: production adalah
+> **https://inoxabsensi.cloud** di VPS Rumahweb (`vps.apname`,
+> IP 80.43.0.77, folder `/opt/inoxabsensi`). Proyek Railway sudah
+> **dihapus 31 Okt 2026** — alamat Railway lama
+> (`*.up.railway.app`, `inoxabsensi.online`) tidak lagi dipakai dan
+> tidak boleh dijadikan target deploy. `railway.json` masih ada di repo
+> tapi sudah tidak terpakai. Push ke `main` **tidak** otomatis tayang.
+
 ## Pilihan Hosting
 
-Cara paling sederhana:
+Production saat ini:
 
-- **Railway**: satu service PostgreSQL + satu service Docker dari repository ini.
+- **VPS Rumahweb (dipakai)**: Ubuntu 24.04, Docker + Postgres 16 dalam
+  container, Nginx + HTTPS Certbot. App hanya mendengarkan
+  `127.0.0.1:3000` lewat Nginx proxy; Postgres tidak terekspos publik.
+
+Alternatif bila suatu saat pindah dari VPS:
+
 - **Render**: satu PostgreSQL + satu Web Service dengan Dockerfile.
-- **Fly.io/VPS**: gunakan `docker-compose.production.yml` atau PostgreSQL
-  managed terpisah.
+- **Fly.io/VPS lain**: gunakan `docker-compose.production.yml` atau
+  PostgreSQL managed terpisah.
 
 Jangan expose PostgreSQL ke internet publik. Aplikasi saja yang menerima trafik
 port 3000 melalui reverse proxy HTTPS.
@@ -42,7 +55,40 @@ prisma migrate deploy -> backfill username akun lama -> node .next/standalone/se
 
 Jangan menggunakan `prisma db push` pada database production.
 
-## 2. Buat PostgreSQL
+## 2. Update Production di VPS (jalur utama)
+
+Dilakukan Ucok di console VNC `vps.apname`, jam sepi (SSH dari mesin Muse
+diblokir jaringan). Di folder repo VPS `/opt/inoxabsensi`:
+
+```bash
+cd /opt/inoxabsensi
+git pull origin main        # pastikan commit yang diharapkan ketarik
+unset DATABASE_URL
+bash deploy.sh              # build ~9 menit, app restart sebentar
+```
+
+`deploy.sh` (disimpan di VPS, salinannya ada di paket migrasi VPS) melakukan:
+build ulang image app, jalankan container, lalu cek health lokal
+`http://127.0.0.1:3000/api/health`. Skrip ini **tidak** menyentuh Nginx /
+Certbot / `.env` / database (volume `inox-postgres` tetap) — `.env`, Nginx,
+SSL, dan data tidak hilang saat update.
+
+Setelah itu cek dari luar:
+
+```text
+GET https://inoxabsensi.cloud/api/health
+```
+
+Respons sehat:
+
+```json
+{"status":"ok","database":"connected","timestamp":"..."}
+```
+
+Lalu buka halaman terkait perubahan (mis. Log Absensi, Arsip PDF, Payroll)
+dan pastikan tampilannya sesuai.
+
+## 3. Buat PostgreSQL (hanya saat instalasi awal)
 
 Ambil connection string PostgreSQL dari provider. Format umum:
 
@@ -50,17 +96,18 @@ Ambil connection string PostgreSQL dari provider. Format umum:
 postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
 ```
 
-Set sebagai `DATABASE_URL`. Pada Railway/Render biasanya connection string
-tersedia sebagai variable bawaan database service.
+Set sebagai `DATABASE_URL`. Di VPS, Postgres berjalan sebagai container
+`db` dengan volume `inox-postgres`; connection string-nya ada di `.env`
+di VPS (jangan commit, jangan kirim lewat chat).
 
-## 3. Set Environment Variables
+## 4. Set Environment Variables
 
 Wajib:
 
 ```text
 DATABASE_URL=postgresql://...
 AUTH_SECRET=<random minimal 32 bytes>
-AUTH_URL=https://domain-anda.example
+AUTH_URL=https://inoxabsensi.cloud
 AUTH_TRUST_HOST=true
 ```
 
@@ -83,7 +130,7 @@ AUTH_GOOGLE_SECRET=...
 Callback URL Google harus diarahkan ke:
 
 ```text
-https://domain-anda.example/api/auth/callback/google
+https://inoxabsensi.cloud/api/auth/callback/google
 ```
 
 Untuk seed admin pertama kali, siapkan sementara:
@@ -94,7 +141,7 @@ SEED_ADMIN_EMAIL=owner@domain-anda.example
 SEED_ADMIN_PASSWORD=<password minimal 12 karakter>
 ```
 
-## 4. Deploy dengan Docker
+## 5. Deploy dengan Docker (instalasi awal / VPS baru)
 
 Build dan start:
 
@@ -114,32 +161,29 @@ Seed admin hanya satu kali setelah container berjalan:
 docker compose -f docker-compose.production.yml exec app npm run db:seed:prod
 ```
 
-Pada Railway tanpa SSH key, set sementara:
-
-```text
-RUN_PRODUCTION_SEED=true
-```
-
-Lalu deploy ulang. Setelah log menampilkan `Production seed selesai`, hapus
-`RUN_PRODUCTION_SEED` dan ketiga variable `SEED_ADMIN_*`, lalu redeploy.
+Di VPS, file compose yang dipakai adalah `docker-compose.vps.yml`
+(app + db Postgres 16, port app hanya localhost) dan update rutin memakai
+`bash deploy.sh` seperti di bagian 2 — jangan jalankan `docker compose up`
+manual untuk update rutin kecuali `deploy.sh` gagal dan penyebabnya sudah
+jelas.
 
 Setelah seed selesai, hapus `SEED_ADMIN_PASSWORD` dari environment platform
 atau ganti nilainya. Seed production bersifat upsert untuk admin dan aman
 dijalankan ulang, tetapi password admin akan mengikuti nilai environment saat
 seed dijalankan.
 
-## 5. Reverse Proxy HTTPS
+## 6. Reverse Proxy HTTPS
 
 Expose hanya port reverse proxy, bukan port aplikasi secara langsung. Contoh
-Nginx:
+Nginx (sudah terpasang di VPS untuk `inoxabsensi.cloud`):
 
 ```nginx
 server {
     listen 443 ssl http2;
-    server_name absensi.domain-anda.example;
+    server_name inoxabsensi.cloud;
 
-    ssl_certificate /etc/letsencrypt/live/absensi.domain-anda.example/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/absensi.domain-anda.example/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/inoxabsensi.cloud/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/inoxabsensi.cloud/privkey.pem;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
@@ -154,13 +198,14 @@ server {
 
 Buat sertifikat Let's Encrypt menggunakan Certbot atau fitur TLS managed dari
 platform hosting. `AUTH_URL` harus sama persis dengan domain HTTPS tersebut.
+`deploy.sh` tidak menyentuh konfigurasi Nginx/Certbot ini.
 
-## 6. Health Check
+## 7. Health Check
 
 Endpoint:
 
 ```text
-GET https://domain-anda.example/api/health
+GET https://inoxabsensi.cloud/api/health
 ```
 
 Respons sehat:
@@ -172,9 +217,9 @@ Respons sehat:
 Atur health check platform ke `/api/health`. Respons `503` berarti aplikasi
 tidak bisa mengakses database.
 
-## 7. Uji Setelah Online
+## 8. Uji Setelah Online
 
-1. Buka `https://domain-anda.example/login`.
+1. Buka `https://inoxabsensi.cloud/login`.
 2. Login dengan akun admin hasil seed.
 3. Buat cabang dengan koordinat aktual.
 4. Buat akun Karyawan/Headstore dan tempatkan ke cabang.
@@ -188,40 +233,33 @@ tidak bisa mengakses database.
 GPS mobile **wajib** memakai HTTPS. `http://192.168.x.x:3000` hanya cocok
 untuk melihat halaman, bukan untuk Geolocation API iOS/Android.
 
-## 8. Backup dan Operasional
+## 9. Backup dan Operasional
 
-- Aktifkan backup otomatis PostgreSQL dari provider.
+- **Belum ada backup otomatis VPS** (celah utama per 31 Okt 2026). Buat
+  dump PostgreSQL berkala secara manual dan salin keluar VPS; jangan
+  mengandalkan backup provider, karena Railway sudah dihapus.
 - Jangan menyimpan `.env`, `DATABASE_URL`, atau `AUTH_SECRET` di repository.
 - Jalankan migration deploy pada setiap release sebelum menerima trafik baru.
 - Pantau `/api/health` dan log aplikasi.
 - Jangan menghapus cabang yang sudah punya riwayat; nonaktifkan melalui UI.
-- Untuk update aplikasi: build image baru, jalankan migration, lalu rolling
-  restart service.
+- Untuk update aplikasi: pull kode baru, jalankan `bash deploy.sh`
+  (build image baru, migration, lalu restart service) — lihat bagian 2.
 
-## 9. Rollback Deployment
+## 10. Rollback Deployment
 
-Rollback kode tidak otomatis mengembalikan database. Gunakan salah satu:
-
-### Railway Dashboard (cepat)
-
-1. Buka service `inox-absensi-web`.
-2. Buka tab `Deployments`.
-3. Pilih deployment lama yang berstatus `SUCCESS`.
-4. Klik menu deployment lalu `Redeploy`/`Rollback` jika tersedia.
-5. Periksa `/api/health` dan fungsi utama.
-
-Cara ini mengaktifkan image/commit lama, tetapi data yang sudah ditulis user
-setelah deployment baru tetap ada.
-
-### Git Revert (direkomendasikan untuk riwayat source)
+Rollback kode tidak otomatis mengembalikan database. Di VPS:
 
 ```bash
+cd /opt/inoxabsensi
 git revert <commit-yang-bermasalah>
 git push origin main
+unset DATABASE_URL
+bash deploy.sh
 ```
 
-Railway akan auto-deploy commit revert. Jangan memakai force-push atau
-`git reset --hard` pada branch production.
+Atau, bila revert belum di-push, cukup checkout commit lama di VPS lalu
+`bash deploy.sh`. Jangan memakai force-push atau `git reset --hard` pada
+branch production.
 
 Migration yang hanya menambah kolom nullable/default biasanya aman ketika kode
 di-rollback. Migration destructive (drop/rename) harus dibatalkan dengan
