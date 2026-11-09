@@ -5,6 +5,7 @@ import {
   gabungkanCookie,
   normalisasiNama,
   pecahSetCookie,
+  petakanBarisInsentif,
   ubahTanggalKeIso,
 } from "./insentif";
 
@@ -84,6 +85,71 @@ describe("cocokkanUser", () => {
   it("tanpa pemetaan, nama yang tidak cocok tetap null", () => {
     expect(cocokkanUser("Fajri", USERS, [])).toBeNull();
     expect(cocokkanUser("Fajri", USERS)).toBeNull();
+  });
+});
+
+describe("petakanBarisInsentif", () => {
+  // Baris asli dari feed incentive-line-orders (28/10–27/11/2026),
+  // disingkat ke field yang dibaca mapper.
+  const span = (nilai: number) =>
+    `<span class="display_currency" data-orig-value="${nilai}">${nilai}</span>`;
+
+  it("komisi tetap memakai TOTAL, bukan per satuan (kwantitas 3)", () => {
+    // INV2026-1563, Service Fee, Raffa: Komisi Tetap 25.000 x 3.
+    // Kode lama menjumlah technician_commission_value = 25.000 (kurang).
+    const baris = petakanBarisInsentif({
+      transaction_id: 4522,
+      invoice_no: "INV2026-1563",
+      transaction_date: "03-11-2026",
+      service_staff: "Raffa",
+      product_name: "Service Fee",
+      quantity: span(3),
+      unit_price_before_discount: span(250000),
+      technician_commission_value: span(25000),
+      total_technician_commission_value: span(75000),
+      total_technician_commission_percent_value: span(0),
+      total_unit_price: span(450000),
+      business_location: "KWSN",
+    });
+    expect(baris.totalKomisi).toBe(75000);
+    expect(baris.quantity).toBe(3);
+  });
+
+  it("komisi persentase memakai total persentasenya", () => {
+    // INV0693, nizam 15%: total persentase 52.500.
+    const baris = petakanBarisInsentif({
+      transaction_id: 4611,
+      invoice_no: "INV0693",
+      transaction_date: "05-11-2026",
+      service_staff: "nizam",
+      product_name: "Service Fee",
+      quantity: span(1),
+      unit_price_before_discount: span(350000),
+      technician_commission_value: span(0),
+      total_technician_commission_value: span(0),
+      total_technician_commission_percent_value: span(52500),
+      total_unit_price: span(350000),
+      business_location: "LLF",
+    });
+    expect(baris.totalKomisi).toBe(52500);
+  });
+
+  it("baris tanpa komisi bernilai 0", () => {
+    const baris = petakanBarisInsentif({
+      transaction_id: 4317,
+      invoice_no: "GDG2026-0143",
+      transaction_date: "28-10-2026",
+      service_staff: "Raffa",
+      product_name: "Battery iPhone 12/12 Pro - BATT - BR PP",
+      quantity: span(1),
+      unit_price_before_discount: span(650000),
+      technician_commission_value: span(0),
+      total_technician_commission_value: span(0),
+      total_technician_commission_percent_value: span(0),
+      total_unit_price: span(650000),
+      business_location: "KWSN",
+    });
+    expect(baris.totalKomisi).toBe(0);
   });
 });
 

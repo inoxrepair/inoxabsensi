@@ -346,7 +346,13 @@ Payroll:
   dipasangkan manual ke akun karyawan di halaman yang sama (tabel
   `PemetaanInsentif`, satu nama iNOX ke satu akun); pemetaan didahulukan
   atas pencocokan nama dan dipakai otomatis di setiap sinkron
-  berikutnya, jadi cukup dipasangkan sekali.
+  berikutnya, jadi cukup dipasangkan sekali. Nilai insentif per baris =
+  Total Komisi Tetap (`total_technician_commission_value`) + Total
+  Komisi Persentase (`total_technician_commission_percent_value`) —
+  kolom total di laporan. JANGAN pakai `technician_commission_value`
+  ("Komisi Tetap"): itu nilai PER SATUAN, jadi baris dengan kwantitas
+  > 1 terhitung kurang (mis. 25.000 x 3 tercatat 25.000, padahal
+  totalnya 75.000). Tiap baris hanya satu jenis komisi yang berisi.
   Tabel `Insentif` adalah satu-satunya sumber nilai insentif di Payroll:
   kolom insentif tampil read-only di Payroll dan tidak bisa diubah di
   sana. Admin cabang hanya melihat insentif tim cabangnya.

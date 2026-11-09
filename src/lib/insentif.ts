@@ -94,7 +94,13 @@ export async function ambilDataInsentifInox({
     productName: string;
     quantity: number;
     unitPriceBeforeDiscount: number;
-    technicianCommissionValue: number;
+    /**
+     * Insentif baris ini = Total Komisi Tetap + Total Komisi Persentase
+     * (kolom total di laporan iNOX). Tiap baris hanya satu jenis komisi
+     * yang berisi (tetap ATAU persentase), jadi jumlah keduanya sama
+     * dengan total komisi baris itu.
+     */
+    totalKomisi: number;
     totalUnitPrice: number;
     businessLocation: string;
   }>
@@ -125,32 +131,58 @@ export async function ambilDataInsentifInox({
   const json = await res.json();
   const rows: any[] = json.data ?? [];
 
-  return rows.map((r) => {
-    // Angka dikemas dalam <span data-orig-value="40000">40000</span>
-    const ambilAngka = (nilai: any): number => {
-      if (typeof nilai === "number") return nilai;
-      if (typeof nilai === "string") {
-        const m = nilai.match(/data-orig-value="([\d.]+)"/);
-        if (m) return Number(m[1]);
-        return Number(nilai.replace(/[^0-9.-]/g, "") || 0);
-      }
-      return 0;
-    };
+  return rows.map(petakanBarisInsentif);
+}
 
-    const tanggalRaw = r.transaction_date ?? ""; // dd-mm-yyyy
-    return {
-      transactionId: r.transaction_id ?? 0,
-      invoiceNo: r.invoice_no ?? "",
-      tanggal: tanggalRaw,
-      serviceStaff: r.service_staff ?? "",
-      productName: r.product_name ?? "",
-      quantity: ambilAngka(r.quantity),
-      unitPriceBeforeDiscount: ambilAngka(r.unit_price_before_discount),
-      technicianCommissionValue: ambilAngka(r.technician_commission_value),
-      totalUnitPrice: ambilAngka(r.total_unit_price),
-      businessLocation: r.business_location ?? "",
-    };
-  });
+/** Angka di feed dikemas dalam <span data-orig-value="40000">40000</span>. */
+function ambilAngka(nilai: any): number {
+  if (typeof nilai === "number") return nilai;
+  if (typeof nilai === "string") {
+    const m = nilai.match(/data-orig-value="([\d.]+)"/);
+    if (m) return Number(m[1]);
+    return Number(nilai.replace(/[^0-9.-]/g, "") || 0);
+  }
+  return 0;
+}
+
+/**
+ * Petakan satu baris mentah feed incentive-line-orders ke bentuk yang
+ * dipakai sinkron. Diekspor supaya bisa diuji dengan baris asli dari feed.
+ *
+ * Insentif baris = total_technician_commission_value ("Total Komisi
+ * Tetap") + total_technician_commission_percent_value ("Total Komisi
+ * Persentase"). JANGAN pakai technician_commission_value ("Komisi
+ * Tetap"): nilainya PER SATUAN, jadi baris dengan kwantitas > 1
+ * terhitung kurang — mis. Service Fee INV2026-1563: Komisi Tetap
+ * 25.000 x 3 tercatat 25.000, padahal Total Komisi Tetap-nya 75.000.
+ */
+export function petakanBarisInsentif(r: any): {
+  transactionId: number;
+  invoiceNo: string;
+  tanggal: string;
+  serviceStaff: string;
+  productName: string;
+  quantity: number;
+  unitPriceBeforeDiscount: number;
+  totalKomisi: number;
+  totalUnitPrice: number;
+  businessLocation: string;
+} {
+  const tanggalRaw = r.transaction_date ?? ""; // dd-mm-yyyy
+  return {
+    transactionId: r.transaction_id ?? 0,
+    invoiceNo: r.invoice_no ?? "",
+    tanggal: tanggalRaw,
+    serviceStaff: r.service_staff ?? "",
+    productName: r.product_name ?? "",
+    quantity: ambilAngka(r.quantity),
+    unitPriceBeforeDiscount: ambilAngka(r.unit_price_before_discount),
+    totalKomisi:
+      ambilAngka(r.total_technician_commission_value) +
+      ambilAngka(r.total_technician_commission_percent_value),
+    totalUnitPrice: ambilAngka(r.total_unit_price),
+    businessLocation: r.business_location ?? "",
+  };
 }
 
 /**
@@ -335,7 +367,7 @@ export async function jalankanSinkronInsentif(
 
     const tanggalIso = ubahTanggalKeIso(d.tanggal);
     const existing = perUser.get(userId) ?? { jumlah: 0, jumlahTransaksi: 0 };
-    existing.jumlah += d.technicianCommissionValue;
+    existing.jumlah += d.totalKomisi;
     existing.jumlahTransaksi += 1;
     if (tanggalIso) {
       if (!existing.tanggalAwal || tanggalIso < existing.tanggalAwal) {
