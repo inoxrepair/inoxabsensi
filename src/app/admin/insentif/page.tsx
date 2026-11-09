@@ -3,7 +3,7 @@ import { formatRupiah } from "@/lib/format";
 import { labelPeriode, periodeTerakhir, periodeValid } from "@/lib/rekap";
 import { wajibAkses } from "@/lib/session";
 import { tanggalLokal } from "@/lib/waktu";
-import { ambilInsentifAdmin } from "./actions";
+import { ambilInsentifAdmin, ambilPemetaanInsentif, ambilPenggunaAktif, hapusPemetaanInsentif } from "./actions";
 import { TombolSinkron } from "./tombol-sinkron";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +20,10 @@ export default async function AdminInsentifPage({
 
   const data = await ambilInsentifAdmin(periode);
 
+  const superAdmin = admin.role === "super_admin";
+  const pemetaan = superAdmin ? await ambilPemetaanInsentif() : [];
+  const pengguna = superAdmin ? await ambilPenggunaAktif() : [];
+
   const totalInsentif = data.reduce(
     (a: number, b: { jumlah: number }) => a + b.jumlah,
     0,
@@ -28,8 +32,6 @@ export default async function AdminInsentifPage({
     (a: number, b: { jumlahTransaksi: number }) => a + b.jumlahTransaksi,
     0,
   );
-
-  const superAdmin = admin.role === "super_admin";
 
   const deskripsi = (
     <>
@@ -50,7 +52,7 @@ export default async function AdminInsentifPage({
       <PageHeader
         title="Insentif"
         description={deskripsi}
-        action={superAdmin && <TombolSinkron periode={periode} />}
+        action={superAdmin && <TombolSinkron periode={periode} pengguna={pengguna} />}
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -186,6 +188,9 @@ export default async function AdminInsentifPage({
           <li>
             Pencocokan karyawan dilakukan berdasarkan nama
             (<code>service_staff</code> ↔ nama pengguna di iNox Absensi).
+            Nama yang tidak cocok muncul setelah sinkron beserta pilihan
+            akun — hubungkan sekali, sinkron berikutnya otomatis memakai
+            pemetaan itu (lihat daftar pemetaan di bawah).
           </li>
           <li>
             Nilai insentif di Payroll diambil dari tabel ini; sinkronisasi
@@ -201,6 +206,54 @@ export default async function AdminInsentifPage({
           </li>
         </ul>
       </div>
+
+      {superAdmin ? (
+        <div className="mt-8 rounded-xl border border-line bg-paper p-4">
+          <h2 className="text-sm font-semibold mb-1">
+            Pemetaan Nama iNOX → Akun ({pemetaan.length})
+          </h2>
+          <p className="text-sm text-muted mb-3">
+            Nama iNOX di bawah ini sudah dipasangkan ke akun karyawan dan
+            dipakai otomatis di setiap sinkron. Hapus pemetaan bila nama itu
+            seharusnya tidak lagi terhubung ke akun tersebut.
+          </p>
+          {pemetaan.length === 0 ? (
+            <p className="text-sm text-muted">
+              Belum ada pemetaan. Nama yang tidak cocok akan muncul beserta
+              pilihan akun setelah Anda menekan Sinkron.
+            </p>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-line bg-muted/50">
+                  <th className="p-2 text-sm font-medium">Nama di iNOX</th>
+                  <th className="p-2 text-sm font-medium">Akun karyawan</th>
+                  <th className="p-2 text-sm font-medium"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {pemetaan.map((p: any) => (
+                  <tr key={p.id} className="border-b border-line">
+                    <td className="p-2 text-sm">{p.namaInox}</td>
+                    <td className="p-2 text-sm">{p.user.name}</td>
+                    <td className="p-2 text-sm text-right">
+                      <form action={hapusPemetaanInsentif}>
+                        <input type="hidden" name="id" value={p.id} />
+                        <button
+                          type="submit"
+                          className="rounded border bg-paper px-2 py-1 text-sm hover:bg-muted transition"
+                        >
+                          Hapus
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      ) : null}
     </>
   );
 }

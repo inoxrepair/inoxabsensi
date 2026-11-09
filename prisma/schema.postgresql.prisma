@@ -27,6 +27,7 @@ model User {
   cabangId      String?
   cabang        Cabang?   @relation(fields: [cabangId], references: [id], onDelete: SetNull)
   insentif      Insentif[]
+  pemetaanInsentif PemetaanInsentif[]
   accounts      Account[]
   sessions      Session[]
   jadwal        Jadwal[]
@@ -265,4 +266,16 @@ model Insentif {
   @@unique([userId, periode])
   @@index([periode])
   @@index([userId, periode])
+}
+
+model PemetaanInsentif {
+  id        String   @id @default(cuid())
+  namaInox  String
+  namaKunci String   @unique
+  userId    String
+  dibuatPada DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

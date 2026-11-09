@@ -55,6 +55,36 @@ describe("cocokkanUser", () => {
     expect(cocokkanUser("", USERS)).toBeNull();
     expect(cocokkanUser("   ", USERS)).toBeNull();
   });
+
+  it("pemetaan manual menang atas pencocokan nama", () => {
+    // "FajriMokodompit" persis cocok ke u1 lewat nama, tapi pemetaan
+    // untuk kunci itu harus menang — admin sudah memastikan orangnya.
+    expect(
+      cocokkanUser("FajriMokodompit", USERS, [
+        { namaKunci: "fajrimokodompit", userId: "u2" },
+      ]),
+    ).toBe("u2");
+  });
+
+  it("pemetaan cocok walau nama tidak cocok ke siapa pun", () => {
+    const pemetaan = [
+      { namaKunci: "fajri", userId: "u2" },
+      { namaKunci: "doni", userId: "u3" },
+    ];
+    expect(cocokkanUser("Fajri", USERS, pemetaan)).toBe("u2");
+    expect(cocokkanUser("Doni", USERS, pemetaan)).toBe("u3");
+  });
+
+  it("pemetaan dicocokkan setelah normalisasi nama", () => {
+    const pemetaan = [{ namaKunci: "fajri", userId: "u2" }];
+    expect(cocokkanUser("FAJRI", USERS, pemetaan)).toBe("u2");
+    expect(cocokkanUser("Fajri ", USERS, pemetaan)).toBe("u2");
+  });
+
+  it("tanpa pemetaan, nama yang tidak cocok tetap null", () => {
+    expect(cocokkanUser("Fajri", USERS, [])).toBeNull();
+    expect(cocokkanUser("Fajri", USERS)).toBeNull();
+  });
 });
 
 describe("ubahTanggalKeIso", () => {

@@ -154,17 +154,23 @@ export async function ambilDataInsentifInox({
 
 /**
  * Cocokkan nama service_staff di inox.my.id ke User di iNox Absensi.
- * Hanya exact setelah normalisasi (tanpa spasi/simbol, huruf kecil) —
- * sengaja TANPA fallback contains, supaya nama pendek tidak salah cocok
- * ke orang lain. Nama yang tidak cocok dikembalikan null dan dicatat
- * sebagai tidakDicocokkan saat sinkron untuk ditinjau manual.
+ * Urutan: (1) pemetaan manual (tabel PemetaanInsentif) didahulukan —
+ * admin sudah memastikan orangnya, jadi pemetaan menang atas nama yang
+ * sama persis sekalipun; (2) exact setelah normalisasi (tanpa
+ * spasi/simbol, huruf kecil) — sengaja TANPA fallback contains, supaya
+ * nama pendek tidak salah cocok ke orang lain. Nama yang tidak cocok
+ * dikembalikan null dan dicatat sebagai tidakDicocokkan saat sinkron
+ * untuk dipasangkan manual.
  */
 export function cocokkanUser(
   serviceStaff: string,
   users: Array<{ id: string; name: string }>,
+  pemetaan: Array<{ namaKunci: string; userId: string }> = [],
 ): string | null {
   const target = normalisasiNama(serviceStaff);
   if (!target) return null;
+  const peta = pemetaan.find((p) => p.namaKunci === target);
+  if (peta) return peta.userId;
   const ketemu = users.find((u) => normalisasiNama(u.name) === target);
   return ketemu ? ketemu.id : null;
 }
@@ -292,10 +298,13 @@ export async function jalankanSinkronInsentif(
     endDate: sampai,
   });
 
-  // 4. Ambil semua user untuk matching nama
+  // 4. Ambil semua user untuk matching nama + pemetaan manual
   const users = await db.user.findMany({
     select: { id: true, name: true },
     where: { aktif: true },
+  });
+  const pemetaan = await db.pemetaanInsentif.findMany({
+    select: { namaKunci: true, userId: true },
   });
 
   // 5. Group data insentif per user (tanggal disimpan sebagai yyyy-mm-dd)
@@ -311,7 +320,7 @@ export async function jalankanSinkronInsentif(
   const tidakDicocokkan = new Set<string>();
 
   for (const d of data) {
-    const userId = cocokkanUser(d.serviceStaff, users);
+    const userId = cocokkanUser(d.serviceStaff, users, pemetaan);
     if (!userId) {
       tidakDicocokkan.add(d.serviceStaff);
       continue;

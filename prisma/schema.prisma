@@ -44,6 +44,7 @@ model User {
   cabang   Cabang? @relation(fields: [cabangId], references: [id], onDelete: SetNull)
 
   insentif Insentif[]
+  pemetaanInsentif PemetaanInsentif[]
 
   accounts Account[]
   sessions Session[]
@@ -373,6 +374,24 @@ model Insentif {
   @@unique([userId, periode])
   @@index([periode])
   @@index([userId, periode])
+}
+
+/// Pemetaan nama service_staff di inox.my.id ke User iNox Absensi.
+/// Sekali dipasangkan, sinkron berikutnya otomatis memakai pemetaan ini
+/// (didahulukan atas pencocokan nama), jadi insentif karyawan yang
+/// namanya berbeda di iNOX tetap masuk ke akun yang benar.
+model PemetaanInsentif {
+  id        String   @id @default(cuid())
+  /// Nama persis seperti di laporan iNOX (mis. "FajriMokodompit").
+  namaInox  String
+  /// normalisasiNama(namaInox) — kunci pencocokan, unik.
+  namaKunci String   @unique
+  userId    String
+  dibuatPada DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 /// Snapshot sebelum perubahan jadwal; dipakai untuk membatalkan aksi terakhir.

@@ -328,10 +328,19 @@ Payroll:
   resmi) dan disimpan ke tabel `Insentif` (satu baris per karyawan per
   periode). Sinkron manual lewat tombol di menu Admin -> Insentif atau
   `POST /api/insentif/sync` (hanya super_admin; butuh env
-  `INOX_USERNAME` / `INOX_PASSWORD` di server). Pencocokan karyawan
-  hanya lewat nama (dinormalisasi: huruf kecil, tanpa spasi/simbol,
-  exact saja — tanpa fallback contains); nama yang tidak cocok masuk
-  daftar `tidakDicocokkan` di hasil sinkron untuk ditinjau manual.
+  `INOX_USERNAME` / `INOX_PASSWORD` di server — WAJIB didaftarkan juga
+  di `environment:` service app pada file compose yang dipakai
+  (`docker-compose.vps.yml` di VPS / `docker-compose.production.yml` di
+  repo); file compose memakai daftar env eksplisit tanpa `env_file:`,
+  jadi variabel yang hanya ada di `.env` TIDAK masuk ke container
+  walau container dibuat ulang). Pencocokan karyawan hanya lewat nama
+  (dinormalisasi: huruf kecil, tanpa spasi/simbol, exact saja — tanpa
+  fallback contains); nama yang tidak cocok masuk daftar
+  `tidakDicocokkan` di hasil sinkron. Nama yang tidak cocok bisa
+  dipasangkan manual ke akun karyawan di halaman yang sama (tabel
+  `PemetaanInsentif`, satu nama iNOX ke satu akun); pemetaan didahulukan
+  atas pencocokan nama dan dipakai otomatis di setiap sinkron
+  berikutnya, jadi cukup dipasangkan sekali.
   Tabel `Insentif` adalah satu-satunya sumber nilai insentif di Payroll:
   kolom insentif tampil read-only di Payroll dan tidak bisa diubah di
   sana. Admin cabang hanya melihat insentif tim cabangnya.
