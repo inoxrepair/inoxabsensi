@@ -1,0 +1,783 @@
+/**
+ * Liquid Glass — material kaca cair ala iOS 26 untuk web.
+ *
+ * Sumber: aryankholqi/liquid-glass-cli (MIT) — komponen <LiquidGlass> disalin
+ * ke repo ini gaya shadcn (kode dimiliki sendiri), termasuk peta displacement
+ * Snell's law, dispersi kromatik, dan specular ring. Di Chromium efek
+ * refraksi penuh; di Safari/Firefox (termasuk iPhone) otomatis turun ke
+ * frost + tint + rim specular — tetap terbaca sebagai kaca cair.
+ */
+"use client";
+
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
+
+export type LiquidGlassVariant = "regular" | "clear";
+
+export interface LiquidGlassProps {
+  children?: ReactNode;
+  /**
+   * Apple's two materials. `regular` is the frosted, tinted glass used for
+   * bars and controls; `clear` is the more transparent glass meant to sit over
+   * rich media. Any prop passed explicitly wins over the variant's preset.
+   */
+  variant?: LiquidGlassVariant;
+  /**
+   * Responds to touch the way Apple's interactive glass does: light gathers
+   * under the pointer and the panel swells on press with a springy settle.
+   */
+  interactive?: boolean;
+  /** Fill layered on top of the refracted backdrop. Any CSS colour. */
+  tint?: string;
+  /**
+   * Opacity of the tint alone, 0–100. Scales the colour's own alpha, so the
+   * frost and refraction underneath are left untouched.
+   */
+  opacity?: number;
+  /** Corner radius in pixels. */
+  cornerRadius?: number;
+  /**
+   * Continuity of the corner curve — 0 is a plain circular arc, 100 the
+   * squircle Apple draws, matching CSS `corner-shape: squircle` exactly.
+   */
+  cornerSmoothing?: number;
+  /** How strongly the backdrop bends at the edges. 0–100. */
+  refraction?: number;
+  /** Thickness of the refracting edge band — the perceived glass depth. 0–100. */
+  depth?: number;
+  /** Chromatic aberration: how far the red and blue channels split apart. 0–100. */
+  dispersion?: number;
+  /** Backdrop blur in pixels. */
+  frost?: number;
+  /** How far the bend spreads inward from the rim. 0 is a crisp lens, 100 a wide swell. 0–100. */
+  splay?: number;
+  /** Direction the specular highlight comes from, in degrees. */
+  lightAngle?: number;
+  /** Strength of the specular highlight and the rim stroke. 0–100. */
+  lightIntensity?: number;
+  /** Width of the inside rim stroke in pixels. */
+  borderWidth?: number;
+  /** Height of the drop shadow cast behind the panel. 0–100. */
+  elevation?: number;
+  /**
+   * Applied to each effect layer rather than to the container — a mask on the
+   * container would form a backdrop root and blank the effect out.
+   */
+  layerClassName?: string;
+  className?: string;
+  style?: CSSProperties;
+}
+
+/** Largest displacement map we rasterise; bigger elements sample a scaled copy. */
+const MAP_MAX = 512;
+/** Refractive index of the bevel. Roughly crown glass. */
+const IOR = 1.46;
+/** Deviation at a grazing rim, used to normalise the profile to 0–1. */
+const MAX_DEVIATION = Math.tan(Math.PI / 2 - Math.asin(1 / IOR));
+
+const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+
+/** Defaults each variant supplies for the props it shapes. */
+const VARIANTS: Record<
+  LiquidGlassVariant,
+  { tint: string; frost: number; dispersion: number; lightIntensity: number }
+> = {
+  regular: { tint: "rgba(17, 21, 27, 0.8)", frost: 3, dispersion: 100, lightIntensity: 38 },
+  // Barely tinted so media shows through; the brighter rim keeps the edge legible.
+  clear: { tint: "rgba(17, 21, 27, 0.08)", frost: 0.5, dispersion: 60, lightIntensity: 56 },
+};
+
+/** How far an interactive panel swells while pressed. */
+const PRESS_SCALE = 1.035;
+/** Overshoots slightly before settling, like the spring UIKit drives glass with. */
+const SPRING = "cubic-bezier(0.34, 1.56, 0.64, 1)";
+
+/**
+ * Superness of the corner, on the scale CSS `corner-shape: superellipse(k)`
+ * uses: the drawn curve is |x|^(2^k) + |y|^(2^k) = 1, so k = 1 is `round` and
+ * k = 2 is `squircle` — the corner Apple draws. Smoothing walks exactly that
+ * span, which keeps our own geometry and the browser's in lockstep.
+ */
+function cornerSuperness(cornerSmoothing: number) {
+  return 1 + clamp01(cornerSmoothing / 100);
+}
+
+/**
+ * Signed distance to a superellipse-cornered rectangle centred on the origin.
+ * Negative inside. At n = 2 this is the exact rounded-rect distance; above that
+ * the corner switches to an Lp norm, which is the squircle Apple draws.
+ */
+function sdSuperRect(
+  px: number,
+  py: number,
+  hw: number,
+  hh: number,
+  r: number,
+  n: number
+): number {
+  const qx = Math.abs(px) - hw + r;
+  const qy = Math.abs(py) - hh + r;
+  if (qx > 0 && qy > 0) {
+    return Math.pow(Math.pow(qx, n) + Math.pow(qy, n), 1 / n) - r;
+  }
+  return Math.min(Math.max(qx, qy), 0) + Math.max(qx, 0) + Math.max(qy, 0) - r;
+}
+
+/**
+ * The same shape as an SVG path, sampled straight off the superellipse so the
+ * silhouette, the rim stroke and the displacement map always agree.
+ */
+function squirclePath(w: number, h: number, radius: number, n: number): string {
+  const r = Math.max(0, Math.min(radius, Math.min(w, h) / 2));
+  const p = (v: number) => v.toFixed(2);
+  if (r < 0.5) return `M0 0H${p(w)}V${p(h)}H0Z`;
+
+  const SEGMENTS = 20;
+  const arc = (point: (f: number, g: number) => [number, number]) => {
+    let out = "";
+    for (let i = 1; i <= SEGMENTS; i++) {
+      const t = (i / SEGMENTS) * (Math.PI / 2);
+      const [x, y] = point(Math.pow(Math.sin(t), 2 / n), Math.pow(Math.cos(t), 2 / n));
+      out += `L${p(x)} ${p(y)}`;
+    }
+    return out;
+  };
+
+  return (
+    `M${p(r)} 0L${p(w - r)} 0` +
+    arc((f, g) => [w - r + r * f, r - r * g]) +
+    `L${p(w)} ${p(h - r)}` +
+    arc((f, g) => [w - r + r * g, h - r + r * f]) +
+    `L${p(r)} ${p(h)}` +
+    arc((f, g) => [r - r * f, h - r + r * g]) +
+    `L0 ${p(r)}` +
+    arc((f, g) => [r - r * g, r - r * f]) +
+    "Z"
+  );
+}
+
+/**
+ * Displacement map. Every pixel inside the edge band stores the shape's outward
+ * normal scaled by how hard a ray bends at that point on the bevel, so the
+ * backdrop is pulled around the corners along the true surface direction rather
+ * than along the x and y axes.
+ *
+ * The bevel is modelled as a quarter-round of thickness `band`: at depth u into
+ * it (0 at the rim, 1 at the inner edge) the surface tilts by asin(1 - u), and
+ * Snell's law turns that tilt into a deviation that climbs steeply over the
+ * last few pixels. That concentration is what reads as liquid.
+ */
+function buildDisplacementMap(
+  width: number,
+  height: number,
+  radius: number,
+  band: number,
+  splay: number,
+  n: number
+): string {
+  const fit = Math.min(1, MAP_MAX / Math.max(width, height));
+  const w = Math.max(2, Math.round(width * fit));
+  const h = Math.max(2, Math.round(height * fit));
+  const r = Math.max(0, Math.min(radius, Math.min(width, height) / 2)) * fit;
+  const t = Math.max(1, band * fit);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+
+  const image = ctx.createImageData(w, h);
+  const data = image.data;
+  const hw = w / 2;
+  const hh = h / 2;
+  // splay flattens the profile's shoulder, spreading the bend further inward.
+  const shoulder = 1 - 0.62 * clamp01(splay / 100);
+  const eps = 0.75;
+
+  for (let y = 0; y < h; y++) {
+    const py = y + 0.5 - hh;
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const px = x + 0.5 - hw;
+      let red = 128;
+      let blue = 128;
+      const raw = sdSuperRect(px, py, hw, hh, r, n);
+
+      if (raw > -t * 1.4 && raw < t) {
+        const gx =
+          sdSuperRect(px + eps, py, hw, hh, r, n) - sdSuperRect(px - eps, py, hw, hh, r, n);
+        const gy =
+          sdSuperRect(px, py + eps, hw, hh, r, n) - sdSuperRect(px, py - eps, hw, hh, r, n);
+        const glen = Math.hypot(gx, gy) || 1;
+        // The Lp norm overstates distance in the corners; dividing by the
+        // gradient length rescales it back to true pixels.
+        const dist = (raw * 2 * eps) / glen;
+
+        if (dist < 0.5) {
+          const u = clamp01(-dist / t);
+          const tilt = Math.asin(clamp01(1 - u));
+          const deviation = Math.tan(tilt - Math.asin(Math.sin(tilt) / IOR)) / MAX_DEVIATION;
+          // Snell's curve reaches zero with slope to spare, which would leave a
+          // visible crease where the band meets the flat centre. Smoothstep the
+          // inner third so both the offset and its gradient land at zero.
+          const k = clamp01((1 - u) / 0.35);
+          let m = Math.pow(clamp01(deviation), shoulder) * k * k * (3 - 2 * k);
+          // Feather the outermost pixel so the rim does not alias.
+          if (dist > -0.5) m *= clamp01(0.5 - dist);
+          red = Math.round(128 + 127 * (gx / glen) * m);
+          blue = Math.round(128 + 127 * (gy / glen) * m);
+        }
+      }
+
+      data[i] = red;
+      data[i + 1] = 128;
+      data[i + 2] = blue;
+      data[i + 3] = 255;
+    }
+  }
+
+  ctx.putImageData(image, 0, 0);
+  return canvas.toDataURL();
+}
+
+/**
+ * A CSS mask that fills the shape. WebKit clips a backdrop-filter by the mask
+ * but not by clip-path, so this is what carries the squircle through to the
+ * frost on Safari and iOS.
+ */
+function fillMask(w: number, h: number, path: string): string {
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">` +
+    `<path d="${path}" fill="#fff"/></svg>`;
+  return `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`;
+}
+
+/** A CSS mask that keeps only a band hugging the shape's outline. */
+function outlineMask(w: number, h: number, path: string, width: number, blur: number): string {
+  const stroke = (sw: number, opacity: number) =>
+    `<path d="${path}" fill="none" stroke="#fff" stroke-opacity="${opacity}" stroke-width="${sw.toFixed(
+      2
+    )}"/>`;
+  const body =
+    blur > 0
+      ? stroke(width, 0.28) + stroke(width * 0.55, 0.55) + stroke(width * 0.22, 1)
+      : stroke(width, 1);
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">` +
+    (blur > 0
+      ? `<defs><filter id="s" x="-50%" y="-50%" width="200%" height="200%">` +
+        `<feGaussianBlur stdDeviation="${blur.toFixed(2)}"/></filter></defs>` +
+        `<g filter="url(#s)">${body}</g>`
+      : body) +
+    `</svg>`;
+  return `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`;
+}
+
+/**
+ * Specular ring. A lit bevel flares where its normal faces the light, then
+ * again — more faintly — on the far arc where the light leaves the glass. That
+ * twin highlight is what makes Apple's edges read as a solid rim of material
+ * rather than a drawn border.
+ */
+function specularRing(angle: number, peak: number): string {
+  const stops: [number, number][] = [
+    [1, 0],
+    [0.34, 44],
+    [0.09, 88],
+    [0.28, 138],
+    [0.62, 180],
+    [0.28, 222],
+    [0.09, 272],
+    [0.34, 316],
+    [1, 360],
+  ];
+  const body = stops
+    .map(([k, deg]) => `rgba(255,255,255,${Math.min(1, peak * k).toFixed(3)}) ${deg}deg`)
+    .join(",");
+  return `conic-gradient(from ${angle + 90}deg at 50% 50%, ${body})`;
+}
+
+export function LiquidGlass({
+  children,
+  variant = "regular",
+  interactive = false,
+  tint: tintProp,
+  opacity = 100,
+  cornerRadius = 48,
+  cornerSmoothing = 100,
+  refraction = 100,
+  depth = 85,
+  dispersion: dispersionProp,
+  frost: frostProp,
+  splay = 38,
+  lightAngle = 45,
+  lightIntensity: lightIntensityProp,
+  borderWidth = 1,
+  elevation = 22,
+  layerClassName,
+  className,
+  style,
+}: LiquidGlassProps) {
+  const preset = VARIANTS[variant] ?? VARIANTS.regular;
+  const tint = tintProp ?? preset.tint;
+  const frost = frostProp ?? preset.frost;
+  const dispersion = dispersionProp ?? preset.dispersion;
+  const lightIntensity = lightIntensityProp ?? preset.lightIntensity;
+
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const [nativeCorners, setNativeCorners] = useState(false);
+  const [reduceTransparency, setReduceTransparency] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  const rawId = useId();
+  const filterId = `lg-${rawId.replace(/[^a-zA-Z0-9]/g, "")}`;
+
+  useEffect(() => {
+    setNativeCorners(
+      typeof CSS !== "undefined" &&
+        typeof CSS.supports === "function" &&
+        CSS.supports("corner-shape", "squircle")
+    );
+  }, []);
+
+  // Follows the system's Reduce Transparency and Reduce Motion settings, as
+  // Apple's own glass does.
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const queries = [
+      [window.matchMedia("(prefers-reduced-transparency: reduce)"), setReduceTransparency],
+      [window.matchMedia("(prefers-reduced-motion: reduce)"), setReduceMotion],
+    ] as const;
+    const cleanups = queries.map(([query, set]) => {
+      const update = () => set(query.matches);
+      update();
+      query.addEventListener("change", update);
+      return () => query.removeEventListener("change", update);
+    });
+    return () => cleanups.forEach((cleanup) => cleanup());
+  }, []);
+
+  useEffect(() => {
+    const el = hostRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      setSize((prev) => {
+        const next = { width: Math.round(width), height: Math.round(height) };
+        return prev.width === next.width && prev.height === next.height ? prev : next;
+      });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const { width, height } = size;
+  const measured = width > 1 && height > 1;
+  const superness = cornerSuperness(cornerSmoothing);
+  const exponent = Math.pow(2, superness);
+  // The bevel is a fixed slice of the smaller side, capped so large panels keep
+  // a rim instead of turning into one big lens.
+  const band = Math.max(2, (depth / 100) * Math.min(Math.min(width, height) * 0.18, 26));
+
+  const shape = useMemo(
+    () => (measured ? squirclePath(width, height, cornerRadius, exponent) : ""),
+    [measured, width, height, cornerRadius, exponent]
+  );
+
+  const map = useMemo(
+    () => (measured ? buildDisplacementMap(width, height, cornerRadius, band, splay, exponent) : ""),
+    [measured, width, height, cornerRadius, band, splay, exponent]
+  );
+
+  const ready = measured && map !== "";
+  // With Reduce Transparency on, the backdrop is frosted out rather than bent.
+  const refracting = ready && !reduceTransparency;
+  // feDisplacementMap moves a pixel by scale * (channel - 0.5) and the map only
+  // reaches 127/255 at the rim, so double the offset we actually want there.
+  const displacement = (refraction / 100) * band * 2;
+  const spread = (dispersion / 100) * 0.1;
+
+  const radians = (lightAngle * Math.PI) / 180;
+  const dirX = Math.cos(radians);
+  const dirY = Math.sin(radians);
+  const light = clamp01(lightIntensity / 100);
+  const bevel = Math.max(1, band * 0.42);
+
+  /**
+   * Mixing toward transparent scales the tint's alpha whatever form the colour
+   * takes — hex, rgb, oklch or a CSS variable. CSS `opacity` on the layer would
+   * fade the frost with it, and would also fight an opacity in layerClassName.
+   */
+  const tintAlpha = clamp01(opacity / 100);
+  const tintFill =
+    tintAlpha >= 1
+      ? tint
+      : `color-mix(in srgb, ${tint} ${(tintAlpha * 100).toFixed(1)}%, transparent)`;
+  // Keeps the tint's hue but lifts it to near-opaque, so content stays legible.
+  const surfaceFill = reduceTransparency ? `rgb(from ${tint} r g b / max(alpha, 0.85))` : tintFill;
+  const frostFilter = reduceTransparency
+    ? "blur(30px) saturate(1.2)"
+    : `blur(${frost}px) saturate(1.55)`;
+
+  const clip: CSSProperties = shape
+    ? { clipPath: `path("${shape}")`, WebkitClipPath: `path("${shape}")` }
+    : {};
+
+  /**
+   * A backdrop-filter is clipped by the border box and its corners, and the
+   * squircle reaches it through corner-shape. With that, every layer, its
+   * shadows and its filtered backdrop all land on one outline.
+   *
+   * Without it, a circular border-radius would cut the squircle's corners off,
+   * so the fallback squares the box and clips with the path instead.
+   */
+  const corners: CSSProperties = nativeCorners
+    ? ({
+        borderRadius: cornerRadius,
+        cornerShape: `superellipse(${superness.toFixed(3)})`,
+      } as CSSProperties)
+    : { borderRadius: shape ? 0 : "inherit", ...clip };
+
+  /**
+   * clip-path never reaches a backdrop in WebKit, so the fallback also masks
+   * the two filtered layers with the filled shape — the one clip Safari and
+   * iOS do apply to a backdrop-filter. Without it the frost stays a rectangle
+   * and the panel reads square-cornered however smooth the outline is.
+   */
+  const backdropCorners: CSSProperties = useMemo(() => {
+    if (nativeCorners || !shape) return {};
+    const mask = fillMask(width, height, shape);
+    return {
+      maskImage: mask,
+      WebkitMaskImage: mask,
+      maskSize: "100% 100%",
+      WebkitMaskSize: "100% 100%",
+      maskRepeat: "no-repeat",
+      WebkitMaskRepeat: "no-repeat",
+    };
+  }, [nativeCorners, shape, width, height]);
+
+  /**
+   * Shadows are shaped by a radius rather than clipped by a path, so the
+   * fallback hands them the circular radius whose corner crosses the
+   * superellipse's own diagonal point. It hugs the squircle instead of
+   * pinching inside it, which is what left a gap in the corners of the bevel.
+   */
+  const shadowRadius = nativeCorners
+    ? cornerRadius
+    : cornerRadius * ((1 - Math.pow(0.5, 1 / exponent)) / (1 - Math.SQRT1_2));
+
+  /** Shapes an inset or drop shadow, which a radius forms rather than clips. */
+  const shadowCorners: CSSProperties = nativeCorners
+    ? ({
+        borderRadius: cornerRadius,
+        cornerShape: `superellipse(${superness.toFixed(3)})`,
+      } as CSSProperties)
+    : { borderRadius: shadowRadius };
+
+  const layer: CSSProperties = {
+    position: "absolute",
+    inset: 0,
+    pointerEvents: "none",
+    ...corners,
+  };
+
+  const maskLayer = (maskWidth: number, blur: number, peak: number): CSSProperties => {
+    const mask = outlineMask(width, height, shape, maskWidth, blur);
+    return {
+      ...layer,
+      background: specularRing(lightAngle, peak),
+      maskImage: mask,
+      WebkitMaskImage: mask,
+      maskSize: "100% 100%",
+      WebkitMaskSize: "100% 100%",
+      maskRepeat: "no-repeat",
+      WebkitMaskRepeat: "no-repeat",
+    };
+  };
+
+  /**
+   * The pointer position is written straight to CSS variables so tracking it
+   * never re-renders — and never rebuilds the masks.
+   */
+  const track = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const el = hostRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    el.style.setProperty("--lg-x", `${(((event.clientX - rect.left) / rect.width) * 100).toFixed(2)}%`);
+    el.style.setProperty("--lg-y", `${(((event.clientY - rect.top) / rect.height) * 100).toFixed(2)}%`);
+  };
+
+  const pointerHandlers = interactive
+    ? {
+        onPointerEnter: (event: ReactPointerEvent<HTMLDivElement>) => {
+          track(event);
+          setHovered(true);
+        },
+        onPointerMove: track,
+        onPointerLeave: () => {
+          setHovered(false);
+          setPressed(false);
+        },
+        onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => {
+          track(event);
+          setPressed(true);
+        },
+        onPointerUp: () => setPressed(false),
+        onPointerCancel: () => setPressed(false),
+      }
+    : {};
+
+  const glowStrength = pressed ? 1 : hovered ? 0.45 : 0;
+  const glowRadius = Math.max(width, height) * 0.75;
+  const glow = (alpha: number) =>
+    `radial-gradient(${glowRadius.toFixed(0)}px circle at var(--lg-x, 50%) var(--lg-y, 50%), ` +
+    `rgba(255,255,255,${alpha.toFixed(3)}), rgba(255,255,255,0) 70%)`;
+  const glowTransition = reduceMotion ? undefined : "opacity 0.35s ease";
+
+  const motion: CSSProperties = interactive
+    ? {
+        scale: pressed && !reduceMotion ? String(PRESS_SCALE) : "1",
+        transition: reduceMotion ? undefined : `scale 0.5s ${SPRING}`,
+        touchAction: "manipulation",
+      }
+    : {};
+
+  return (
+    <div
+      ref={hostRef}
+      className={className}
+      {...pointerHandlers}
+      style={{
+        position: "relative",
+        ...shadowCorners,
+        borderRadius: cornerRadius,
+        ...motion,
+        ...style,
+      }}
+    >
+      {refracting && (
+        <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
+          <defs>
+            <filter
+              id={filterId}
+              x="0%"
+              y="0%"
+              width="100%"
+              height="100%"
+              colorInterpolationFilters="sRGB"
+            >
+              <feImage
+                href={map}
+                x="0"
+                y="0"
+                width={width}
+                height={height}
+                preserveAspectRatio="none"
+                result="map"
+              />
+              <feDisplacementMap
+                in="SourceGraphic"
+                in2="map"
+                scale={displacement * (1 + spread)}
+                xChannelSelector="R"
+                yChannelSelector="B"
+                result="dR"
+              />
+              <feColorMatrix
+                in="dR"
+                type="matrix"
+                values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0"
+                result="cR"
+              />
+              <feDisplacementMap
+                in="SourceGraphic"
+                in2="map"
+                scale={displacement}
+                xChannelSelector="R"
+                yChannelSelector="B"
+                result="dG"
+              />
+              <feColorMatrix
+                in="dG"
+                type="matrix"
+                values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0"
+                result="cG"
+              />
+              <feDisplacementMap
+                in="SourceGraphic"
+                in2="map"
+                scale={displacement * (1 - spread)}
+                xChannelSelector="R"
+                yChannelSelector="B"
+                result="dB"
+              />
+              <feColorMatrix
+                in="dB"
+                type="matrix"
+                values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0"
+                result="cB"
+              />
+              <feBlend in="cR" in2="cG" mode="screen" result="rg" />
+              <feBlend in="rg" in2="cB" mode="screen" result="rgb" />
+              {/* Smooths the 8-bit steps in the map without softening the panel. */}
+              <feGaussianBlur in="rgb" stdDeviation="0.35" />
+            </filter>
+          </defs>
+        </svg>
+      )}
+
+      {/* lift off the backdrop */}
+      {elevation > 0 && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: 0,
+            ...shadowCorners,
+            pointerEvents: "none",
+            boxShadow: [
+              `0 ${(elevation * 0.45).toFixed(1)}px ${(elevation * 1.15).toFixed(1)}px ${(
+                -elevation * 0.35
+              ).toFixed(1)}px rgba(0,0,0,0.28)`,
+              `0 ${(elevation * 0.12).toFixed(1)}px ${(elevation * 0.3).toFixed(1)}px ${(
+                -elevation * 0.1
+              ).toFixed(1)}px rgba(0,0,0,0.18)`,
+              // A wide, faint ambient pool — Apple's glass floats rather than casts.
+              `0 ${(elevation * 0.9).toFixed(1)}px ${(elevation * 2.8).toFixed(1)}px ${(
+                -elevation * 0.4
+              ).toFixed(1)}px rgba(0,0,0,0.12)`,
+            ].join(", "),
+          }}
+        />
+      )}
+
+      {/* refraction */}
+      <div
+        aria-hidden="true"
+        className={layerClassName}
+        style={{
+          ...layer,
+          ...backdropCorners,
+          backdropFilter: refracting ? `url(#${filterId})` : undefined,
+          WebkitBackdropFilter: refracting ? `url(#${filterId})` : undefined,
+        }}
+      />
+
+      {/* frost + tint */}
+      <div
+        aria-hidden="true"
+        className={layerClassName}
+        style={{
+          ...layer,
+          ...backdropCorners,
+          background: surfaceFill,
+          backdropFilter: frostFilter,
+          WebkitBackdropFilter: frostFilter,
+        }}
+      />
+
+      {/* gloss — the faint top-down sheen of a lit glass face, coming from the
+          same side as the specular highlight */}
+      {light > 0 && (
+        <div
+          aria-hidden="true"
+          className={layerClassName}
+          style={{
+            ...layer,
+            background: `linear-gradient(${lightAngle + 90}deg, rgba(255,255,255,${(
+              0.14 * light
+            ).toFixed(3)}) 0%, rgba(255,255,255,0) 55%)`,
+          }}
+        />
+      )}
+
+      {/* touch glow — light gathering on the face under the pointer */}
+      {interactive && measured && (
+        <div
+          aria-hidden="true"
+          className={layerClassName}
+          style={{
+            ...layer,
+            background: glow(0.16),
+            opacity: glowStrength,
+            transition: glowTransition,
+          }}
+        />
+      )}
+
+      {/* bevel shading. An inset shadow is shaped by the radius rather than
+          clipped by it, so this layer keeps one even in the fallback — there it
+          curves with a circular corner instead of running into the raw box. */}
+      <div
+        aria-hidden="true"
+        className={layerClassName}
+        style={{
+          ...layer,
+          ...shadowCorners,
+          boxShadow: [
+            `inset ${(dirX * bevel).toFixed(2)}px ${(dirY * bevel).toFixed(2)}px ${(
+              bevel * 1.15
+            ).toFixed(2)}px ${(-bevel * 0.45).toFixed(2)}px rgba(255,255,255,${(
+              0.3 * light
+            ).toFixed(3)})`,
+            `inset ${(-dirX * bevel).toFixed(2)}px ${(-dirY * bevel).toFixed(2)}px ${(
+              bevel * 1.15
+            ).toFixed(2)}px ${(-bevel * 0.6).toFixed(2)}px rgba(255,255,255,${(
+              0.12 * light
+            ).toFixed(3)})`,
+            `inset 0 0 ${(bevel * 0.9).toFixed(2)}px rgba(0,0,0,${(0.1 * light).toFixed(3)})`,
+          ].join(", "),
+        }}
+      />
+
+      {/* the lit bevel — a soft specular band following the outline */}
+      {ready && band > 2 && (
+        <div
+          aria-hidden="true"
+          className={layerClassName}
+          style={maskLayer(band * 1.2, band * 0.3, 0.24 * light)}
+        />
+      )}
+
+      {/* crisp rim stroke, drawn inside the outline */}
+      {ready && borderWidth > 0 && (
+        <div
+          aria-hidden="true"
+          className={layerClassName}
+          style={maskLayer(borderWidth * 2, 0, 0.95 * light)}
+        />
+      )}
+
+      {/* the rim catching the touch — brightest where the pointer is nearest */}
+      {interactive && ready && (
+        <div
+          aria-hidden="true"
+          className={layerClassName}
+          style={{
+            ...maskLayer(Math.max(borderWidth * 2, band * 0.8), band * 0.2, 0),
+            background: glow(0.85),
+            opacity: glowStrength,
+            transition: glowTransition,
+          }}
+        />
+      )}
+
+      <div style={{ position: "relative" }}>{children}</div>
+    </div>
+  );
+}
+
+export default LiquidGlass;

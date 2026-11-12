@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { LatarLiquid } from "@/components/ui/latar-liquid";
+import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { db } from "@/lib/db";
 import { bacaStatusAbsensi } from "@/lib/domain";
 import { wajibLogin } from "@/lib/session";
@@ -77,6 +79,7 @@ export default async function KaryawanAbsenPage() {
 
   return (
     <>
+      <LatarLiquid />
       <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-sm text-muted">{sapaan(menitLokal())},</p>
@@ -107,7 +110,12 @@ export default async function KaryawanAbsenPage() {
         </Link>
       </header>
 
-      <section className="mt-5 rounded-xl border border-line bg-paper p-4">
+      <LiquidGlass
+        variant="regular"
+        tint="rgba(255, 255, 255, 0.6)"
+        cornerRadius={24}
+        className="mt-5 p-4"
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-wide text-muted">
@@ -158,10 +166,15 @@ export default async function KaryawanAbsenPage() {
             </dd>
           </div>
         </dl>
-      </section>
+      </LiquidGlass>
 
       {shift?.mode === "fleksibel" && jumlahCycle > 0 ? (
-        <section className="mt-3 rounded-xl border border-line bg-paper p-4">
+        <LiquidGlass
+          variant="regular"
+          tint="rgba(255, 255, 255, 0.6)"
+          cornerRadius={24}
+          className="mt-3 p-4"
+        >
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-medium">Cycle hari ini</p>
             <p className="text-xs tabular-nums text-muted">{jumlahCycle}/{maksimalCycle} digunakan · {formatDurasi(totalMenit)}</p>
@@ -176,16 +189,20 @@ export default async function KaryawanAbsenPage() {
               </li>
             ))}
           </ul>
-        </section>
+        </LiquidGlass>
       ) : null}
 
       {mode === "masuk" && alasanMasukDitolak ? (
-        <p
-          role="status"
-          className="mt-5 rounded-2xl border border-line bg-paper px-6 py-6 text-center text-sm text-muted"
+        <LiquidGlass
+          variant="regular"
+          tint="rgba(255, 255, 255, 0.6)"
+          cornerRadius={24}
+          className="mt-5 px-6 py-6"
         >
-          {alasanMasukDitolak}
-        </p>
+          <p role="status" className="text-center text-sm text-muted">
+            {alasanMasukDitolak}
+          </p>
+        </LiquidGlass>
       ) : (
         <TombolAbsen
           mode={mode}

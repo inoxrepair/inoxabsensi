@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { AnimasiCheck } from "@/components/ui/animasi-check";
+import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { absenKeluar, absenMasuk, type HasilAbsen } from "./actions";
 import {
   bunyiCheck,
@@ -52,12 +53,17 @@ export function TombolAbsen({
   if (mode === "selesai") {
     return (
       <>
-        <div className="mt-5 rounded-2xl border border-line bg-paper px-6 py-6 text-center">
-          <p className="font-medium">Absensi hari ini selesai</p>
-          <p className="mt-1 text-sm text-muted">
+        <LiquidGlass
+          variant="regular"
+          tint="rgba(255, 255, 255, 0.6)"
+          cornerRadius={24}
+          className="mt-5 px-6 py-6"
+        >
+          <p className="text-center font-medium">Absensi hari ini selesai</p>
+          <p className="mt-1 text-center text-sm text-muted">
             Terima kasih, tidak ada tindakan lain yang diperlukan.
           </p>
-        </div>
+        </LiquidGlass>
         <Pesan hasil={hasil} />
       </>
     );
@@ -148,20 +154,28 @@ export function TombolAbsen({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={bukaKonfirmasi}
-        disabled={sibuk}
-        className="mt-5 w-full rounded-2xl bg-ink px-6 py-6 text-lg font-semibold text-paper disabled:opacity-40"
+      <LiquidGlass
+        interactive
+        variant="regular"
+        tint="rgba(17, 17, 17, 0.85)"
+        cornerRadius={24}
+        className="mt-5"
       >
-        {mengambilLokasi
-          ? "Mendeteksi lokasi…"
-          : mengirim
-            ? "Menyimpan…"
-            : mode === "masuk"
-              ? cycleKe > 1 ? `Absen Masuk Cycle ${cycleKe}` : "Absen Masuk"
-              : "Absen Keluar"}
-      </button>
+        <button
+          type="button"
+          onClick={bukaKonfirmasi}
+          disabled={sibuk}
+          className="w-full bg-transparent px-6 py-6 text-lg font-semibold text-white disabled:opacity-40"
+        >
+          {mengambilLokasi
+            ? "Mendeteksi lokasi…"
+            : mengirim
+              ? "Menyimpan…"
+              : mode === "masuk"
+                ? cycleKe > 1 ? `Absen Masuk Cycle ${cycleKe}` : "Absen Masuk"
+                : "Absen Keluar"}
+        </button>
+      </LiquidGlass>
       {konfirmasi ? (
         <div className="fixed inset-0 z-20 grid place-items-center bg-ink/40 p-4" role="dialog" aria-modal="true" aria-labelledby="konfirmasi-absen">
           <div className="w-full max-w-sm rounded-2xl border border-line bg-paper p-5 shadow-xl">

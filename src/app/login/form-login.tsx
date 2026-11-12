@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { masuk, masukGoogle, type StatusLogin } from "./actions";
 
 export function FormLogin({
@@ -33,7 +34,7 @@ export function FormLogin({
             placeholder="username atau nama@inox.co.id"
             aria-invalid={status ? true : undefined}
             aria-describedby={status ? "galat-login" : undefined}
-            className="mt-1.5 w-full rounded-xl border border-line bg-paper px-3.5 py-3 text-base placeholder:text-muted/70"
+            className="mt-1.5 w-full rounded-xl border border-white/70 bg-white/65 px-3.5 py-3 text-base backdrop-blur-md placeholder:text-muted/70"
           />
         </div>
 
@@ -50,7 +51,7 @@ export function FormLogin({
             placeholder="••••••••"
             aria-invalid={status ? true : undefined}
             aria-describedby={status ? "galat-login" : undefined}
-            className="mt-1.5 w-full rounded-xl border border-line bg-paper px-3.5 py-3 text-base placeholder:text-muted/70"
+            className="mt-1.5 w-full rounded-xl border border-white/70 bg-white/65 px-3.5 py-3 text-base backdrop-blur-md placeholder:text-muted/70"
           />
         </div>
 
@@ -64,13 +65,20 @@ export function FormLogin({
           </p>
         ) : null}
 
-        <button
-          type="submit"
-          disabled={sedangKirim}
-          className="w-full rounded-xl bg-ink px-4 py-3 text-sm font-medium text-paper disabled:opacity-40"
+        <LiquidGlass
+          interactive
+          variant="regular"
+          tint="rgba(17, 17, 17, 0.85)"
+          cornerRadius={16}
         >
-          {sedangKirim ? "Memproses…" : "Masuk"}
-        </button>
+          <button
+            type="submit"
+            disabled={sedangKirim}
+            className="w-full bg-transparent px-4 py-3 text-sm font-medium text-white disabled:opacity-40"
+          >
+            {sedangKirim ? "Memproses…" : "Masuk"}
+          </button>
+        </LiquidGlass>
       </form>
 
       {googleAktif ? (
@@ -82,10 +90,16 @@ export function FormLogin({
           </div>
 
           <form action={masukGoogle} className="mt-4">
-            <button
-              type="submit"
-              className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-line bg-paper px-4 py-3 text-sm font-medium"
+            <LiquidGlass
+              interactive
+              variant="regular"
+              tint="rgba(255, 255, 255, 0.55)"
+              cornerRadius={16}
             >
+              <button
+                type="submit"
+                className="flex w-full items-center justify-center gap-2.5 bg-transparent px-4 py-3 text-sm font-medium"
+              >
               <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
                 <path
                   fill="#4285F4"
@@ -105,7 +119,8 @@ export function FormLogin({
                 />
               </svg>
               Masuk dengan Google
-            </button>
+              </button>
+            </LiquidGlass>
           </form>
         </>
       ) : null}
