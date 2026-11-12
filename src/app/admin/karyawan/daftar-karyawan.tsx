@@ -263,6 +263,12 @@ function FormKaryawan({
   const [role, setRole] = useState<RoleKaryawan>(
     awal?.role ?? (adminRole === "super_admin" ? "karyawan" : "karyawan"),
   );
+  // Reset password harus dicentang dulu saat edit: kolom password dalam
+  // keadaan mati tidak bisa terisi otomatis oleh browser, dan server juga
+  // mengabaikan isinya bila tidak dicentang — jadi pindah cabang tidak
+  // bisa diam-diam mengganti password karyawan.
+  const [resetPassword, setResetPassword] = useState(false);
+  const [password, setPassword] = useState("");
   const namaRef = useRef<HTMLInputElement>(null);
   useEffect(() => namaRef.current?.focus(), []);
 
@@ -347,15 +353,34 @@ function FormKaryawan({
           </select>
           {role === "super_admin" ? <input type="hidden" name="cabangId" value="" /> : null}
         </Field>
-        <Field label={awal ? "Reset password (kosongkan jika tidak diubah)" : "Password"}>
+        <Field label={awal ? "Reset password" : "Password"}>
           <input
             name="password"
             type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             minLength={8}
             required={!awal}
+            disabled={Boolean(awal) && !resetPassword}
             autoComplete="new-password"
-            className={INPUT}
+            placeholder={awal ? "Mati bila tidak direset" : undefined}
+            className={`${INPUT} disabled:bg-surface disabled:text-muted`}
           />
+          {awal ? (
+            <span className="mt-1.5 flex items-center gap-2 text-sm text-ink">
+              <input
+                type="checkbox"
+                name="resetPassword"
+                checked={resetPassword}
+                onChange={(e) => {
+                  setResetPassword(e.target.checked);
+                  if (!e.target.checked) setPassword("");
+                }}
+                className="size-4 accent-ink"
+              />
+              Reset password karyawan ini
+            </span>
+          ) : null}
         </Field>
         <div className="flex items-end pb-2">
           <label className="flex items-center gap-2 text-sm">

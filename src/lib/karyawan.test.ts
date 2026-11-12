@@ -55,8 +55,20 @@ describe("validasiKaryawan", () => {
     expect(validasiKaryawan(form({ password: "" }), false).success).toBe(true);
   });
 
-  it("password baru minimal 8 karakter", () => {
-    expect(pesan({ password: "pendek" }, false)).toMatch(/minimal 8/);
+  it("password baru minimal 8 karakter bila reset dicentang", () => {
+    expect(pesan({ password: "pendek", resetPassword: "on" }, false)).toMatch(
+      /minimal 8/,
+    );
+  });
+
+  it("password terisi tanpa centang reset saat edit tidak ditolak validasi (server mengabaikannya)", () => {
+    const h = validasiKaryawan(form({ password: "pendek" }), false);
+    expect(h.success).toBe(true);
+    if (h.success) expect(h.data.resetPassword).toBe(false);
+  });
+
+  it("password pendek tetap ditolak saat membuat akun", () => {
+    expect(pesan({ password: "pendek" }, true)).toMatch(/Password wajib/);
   });
 
   it("menolak email tidak valid", () => {

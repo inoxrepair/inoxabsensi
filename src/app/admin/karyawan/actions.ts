@@ -73,13 +73,28 @@ export async function simpanKaryawan(
     aktif: data.aktif,
   };
 
+  // Login lama dipakai untuk pesan: bila username/email berubah, karyawan
+  // harus diberitahu karena login lamanya tidak berlaku lagi.
+  const lama = id
+    ? await db.user.findUnique({
+        where: { id },
+        select: { username: true, email: true },
+      })
+    : null;
+  // Password hanya diganti bila reset dicentang eksplisit. Isi kolom
+  // password tanpa centang (mis. terisi otomatis browser saat admin hanya
+  // memindahkan cabang) diabaikan, supaya password lama tetap berlaku.
+  const resetPassword = Boolean(id && data.resetPassword && data.password);
+
   try {
   if (id) {
       await db.user.update({
         where: { id },
         data: {
           ...dasar,
-          ...(data.password ? { passwordHash: await hash(data.password, 10) } : {}),
+          ...(resetPassword
+            ? { passwordHash: await hash(data.password, 10) }
+            : {}),
         },
       });
     } else {
@@ -106,9 +121,28 @@ export async function simpanKaryawan(
   }
 
   segarkan();
+  if (!id) {
+    return { ok: true, pesan: `Akun ${data.name} dibuat.` };
+  }
+  const catatan: string[] = [];
+  if (resetPassword) {
+    catatan.push(
+      "Password karyawan sudah direset — sampaikan password baru ke karyawan.",
+    );
+  }
+  if (
+    lama &&
+    (lama.username !== data.username || lama.email !== data.email)
+  ) {
+    catatan.push(
+      `Login karyawan kini memakai username ${data.username} / email ${data.email}.`,
+    );
+  }
   return {
     ok: true,
-    pesan: id ? "Data karyawan tersimpan." : `Akun ${data.name} dibuat.`,
+    pesan:
+      "Data karyawan tersimpan." +
+      (catatan.length ? ` ${catatan.join(" ")}` : ""),
   };
 }
 

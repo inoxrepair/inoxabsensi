@@ -42,9 +42,19 @@ export const karyawanSkema = z
       .transform((v) => v === "on" || v === "true"),
     // Saat edit, kosong berarti password lama dipertahankan.
     password: z.string().optional().transform((v) => v?.trim() ?? ""),
+    // Saat edit, password hanya diganti bila admin mencentang reset.
+    // Tanpa centang ini, isi apa pun di kolom password (mis. terisi
+    // otomatis oleh browser) wajib diabaikan server, supaya pindah
+    // cabang / ubah data lain tidak diam-diam mengganti password.
+    resetPassword: z
+      .string()
+      .optional()
+      .transform((v) => v === "on" || v === "true"),
   })
   .superRefine((data, ctx) => {
-    if (data.password && data.password.length < 8) {
+    // Panjang password hanya diperiksa bila reset memang diminta (atau
+    // saat membuat akun, yang ditangani pemeriksaan membuat di bawah).
+    if (data.resetPassword && data.password && data.password.length < 8) {
       ctx.addIssue({
         code: "custom",
         path: ["password"],
