@@ -17,6 +17,13 @@ export const authConfig = {
         token.cabangId = user.cabangId;
         token.jabatan = user.jabatan;
       }
+      // Foto profil JANGAN ikut ke token: Auth.js menyalin user.image
+      // (data URL base64, puluhan–ratusan KB) ke token.picture, lalu token
+      // itu di-encode jadi cookie sesi. Cookie sebesar itu ditolak Nginx
+      // (header melebihi proxy buffer) sehingga login yang berhasil
+      // dibalas 502 — user yang punya foto tidak bisa login segar.
+      // Foto tetap diambil dari DB saat render halaman, bukan dari sesi.
+      delete token.picture;
       return token;
     },
     session({ session, token }) {

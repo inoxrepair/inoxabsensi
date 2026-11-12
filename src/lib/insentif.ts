@@ -11,9 +11,37 @@
  * Payroll; kolom Payroll.insentif sudah dihapus.
  */
 
+import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { formatTanggal } from "@/lib/format";
 import { periodeValid, rentangPeriodeGajian, tanggalValid } from "@/lib/rekap";
+
+/**
+ * Akses tabel Insentif / PemetaanInsentif sengaja lewat SQL mentah, bukan
+ * delegate Prisma: delegate baru tersedia setelah `prisma generate`
+ * dijalankan ulang, sedangkan generate di VM ini gagal mengunduh engine
+ * (jaringan proxy). Tabelnya tetap didefinisikan di schema Prisma +
+ * migrasi Postgres, jadi delegate bisa dipakai nanti setelah generate
+ * berhasil (mis. saat build di VPS). SQL di sini kompatibel dengan
+ * Postgres (produksi) maupun SQLite (dev lokal).
+ */
+
+/** Satu baris tabel Insentif, sesuai model di schema Prisma. */
+export type BarisInsentif = {
+  id: string;
+  userId: string;
+  periode: string;
+  jumlah: number;
+  jumlahTransaksi: number;
+  tanggalAwal: string | null;
+  tanggalAkhir: string | null;
+  sinkronPada: Date;
+};
+
+/** Baris Insentif beserta data user pemiliknya (seperti include user). */
+export type BarisInsentifDenganUser = BarisInsentif & {
+  user: { id: string; name: string; username: string | null };
+};
 
 /** Normalisasi nama untuk pencocokan: huruf kecil, buang semua spasi/simbol. */
 export function normalisasiNama(nama: string): string {
@@ -342,9 +370,9 @@ export async function jalankanSinkronInsentif(
     select: { id: true, name: true },
     where: { aktif: true },
   });
-  const pemetaan = await db.pemetaanInsentif.findMany({
-    select: { namaKunci: true, userId: true },
-  });
+  const pemetaan = await db.$queryRaw<{ namaKunci: string; userId: string }[]>`
+    SELECT "namaKunci", "userId" FROM "PemetaanInsentif"
+  `;
 
   // 5. Group data insentif per user (tanggal disimpan sebagai yyyy-mm-dd)
   const perUser = new Map<
@@ -419,48 +447,82 @@ export async function simpanInsentifPeriode({
   jumlahTransaksi: number;
   tanggalAwal?: string | null;
   tanggalAkhir?: string | null;
-}) {
+}): Promise<BarisInsentif | null> {
   if (!periodeValid(periode)) {
     throw new Error("Periode tidak valid.");
   }
 
-  return db.insentif.upsert({
-    where: { userId_periode: { userId, periode } },
-    update: {
-      jumlah,
-      jumlahTransaksi,
-      tanggalAwal,
-      tanggalAkhir,
-      sinkronPada: new Date(),
-    },
-    create: {
-      userId,
-      periode,
-      jumlah,
-      jumlahTransaksi,
-      tanggalAwal,
-      tanggalAkhir,
-    },
-  });
+  // Upsert lewat SQL mentah (lihat catatan di atas): update dulu, insert
+  // bila belum ada — cara ini jalan di Postgres maupun SQLite tanpa
+  // ON CONFLICT (preseden: simpanLogoAplikasi di logo-actions.ts).
+  const diubah = await db.$executeRaw`
+    UPDATE "Insentif"
+    SET "jumlah" = ${jumlah},
+      "jumlahTransaksi" = ${jumlahTransaksi},
+      "tanggalAwal" = ${tanggalAwal ?? null},
+      "tanggalAkhir" = ${tanggalAkhir ?? null},
+      "sinkronPada" = CURRENT_TIMESTAMP
+    WHERE "userId" = ${userId} AND "periode" = ${periode}
+  `;
+  if (diubah === 0) {
+    await db.$executeRaw`
+      INSERT INTO "Insentif" ("id", "userId", "periode", "jumlah", "jumlahTransaksi", "tanggalAwal", "tanggalAkhir")
+      VALUES (${randomUUID()}, ${userId}, ${periode}, ${jumlah}, ${jumlahTransaksi}, ${tanggalAwal ?? null}, ${tanggalAkhir ?? null})
+    `;
+  }
+  return ambilInsentifUserPeriode(userId, periode);
 }
 
 /** Ambil insentif satu user untuk periode tertentu. */
 export async function ambilInsentifUserPeriode(
   userId: string,
   periode: string,
-) {
-  return db.insentif.findUnique({
-    where: { userId_periode: { userId, periode } },
-  });
+): Promise<BarisInsentif | null> {
+  const rows = await db.$queryRaw<BarisInsentif[]>`
+    SELECT "id", "userId", "periode", "jumlah", "jumlahTransaksi",
+      "tanggalAwal", "tanggalAkhir", "sinkronPada"
+    FROM "Insentif"
+    WHERE "userId" = ${userId} AND "periode" = ${periode}
+  `;
+  return rows[0] ?? null;
 }
 
 /** Ambil semua insentif untuk periode (admin/super_admin lihat semua). */
-export async function ambilSemuaInsentifPeriode(periode: string) {
-  return db.insentif.findMany({
-    where: { periode },
-    include: { user: { select: { id: true, name: true, username: true } } },
-    orderBy: { user: { name: "asc" } },
-  });
+export async function ambilSemuaInsentifPeriode(
+  periode: string,
+): Promise<BarisInsentifDenganUser[]> {
+  const rows = await db.$queryRaw<{
+    id: string;
+    userId: string;
+    periode: string;
+    jumlah: number;
+    jumlahTransaksi: number;
+    tanggalAwal: string | null;
+    tanggalAkhir: string | null;
+    sinkronPada: Date;
+    user_id: string;
+    user_name: string;
+    user_username: string | null;
+  }[]>`
+    SELECT i."id", i."userId", i."periode", i."jumlah", i."jumlahTransaksi",
+      i."tanggalAwal", i."tanggalAkhir", i."sinkronPada",
+      u."id" AS "user_id", u."name" AS "user_name", u."username" AS "user_username"
+    FROM "Insentif" i
+    JOIN "User" u ON u."id" = i."userId"
+    WHERE i."periode" = ${periode}
+    ORDER BY u."name" ASC
+  `;
+  return rows.map((r) => ({
+    id: r.id,
+    userId: r.userId,
+    periode: r.periode,
+    jumlah: r.jumlah,
+    jumlahTransaksi: r.jumlahTransaksi,
+    tanggalAwal: r.tanggalAwal,
+    tanggalAkhir: r.tanggalAkhir,
+    sinkronPada: r.sinkronPada,
+    user: { id: r.user_id, name: r.user_name, username: r.user_username },
+  }));
 }
 
 /** Hitung THP dengan menambahkan insentif dari payroll. */
