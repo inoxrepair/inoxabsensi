@@ -114,7 +114,7 @@ export function FormRentang({
 
   return (
     <>
-    <form onSubmit={kirim} className="mb-4 rounded-xl border border-ink bg-paper p-4">
+    <form onSubmit={kirim} className="mb-4 rounded-2xl border border-ink bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
       <p className="text-sm font-semibold">Terapkan shift massal</p>
       <p className="mt-1 text-xs text-muted">
         Aksi ini mengubah jadwal karyawan terpilih pada seluruh tanggal.

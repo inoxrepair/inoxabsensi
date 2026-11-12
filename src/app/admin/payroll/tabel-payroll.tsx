@@ -39,7 +39,7 @@ export function TabelPayroll({
 
   if (baris.length === 0) {
     return (
-      <p className="rounded-xl border border-dashed border-line bg-paper p-8 text-center text-sm text-muted">
+      <p className="rounded-xl border border-dashed border-white/70 dark:border-white/15 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-8 text-center text-sm text-muted">
         Belum ada karyawan aktif pada lingkup ini.
       </p>
     );
@@ -60,7 +60,7 @@ export function TabelPayroll({
         </p>
       ) : null}
 
-      <div className="overflow-x-auto rounded-xl border border-line bg-paper">
+      <div className="overflow-x-auto rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
         <table className="w-full min-w-[980px] text-sm">
           <caption className="sr-only">Payroll editable per karyawan</caption>
           <thead>
@@ -162,7 +162,7 @@ function Baris({
             inputMode="numeric"
             value={nilai[key]}
             onChange={(e) => setNilai((n) => ({ ...n, [key]: e.target.value }))}
-            className="w-32 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-right tabular-nums"
+            className="w-32 rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-right tabular-nums"
           />
         </td>
       ))}

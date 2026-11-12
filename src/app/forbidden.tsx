@@ -16,7 +16,7 @@ export default function Forbidden() {
       </p>
       <Link
         href="/"
-        className="mt-6 rounded-xl border border-line bg-paper px-4 py-3 text-sm font-medium"
+        className="mt-6 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 px-4 py-3 text-sm font-medium shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl"
       >
         Kembali
       </Link>

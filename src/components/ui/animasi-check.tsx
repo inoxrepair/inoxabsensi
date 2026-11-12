@@ -17,7 +17,7 @@ export function AnimasiCheck({
       role="status"
       aria-live="polite"
     >
-      <div className="flex flex-col items-center gap-3 rounded-2xl bg-paper px-8 py-7 shadow-xl">
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 px-8 py-7 shadow-xl backdrop-blur-xl">
         <span className="inox-lingkaran-check grid size-20 place-items-center rounded-full bg-status-hadir/15">
           <svg
             viewBox="0 0 24 24"

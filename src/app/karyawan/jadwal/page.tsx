@@ -37,7 +37,7 @@ export default async function KaryawanJadwalPage() {
         Minggu {formatTanggal(senin)} – {formatTanggal(minggu[6])}
       </p>
 
-      <ul className="mt-5 divide-y divide-line rounded-xl border border-line bg-paper">
+      <ul className="mt-5 divide-y divide-line rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
         {minggu.map((tgl) => {
           const j = perTanggal.get(tgl);
           const iniHariIni = tgl === hariIni;

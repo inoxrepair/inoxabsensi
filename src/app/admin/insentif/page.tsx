@@ -132,7 +132,7 @@ export default async function AdminInsentifPage({
             </tbody>
           </table>
         ) : (
-          <div className="rounded-xl border border-line bg-paper p-6">
+          <div className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-6">
             <h2 className="text-sm font-semibold mb-2">
               Insentif Tim Cabang - {labelPeriode(periode)}
             </h2>
@@ -209,7 +209,7 @@ export default async function AdminInsentifPage({
       </div>
 
       {superAdmin ? (
-        <div className="mt-8 rounded-xl border border-line bg-paper p-4">
+        <div className="mt-8 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
           <h2 className="text-sm font-semibold mb-1">
             Pemetaan Nama iNOX → Akun ({pemetaan.length})
           </h2>
@@ -242,7 +242,7 @@ export default async function AdminInsentifPage({
                         <input type="hidden" name="id" value={p.id} />
                         <button
                           type="submit"
-                          className="rounded border bg-paper px-2 py-1 text-sm hover:bg-muted transition"
+                          className="rounded border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-xl px-2 py-1 text-sm hover:bg-muted transition"
                         >
                           Hapus
                         </button>

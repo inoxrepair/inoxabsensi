@@ -89,7 +89,7 @@ export function FormFoto() {
   }
 
   return (
-    <div className="mt-4 rounded-xl border border-line bg-paper p-4">
+    <div className="mt-4 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
       <p className="text-sm font-semibold">Foto profil</p>
       <p className="mt-1 text-xs text-muted">
         Pilih foto dari galeri HP, lalu simpan. Foto lama akan kembali ke

@@ -63,7 +63,7 @@ export function BackupJadwalPanel({ defaultDari, defaultSampai }: { defaultDari:
   return (
     <>
     <div className="grid gap-4 lg:grid-cols-2">
-      <section className="rounded-xl border border-line bg-paper p-4">
+      <section className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
         <p className="text-sm font-semibold">Download backup jadwal</p>
         <p className="mt-1 text-xs text-muted">File disimpan di perangkat, bukan database. Pilih rentang yang ingin diamankan.</p>
         <div className="mt-3 grid grid-cols-2 gap-3">
@@ -73,7 +73,7 @@ export function BackupJadwalPanel({ defaultDari, defaultSampai }: { defaultDari:
         <a href={url} className="mt-4 block rounded-lg bg-ink px-4 py-2.5 text-center text-sm font-medium text-paper">Download Backup JSON</a>
       </section>
 
-      <form onSubmit={importFile} className="rounded-xl border border-line bg-paper p-4">
+      <form onSubmit={importFile} className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
         <p className="text-sm font-semibold">Import / restore backup</p>
         <p className="mt-1 text-xs text-muted">Restore mengganti jadwal akun/tanggal yang terdapat dalam file. Maksimal 10 MB.</p>
         <input name="file" type="file" accept=".json,application/json" required className="mt-3 block w-full text-sm" />

@@ -60,7 +60,7 @@ export default async function KaryawanRiwayatPage({
           id="periode-riwayat"
           name="periode"
           defaultValue={periode}
-          className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm"
+          className="rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-sm"
         >
           {daftarPeriode.map((p) => (
             <option key={p} value={p}>
@@ -85,7 +85,7 @@ export default async function KaryawanRiwayatPage({
         ].map((s) => (
           <div
             key={s.label}
-            className="rounded-xl border border-line bg-paper p-3"
+            className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-3"
           >
             <p className="text-lg font-semibold tabular-nums">{s.value}</p>
             <p className="text-xs text-muted">{s.label}</p>
@@ -94,14 +94,14 @@ export default async function KaryawanRiwayatPage({
       </div>
 
       {baris.length === 0 ? (
-        <div className="mt-4 rounded-xl border border-dashed border-line bg-paper p-8 text-center">
+        <div className="mt-4 rounded-xl border border-dashed border-white/70 dark:border-white/15 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-8 text-center">
           <p className="text-sm font-medium">Belum ada catatan pada {labelPeriode(periode)}</p>
           <p className="mt-1 text-sm text-muted">
             Riwayat akan muncul setelah Anda melakukan absen masuk.
           </p>
         </div>
       ) : (
-        <ul className="mt-4 divide-y divide-line rounded-xl border border-line bg-paper">
+        <ul className="mt-4 divide-y divide-line rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
           {baris.map((r) => (
             <li
               key={r.tanggal}

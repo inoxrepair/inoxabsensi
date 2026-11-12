@@ -35,7 +35,7 @@ export function FilterOverview({
   return (
     <form
       onSubmit={tampilkan}
-      className="mb-4 rounded-xl border border-line bg-paper p-3"
+      className="mb-4 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-3"
     >
       <div className="flex flex-wrap items-end gap-3">
         <div className="mr-auto">

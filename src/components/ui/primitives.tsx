@@ -30,7 +30,7 @@ export function Card({
   footer?: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-line bg-paper">
+    <section className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
       {title ? (
         <div className="border-b border-line px-4 py-3">
           <h2 className="text-sm font-semibold">{title}</h2>
@@ -56,7 +56,7 @@ export function StatCard({
   hint?: string;
 }) {
   return (
-    <div className="rounded-xl border border-line bg-paper p-4">
+    <div className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
       <p className="text-sm text-muted">{label}</p>
       <p className="mt-1 text-2xl font-semibold tracking-tight">{value}</p>
       {hint ? <p className="mt-1 text-xs text-muted">{hint}</p> : null}

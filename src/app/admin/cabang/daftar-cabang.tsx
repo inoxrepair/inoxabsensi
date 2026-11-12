@@ -16,7 +16,7 @@ export type Cabang = {
 };
 
 const KELAS_INPUT =
-  "mt-1.5 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm";
+  "mt-1.5 w-full rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-3 py-2 text-sm";
 
 /** Daftar cabang dengan panel edit inline per baris. */
 export function DaftarCabang({ cabang }: { cabang: Cabang[] }) {
@@ -45,7 +45,7 @@ export function DaftarCabang({ cabang }: { cabang: Cabang[] }) {
             setPesan(null);
             setDibuka("baru");
           }}
-          className="w-full rounded-xl border border-dashed border-line bg-paper px-4 py-3 text-sm font-medium"
+          className="w-full rounded-xl border border-dashed border-white/70 dark:border-white/15 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-4 py-3 text-sm font-medium"
         >
           + Tambah cabang
         </button>
@@ -92,7 +92,7 @@ function BarisCabang({
   const [menunggu, mulai] = useTransition();
 
   return (
-    <div className="rounded-xl border border-line bg-paper p-4">
+    <div className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-medium">
@@ -200,7 +200,7 @@ function FormCabang({
   return (
     <form
       action={kirim}
-      className="rounded-xl border border-ink bg-paper p-4"
+      className="rounded-2xl border border-ink bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4"
       aria-label={judul}
     >
       <p className="text-sm font-semibold">{judul}</p>

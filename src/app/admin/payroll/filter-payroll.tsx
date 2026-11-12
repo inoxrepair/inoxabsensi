@@ -25,7 +25,7 @@ export function FilterPayroll({
   }
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-paper p-3">
+    <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-3">
       <span className="inline-flex items-center gap-2">
         <label htmlFor="periode-payroll" className="text-xs text-muted">
           Periode
@@ -34,7 +34,7 @@ export function FilterPayroll({
           id="periode-payroll"
           value={periode}
           onChange={(e) => ubah("periode", e.target.value)}
-          className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm"
+          className="rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-sm"
         >
           {daftarPeriode.map((p) => (
             <option key={p} value={p}>
@@ -53,7 +53,7 @@ export function FilterPayroll({
             id="cabang-payroll"
             value={cabangId}
             onChange={(e) => ubah("cabang", e.target.value)}
-            className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm"
+            className="rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-sm"
           >
             <option value="">Semua cabang</option>
             {cabang.map((c) => (

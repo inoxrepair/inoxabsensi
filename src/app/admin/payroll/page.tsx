@@ -134,7 +134,7 @@ export default async function AdminPayrollPage({
         {superAdmin ? (
           <TabelPayroll periode={periode} baris={baris} />
         ) : (
-          <p className="rounded-xl border border-line bg-paper p-6 text-sm text-muted">
+          <p className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-6 text-sm text-muted">
             Hanya super admin dapat melihat dan mengubah payroll.
           </p>
         )}

@@ -26,12 +26,12 @@ export function SpreadsheetJadwal({
         </div>
         <a
           href={pdfUrl}
-          className="rounded-lg border border-line bg-paper px-3 py-1.5 text-sm font-medium"
+          className="rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-3 py-1.5 text-sm font-medium"
         >
           Unduh PDF
         </a>
       </div>
-      <div className="overflow-x-auto rounded-xl border border-line bg-paper">
+      <div className="overflow-x-auto rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
         <table className="min-w-max border-collapse text-xs">
           <thead>
             <tr>

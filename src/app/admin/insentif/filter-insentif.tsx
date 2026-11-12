@@ -46,7 +46,7 @@ export function FilterInsentif({
   return (
     <form
       onSubmit={terapkan}
-      className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-line bg-paper p-3"
+      className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-3"
     >
       <label className="text-xs text-muted">
         Periode

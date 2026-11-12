@@ -10,7 +10,7 @@ export function FormPassword() {
   );
 
   return (
-    <form action={kirim} className="mt-4 rounded-xl border border-line bg-paper p-4">
+    <form action={kirim} className="mt-4 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
       <p className="text-sm font-semibold">Ganti password</p>
       <div className="mt-3 space-y-3">
         <PasswordField name="passwordLama" label="Password lama" autoComplete="current-password" />

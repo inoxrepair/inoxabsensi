@@ -93,12 +93,12 @@ export function AdminLayoutClient({
     <div className="flex min-h-dvh">
       {/* Sidebar desktop: expanded w-60 dengan label, ciut w-16 dengan ubin. */}
       <aside
-        className={`hidden shrink-0 border-r border-line bg-paper transition-all md:flex md:flex-col ${
+        className={`hidden shrink-0 border-r border-white/50 dark:border-white/10 bg-white/55 dark:bg-zinc-900/55 backdrop-blur-xl transition-all md:flex md:flex-col ${
           ciut ? "w-16" : "w-60"
         }`}
       >
         <div
-          className={`flex h-16 items-center border-b border-line ${
+          className={`flex h-16 items-center border-b border-white/50 dark:border-white/10 ${
             ciut ? "justify-center px-2" : "justify-between px-3"
           }`}
         >
@@ -129,7 +129,7 @@ export function AdminLayoutClient({
                       className={`mx-auto grid size-10 place-items-center rounded-lg text-xs font-medium transition-colors ${
                         isAktif
                           ? "bg-ink text-paper"
-                          : "text-muted hover:bg-surface hover:text-ink"
+                          : "text-muted hover:bg-white/70 dark:bg-zinc-900/60 hover:text-ink"
                       }`}
                     >
                       {singkatan(item)}
@@ -145,7 +145,7 @@ export function AdminLayoutClient({
                     className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
                       isAktif
                         ? "bg-ink font-medium text-paper"
-                        : "text-muted hover:bg-surface hover:text-ink"
+                        : "text-muted hover:bg-white/70 dark:bg-zinc-900/60 hover:text-ink"
                     }`}
                   >
                     {item.label}
@@ -158,7 +158,7 @@ export function AdminLayoutClient({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 items-center justify-between gap-4 border-b border-line bg-paper px-4 md:px-6">
+        <header className="flex h-16 items-center justify-between gap-4 border-b border-white/50 dark:border-white/10 bg-white/55 dark:bg-zinc-900/55 px-4 backdrop-blur-xl md:px-6">
           <div className="flex items-center gap-2">
             {/* Hamburger HP saja (md:hidden); desktop memakai toggle sidebar. */}
             <button
@@ -203,8 +203,8 @@ export function AdminLayoutClient({
             onClick={() => setDrawerBuka(false)}
             className="absolute inset-0 bg-black/50"
           />
-          <div className="absolute inset-y-0 left-0 flex w-72 flex-col bg-paper shadow-xl">
-            <div className="flex h-16 items-center justify-between border-b border-line px-4">
+          <div className="absolute inset-y-0 left-0 flex w-72 flex-col bg-white/75 dark:bg-zinc-900/70 shadow-xl backdrop-blur-xl">
+            <div className="flex h-16 items-center justify-between border-b border-white/50 dark:border-white/10 px-4">
               <Logo size={36} versi={versiLogo} />
               <button
                 type="button"
@@ -228,7 +228,7 @@ export function AdminLayoutClient({
                         className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
                           isAktif
                             ? "bg-ink font-medium text-paper"
-                            : "text-muted hover:bg-surface hover:text-ink"
+                            : "text-muted hover:bg-white/70 dark:bg-zinc-900/60 hover:text-ink"
                         }`}
                       >
                         {item.label}
@@ -238,7 +238,7 @@ export function AdminLayoutClient({
                 })}
               </ul>
             </nav>
-            <div className="border-t border-line p-4">
+            <div className="border-t border-white/50 dark:border-white/10 p-4">
               <TombolKeluar className="w-full rounded-lg border border-line px-3 py-2 text-sm font-medium" />
             </div>
           </div>

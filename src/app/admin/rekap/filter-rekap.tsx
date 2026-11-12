@@ -74,7 +74,7 @@ export function FilterRekap({
   }
 
   return (
-    <div className="mb-4 space-y-3 rounded-xl border border-line bg-paper p-3">
+    <div className="mb-4 space-y-3 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-3">
       <div className="flex flex-wrap items-center gap-3">
         <span className="inline-flex rounded-lg border border-line p-0.5">
           <button
@@ -108,7 +108,7 @@ export function FilterRekap({
               id="periode"
               value={periode}
               onChange={(e) => pilihBulan(e.target.value)}
-              className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm"
+              className="rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-sm"
             >
               {daftarPeriode.map((p) => (
                 <option key={p} value={p}>
@@ -128,7 +128,7 @@ export function FilterRekap({
               value={dari}
               max={sampai || undefined}
               onChange={(e) => setDari(e.target.value)}
-              className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm tabular-nums"
+              className="rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-sm tabular-nums"
             />
             <label htmlFor="sampai" className="text-xs text-muted">
               Sampai
@@ -139,7 +139,7 @@ export function FilterRekap({
               value={sampai}
               min={dari || undefined}
               onChange={(e) => setSampai(e.target.value)}
-              className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm tabular-nums"
+              className="rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-sm tabular-nums"
             />
             <button
               type="button"
@@ -165,7 +165,7 @@ export function FilterRekap({
                   else q.delete("cabang");
                 })
               }
-              className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm"
+              className="rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-sm"
             >
               <option value="">Semua cabang</option>
               {daftarCabang.map((c) => (

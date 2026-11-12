@@ -1,4 +1,5 @@
 import { AdminLayoutClient } from "@/components/layout/admin-layout-client";
+import { LatarLiquid } from "@/components/ui/latar-liquid";
 import { LABEL_ROLE } from "@/lib/domain";
 import { menuDiizinkan, wajibLogin } from "@/lib/session";
 import { ADMIN_NAV } from "@/lib/nav";
@@ -15,13 +16,16 @@ export default async function AdminLayout({
   const versiLogo = await bacaVersiLogo();
 
   return (
-    <AdminLayoutClient
-      menu={menu}
-      nama={user.nama}
-      labelRole={LABEL_ROLE[user.role]}
-      versiLogo={versiLogo}
-    >
-      {children}
-    </AdminLayoutClient>
+    <>
+      <LatarLiquid />
+      <AdminLayoutClient
+        menu={menu}
+        nama={user.nama}
+        labelRole={LABEL_ROLE[user.role]}
+        versiLogo={versiLogo}
+      >
+        {children}
+      </AdminLayoutClient>
+    </>
   );
 }

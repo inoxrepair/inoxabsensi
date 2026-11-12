@@ -30,7 +30,7 @@ export function KaryawanBottomNav() {
   return (
     <nav
       aria-label="Menu karyawan"
-      className="sticky bottom-0 z-10 border-t border-line bg-paper pb-[env(safe-area-inset-bottom)]"
+      className="sticky bottom-3 z-10 mx-3 mb-3 rounded-full border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/10 dark:shadow-black/60 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"
     >
       <ul className="mx-auto flex max-w-md">
         {KARYAWAN_NAV.map((item) => {

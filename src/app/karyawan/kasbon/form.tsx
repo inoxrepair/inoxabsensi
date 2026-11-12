@@ -13,7 +13,7 @@ export function AjukanKasbonForm({ defaultPeriode }: { defaultPeriode: string })
   );
 
   return (
-    <form action={kirim} className="mt-4 rounded-xl border border-line bg-paper p-4">
+    <form action={kirim} className="mt-4 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-xs text-muted">
           Jumlah

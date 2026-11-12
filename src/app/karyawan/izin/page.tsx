@@ -33,11 +33,11 @@ export default async function KaryawanIzinPage() {
       <div className="mt-6 space-y-3">
         <p className="text-xs text-muted">Riwayat pengajuan</p>
         {pengajuan.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-line bg-paper p-6 text-center text-sm text-muted">
+          <p className="rounded-xl border border-dashed border-white/70 dark:border-white/15 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-6 text-center text-sm text-muted">
             Belum ada pengajuan izin.
           </p>
         ) : (
-          <ul className="divide-y divide-line rounded-xl border border-line bg-paper">
+          <ul className="divide-y divide-line rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
             {pengajuan.map((p) => (
               <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                 <div>

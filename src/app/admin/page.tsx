@@ -117,7 +117,7 @@ export default async function AdminDashboardPage() {
         description={`${namaHari(tanggal)}, ${formatTanggal(tanggal)}`}
         action={
           admin.role === "headstore" ? (
-            <Link href="/karyawan" className="rounded-xl border border-line bg-paper px-4 py-2.5 text-sm font-medium">
+            <Link href="/karyawan" className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-4 py-2.5 text-sm font-medium">
               Buka absensi saya
             </Link>
           ) : undefined

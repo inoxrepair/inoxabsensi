@@ -33,7 +33,7 @@ export function FormPemetaan({
           name="userId"
           required
           defaultValue=""
-          className="rounded border bg-paper px-2 py-1 text-sm"
+          className="rounded border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-xl px-2 py-1 text-sm"
           aria-label={`Akun untuk ${namaInox}`}
         >
           <option value="" disabled>

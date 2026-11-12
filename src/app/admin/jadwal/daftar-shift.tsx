@@ -18,7 +18,7 @@ export type ShiftLengkap = {
 };
 
 const KELAS_INPUT =
-  "mt-1.5 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm";
+  "mt-1.5 w-full rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-3 py-2 text-sm";
 
 /** Pengelolaan definisi shift; hanya dirender untuk super admin. */
 export function DaftarShift({
@@ -49,7 +49,7 @@ export function DaftarShift({
           ) : (
             <li
               key={s.id}
-              className="rounded-xl border border-line bg-paper p-3"
+              className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-3"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -95,7 +95,7 @@ export function DaftarShift({
         <button
           type="button"
           onClick={() => setDibuka("baru")}
-          className="w-full rounded-xl border border-dashed border-line bg-paper px-4 py-2.5 text-sm font-medium"
+          className="w-full rounded-xl border border-dashed border-white/70 dark:border-white/15 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-4 py-2.5 text-sm font-medium"
         >
           + Tambah shift
         </button>
@@ -155,7 +155,7 @@ function FormShift({
     <form
       action={kirim}
       aria-label={judul}
-      className="rounded-xl border border-ink bg-paper p-4"
+      className="rounded-2xl border border-ink bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4"
     >
       <p className="text-sm font-semibold">{judul}</p>
 

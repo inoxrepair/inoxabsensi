@@ -55,7 +55,7 @@ export function TombolSinkron({
         </p>
       ) : null}
       {tidakCocok.length > 0 ? (
-        <div className="mt-3 max-w-xl rounded-lg border border-line bg-paper px-3 py-2 text-sm">
+        <div className="mt-3 max-w-xl rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-3 py-2 text-sm">
           <p className="font-medium">
             Nama berikut belum terhubung ke akun mana pun — hubungkan sekali,
             lalu tekan Sinkron lagi:

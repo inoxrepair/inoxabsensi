@@ -178,7 +178,7 @@ export function TombolAbsen({
       </LiquidGlass>
       {konfirmasi ? (
         <div className="fixed inset-0 z-20 grid place-items-center bg-ink/40 p-4" role="dialog" aria-modal="true" aria-labelledby="konfirmasi-absen">
-          <div className="w-full max-w-sm rounded-2xl border border-line bg-paper p-5 shadow-xl">
+          <div className="w-full max-w-sm rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-5 shadow-xl">
             <h2 id="konfirmasi-absen" className="font-semibold">
               {mode === "keluar" ? `Akhiri Cycle ${cycleKe - 1}?` : `Mulai Cycle ${cycleKe} dari maksimal ${maksimalCycle}?`}
             </h2>

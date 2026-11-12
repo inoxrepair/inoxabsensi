@@ -25,7 +25,7 @@ export type BarisKaryawan = {
 };
 
 const INPUT =
-  "mt-1.5 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm";
+  "mt-1.5 w-full rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-3 py-2 text-sm";
 
 export function DaftarKaryawan({
   rows,
@@ -62,7 +62,7 @@ export function DaftarKaryawan({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2 rounded-xl border border-line bg-paper p-3">
+      <div className="flex flex-wrap gap-2 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-3">
         <input
           type="search"
           value={cari}
@@ -140,7 +140,7 @@ export function DaftarKaryawan({
             setPesan(null);
             setDibuka("baru");
           }}
-          className="w-full rounded-xl border border-dashed border-line bg-paper px-4 py-3 text-sm font-medium"
+          className="w-full rounded-xl border border-dashed border-white/70 dark:border-white/15 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-4 py-3 text-sm font-medium"
         >
           + Tambah karyawan
         </button>
@@ -193,7 +193,7 @@ function Kartu({
   const [menunggu, mulai] = useTransition();
 
   return (
-    <article className="rounded-xl border border-line bg-paper p-4">
+    <article className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-medium">{r.nama}</p>
@@ -287,7 +287,7 @@ function FormKaryawan({
       : cabang.filter((c) => c.id === adminCabangId);
 
   return (
-    <form action={kirim} className="rounded-xl border border-ink bg-paper p-4">
+    <form action={kirim} className="rounded-2xl border border-ink bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
       <p className="text-sm font-semibold">
         {awal ? `Ubah ${awal.nama}` : "Karyawan baru"}
       </p>

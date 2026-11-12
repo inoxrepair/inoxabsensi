@@ -22,7 +22,7 @@ export function FormLogin({
         {next ? <input type="hidden" name="next" value={next} /> : null}
 
         <div>
-          <label htmlFor="identifier" className="block text-sm font-medium">
+          <label htmlFor="identifier" className="sr-only">
             Username atau email
           </label>
           <input
@@ -34,12 +34,12 @@ export function FormLogin({
             placeholder="username atau email"
             aria-invalid={status ? true : undefined}
             aria-describedby={status ? "galat-login" : undefined}
-            className="mt-1.5 w-full rounded-xl border border-white/70 bg-white/65 px-3.5 py-3 text-base backdrop-blur-md placeholder:text-muted/70"
+            className="w-full rounded-xl border border-white/70 dark:border-white/15 bg-white/65 dark:bg-zinc-900/60 px-3.5 py-3 text-base backdrop-blur-md placeholder:text-muted/70"
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium">
+          <label htmlFor="password" className="sr-only">
             Password
           </label>
           <input
@@ -48,10 +48,10 @@ export function FormLogin({
             type="password"
             autoComplete="current-password"
             required
-            placeholder="••••••••"
+            placeholder="Password"
             aria-invalid={status ? true : undefined}
             aria-describedby={status ? "galat-login" : undefined}
-            className="mt-1.5 w-full rounded-xl border border-white/70 bg-white/65 px-3.5 py-3 text-base backdrop-blur-md placeholder:text-muted/70"
+            className="w-full rounded-xl border border-white/70 dark:border-white/15 bg-white/65 dark:bg-zinc-900/60 px-3.5 py-3 text-base backdrop-blur-md placeholder:text-muted/70"
           />
         </div>
 

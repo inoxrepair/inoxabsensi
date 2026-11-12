@@ -36,7 +36,7 @@ export default async function KaryawanProfilPage() {
     <>
       <h1 className="text-xl font-semibold tracking-tight">Profil</h1>
 
-      <div className="mt-5 flex items-center gap-3.5 rounded-xl border border-line bg-paper p-4">
+      <div className="mt-5 flex items-center gap-3.5 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
         {user.image ? (
           <img
             src={user.image}
@@ -57,7 +57,7 @@ export default async function KaryawanProfilPage() {
         </div>
       </div>
 
-      <dl className="mt-4 divide-y divide-line rounded-xl border border-line bg-paper text-sm">
+      <dl className="mt-4 divide-y divide-line rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl text-sm">
         {[
           ["Cabang", user.cabang?.nama ?? "Belum ditempatkan"],
           ["Email", user.email],
@@ -77,7 +77,7 @@ export default async function KaryawanProfilPage() {
       <FormPassword />
 
       <div className="mt-4">
-        <TombolKeluar className="block w-full rounded-xl border border-line bg-paper px-4 py-3 text-center text-sm font-medium" />
+        <TombolKeluar className="block w-full rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-4 py-3 text-center text-sm font-medium" />
       </div>
     </>
   );

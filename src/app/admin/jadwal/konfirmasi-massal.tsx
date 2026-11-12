@@ -38,7 +38,7 @@ export function DialogKonfirmasiMassal({
       aria-modal="true"
       aria-labelledby="konfirmasi-massal"
     >
-      <div className="w-full max-w-md rounded-2xl border border-line bg-paper p-5 shadow-xl">
+      <div className="w-full max-w-md rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-5 shadow-xl">
         <h2 id="konfirmasi-massal" className="font-semibold">
           {ringkasan.judul}
         </h2>

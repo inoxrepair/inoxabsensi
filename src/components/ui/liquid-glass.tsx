@@ -328,7 +328,7 @@ export function LiquidGlass({
   style,
 }: LiquidGlassProps) {
   const preset = VARIANTS[variant] ?? VARIANTS.regular;
-  const tint = tintProp ?? preset.tint;
+  const tintDasar = tintProp ?? preset.tint;
   const frost = frostProp ?? preset.frost;
   const dispersion = dispersionProp ?? preset.dispersion;
   const lightIntensity = lightIntensityProp ?? preset.lightIntensity;
@@ -338,10 +338,22 @@ export function LiquidGlass({
   const [nativeCorners, setNativeCorners] = useState(false);
   const [reduceTransparency, setReduceTransparency] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [skemaGelap, setSkemaGelap] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
   const rawId = useId();
   const filterId = `lg-${rawId.replace(/[^a-zA-Z0-9]/g, "")}`;
+
+  // Bila sistem dalam mode gelap, kartu kaca terang diganti tint gelap supaya
+  // tidak menyilaukan di atas latar gelap. Tombol kaca gelap (tint sudah
+  // gelap) dibiarkan apa adanya. "Terang" = semua kanal RGB >= 200.
+  const kanalTint = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/.exec(tintDasar);
+  const tintTerang =
+    kanalTint !== null &&
+    Number(kanalTint[1]) >= 200 &&
+    Number(kanalTint[2]) >= 200 &&
+    Number(kanalTint[3]) >= 200;
+  const tint = skemaGelap && tintTerang ? "rgba(24, 24, 27, 0.6)" : tintDasar;
 
   useEffect(() => {
     setNativeCorners(
@@ -351,13 +363,14 @@ export function LiquidGlass({
     );
   }, []);
 
-  // Follows the system's Reduce Transparency and Reduce Motion settings, as
-  // Apple's own glass does.
+  // Follows the system's Reduce Transparency, Reduce Motion, and color
+  // scheme settings, as Apple's own glass does.
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
     const queries = [
       [window.matchMedia("(prefers-reduced-transparency: reduce)"), setReduceTransparency],
       [window.matchMedia("(prefers-reduced-motion: reduce)"), setReduceMotion],
+      [window.matchMedia("(prefers-color-scheme: dark)"), setSkemaGelap],
     ] as const;
     const cleanups = queries.map(([query, set]) => {
       const update = () => set(query.matches);

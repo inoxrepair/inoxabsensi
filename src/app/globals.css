@@ -17,6 +17,20 @@
   --color-status-izin: #ca8a04;
 }
 
+/* Tema mengikuti sistem HP: bila perangkat dalam mode gelap, seluruh warna
+   semantik membalik (teks jadi terang, permukaan jadi gelap). Semua utility
+   Tailwind yang memakai variabel ini (text-ink, bg-paper, bg-surface,
+   border-line, text-muted) ikut membalik otomatis, tanpa JavaScript. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-ink: #f4f4f5;
+    --color-paper: #18181b;
+    --color-surface: #09090b;
+    --color-line: #27272a;
+    --color-muted: #a1a1aa;
+  }
+}
+
 html {
   -webkit-tap-highlight-color: transparent;
   text-size-adjust: 100%;

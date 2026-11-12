@@ -110,7 +110,7 @@ export default async function AdminIzinPage({
 
       <div className="mt-6 space-y-3">
         {pengajuan.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-line bg-paper p-6 text-center text-sm text-muted">
+          <p className="rounded-xl border border-dashed border-white/70 dark:border-white/15 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-6 text-center text-sm text-muted">
             Belum ada pengajuan izin.
           </p>
         ) : (

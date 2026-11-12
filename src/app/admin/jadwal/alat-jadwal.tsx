@@ -120,20 +120,20 @@ export function AlatJadwal({
   return (
     <>
     <section className="mt-6 grid gap-3 lg:grid-cols-3">
-      <div className="rounded-xl border border-line bg-paper p-4">
+      <div className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
         <p className="text-sm font-semibold">Export Excel/CSV</p>
         <p className="mt-1 text-xs text-muted">Unduh overview yang sedang tampil. File dapat dibuka di Excel.</p>
         <a href={exportUrl} className="mt-3 block rounded-lg border border-line px-3 py-2 text-center text-sm font-medium">Unduh CSV</a>
       </div>
 
-      <form onSubmit={importCsv} className="rounded-xl border border-line bg-paper p-4">
+      <form onSubmit={importCsv} className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
         <p className="text-sm font-semibold">Import dari Excel/CSV</p>
         <p className="mt-1 text-xs text-muted">Gunakan file hasil export, lalu ubah kode P/S/F/O di Excel.</p>
         <input name="file" type="file" accept=".csv,text/csv" required className="mt-3 block w-full text-sm" />
         <button type="submit" disabled={pending} className="mt-3 w-full rounded-lg border border-line px-3 py-2 text-sm font-medium disabled:opacity-40">Lihat dampak &amp; import CSV</button>
       </form>
 
-      <div className="rounded-xl border border-line bg-paper p-4">
+      <div className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
         <p className="text-sm font-semibold">Buat jadwal otomatis bulanan</p>
         <p className="mt-1 text-xs text-muted">Mengulang pola 7 hari mulai {polaMulai} ke seluruh bulan. Hasil tetap bisa diedit.</p>
         <input type="month" value={bulan} onChange={(e) => setBulan(e.target.value)} className="mt-3 w-full rounded-lg border border-line px-3 py-2 text-sm" />

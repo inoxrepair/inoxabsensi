@@ -56,7 +56,7 @@ export function FilterLog({
   }
 
   return (
-    <form onSubmit={terapkan} className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-line bg-paper p-3">
+    <form onSubmit={terapkan} className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-3">
       <label className="text-xs text-muted">
         Dari
         <input type="date" value={dari} onChange={(e) => setDari(e.target.value)} required className="mt-1 block rounded-lg border border-line px-3 py-2 text-sm" />
