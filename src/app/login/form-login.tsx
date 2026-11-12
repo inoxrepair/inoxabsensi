@@ -31,7 +31,7 @@ export function FormLogin({
             type="text"
             autoComplete="username"
             required
-            placeholder="username atau nama@inox.co.id"
+            placeholder="username atau email"
             aria-invalid={status ? true : undefined}
             aria-describedby={status ? "galat-login" : undefined}
             className="mt-1.5 w-full rounded-xl border border-white/70 bg-white/65 px-3.5 py-3 text-base backdrop-blur-md placeholder:text-muted/70"

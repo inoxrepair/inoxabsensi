@@ -368,18 +368,40 @@ export function LiquidGlass({
     return () => cleanups.forEach((cleanup) => cleanup());
   }, []);
 
+  // Ukur BORDER box, bukan content box: semua lapisan efek posisinya
+  // absolute inset-0 sehingga menutupi padding box root. Kalau memakai
+  // contentRect (ukuran di dalam padding), squircle path / mask / peta
+  // displacement dibuat lebih kecil dari panel — di layar hasilnya kaca
+  // terlihat "dobel": area frost putih lebih kecil dari kartunya dan tombol
+  // di bawah seolah keluar dari kaca (terlihat di iPhone 13 Nov 2026).
+  // getBoundingClientRect selalu mengembalikan border box.
   useEffect(() => {
     const el = hostRef.current;
     if (!el) return;
-    const observer = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect;
+    const ukur = () => {
+      const rect = el.getBoundingClientRect();
       setSize((prev) => {
-        const next = { width: Math.round(width), height: Math.round(height) };
-        return prev.width === next.width && prev.height === next.height ? prev : next;
+        const next = {
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+        };
+        return prev.width === next.width && prev.height === next.height
+          ? prev
+          : next;
       });
-    });
+    };
+    const observer = new ResizeObserver(ukur);
     observer.observe(el);
-    return () => observer.disconnect();
+    // Pengukuran pertama bisa terjadi sebelum layout final (font/gambar/
+    // hydrasi selesai); baca ulang saat halaman selesai dimuat dan sekali
+    // lagi sesaat setelahnya, supaya clip tidak tertinggal di ukuran lama.
+    window.addEventListener("load", ukur);
+    const t = window.setTimeout(ukur, 500);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("load", ukur);
+      window.clearTimeout(t);
+    };
   }, []);
 
   const { width, height } = size;
