@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { labelPeriode } from "@/lib/rekap";
+import { InputTanggal } from "@/components/ui/input-tanggal";
 
 /**
  * Filter rekap: pilih periode bulanan atau rentang tanggal kustom.
@@ -122,25 +123,11 @@ export function FilterRekap({
             <label htmlFor="dari" className="text-xs text-muted">
               Dari
             </label>
-            <input
-              id="dari"
-              type="date"
-              value={dari}
-              max={sampai || undefined}
-              onChange={(e) => setDari(e.target.value)}
-              className="rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-sm tabular-nums"
-            />
+            <InputTanggal id="dari" value={dari} max={sampai || undefined} onChange={setDari} varian="kaca" padat />
             <label htmlFor="sampai" className="text-xs text-muted">
               Sampai
             </label>
-            <input
-              id="sampai"
-              type="date"
-              value={sampai}
-              min={dari || undefined}
-              onChange={(e) => setSampai(e.target.value)}
-              className="rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-sm tabular-nums"
-            />
+            <InputTanggal id="sampai" value={sampai} min={dari || undefined} onChange={setSampai} varian="kaca" padat />
             <button
               type="button"
               onClick={terapkanKustom}

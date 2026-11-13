@@ -10,6 +10,7 @@ import {
   DialogKonfirmasiMassal,
   type RingkasanMassal,
 } from "@/app/admin/jadwal/konfirmasi-massal";
+import { InputTanggal } from "@/components/ui/input-tanggal";
 
 export function BackupJadwalPanel({ defaultDari, defaultSampai }: { defaultDari: string; defaultSampai: string }) {
   const [dari, setDari] = useState(defaultDari);
@@ -67,8 +68,8 @@ export function BackupJadwalPanel({ defaultDari, defaultSampai }: { defaultDari:
         <p className="text-sm font-semibold">Download backup jadwal</p>
         <p className="mt-1 text-xs text-muted">File disimpan di perangkat, bukan database. Pilih rentang yang ingin diamankan.</p>
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <label className="text-xs text-muted">Dari<input type="date" value={dari} onChange={(e) => setDari(e.target.value)} className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm" /></label>
-          <label className="text-xs text-muted">Sampai<input type="date" value={sampai} onChange={(e) => setSampai(e.target.value)} className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm" /></label>
+          <label className="text-xs text-muted">Dari<InputTanggal value={dari} onChange={setDari} className="mt-1 w-full" /></label>
+          <label className="text-xs text-muted">Sampai<InputTanggal value={sampai} onChange={setSampai} className="mt-1 w-full" /></label>
         </div>
         <a href={url} className="mt-4 block rounded-lg bg-ink px-4 py-2.5 text-center text-sm font-medium text-paper">Download Backup JSON</a>
       </section>

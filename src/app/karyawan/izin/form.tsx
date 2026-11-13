@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { ajukanIzin, type HasilIzin } from "@/app/admin/izin/actions";
+import { InputTanggal } from "@/components/ui/input-tanggal";
 import { MAKS_HARI_PENGAJUAN } from "@/lib/izin";
 
 export function AjukanIzinForm() {
@@ -15,11 +16,11 @@ export function AjukanIzinForm() {
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-xs text-muted">
           Dari
-          <input name="dari" type="date" required className="mt-1.5 w-full rounded-lg border border-line px-3 py-2 text-sm tabular-nums" />
+          <InputTanggal name="dari" required className="mt-1.5 w-full" />
         </label>
         <label className="text-xs text-muted">
           Sampai
-          <input name="sampai" type="date" required className="mt-1.5 w-full rounded-lg border border-line px-3 py-2 text-sm tabular-nums" />
+          <InputTanggal name="sampai" required className="mt-1.5 w-full" />
         </label>
       </div>
       <label className="mt-3 block text-xs text-muted">

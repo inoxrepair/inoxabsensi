@@ -3,6 +3,7 @@
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { InputTanggal } from "@/components/ui/input-tanggal";
 
 /** Mengubah rentang kolom tabel saja; tidak menulis data jadwal. */
 export function FilterOverview({
@@ -46,23 +47,11 @@ export function FilterOverview({
         </div>
         <label className="text-xs text-muted">
           Dari
-          <input
-            type="date"
-            value={dari}
-            onChange={(e) => setDari(e.target.value)}
-            required
-            className="mt-1 block rounded-lg border border-line px-3 py-2 text-sm tabular-nums"
-          />
+          <InputTanggal value={dari} onChange={setDari} required className="mt-1 block" />
         </label>
         <label className="text-xs text-muted">
           Sampai
-          <input
-            type="date"
-            value={sampai}
-            onChange={(e) => setSampai(e.target.value)}
-            required
-            className="mt-1 block rounded-lg border border-line px-3 py-2 text-sm tabular-nums"
-          />
+          <InputTanggal value={sampai} onChange={setSampai} required className="mt-1 block" />
         </label>
         <button
           type="submit"

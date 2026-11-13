@@ -4,6 +4,7 @@ import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { rentangPeriodeGajian } from "@/lib/rekap";
+import { InputTanggal } from "@/components/ui/input-tanggal";
 
 /**
  * Filter Insentif — pola yang sama dengan filter Log Absensi: pilih
@@ -50,33 +51,15 @@ export function FilterInsentif({
     >
       <label className="text-xs text-muted">
         Periode
-        <input
-          type="month"
-          value={bulan}
-          onChange={(e) => gantiBulan(e.target.value)}
-          required
-          className="mt-1 block rounded-lg border border-line px-3 py-2 text-sm"
-        />
+        <InputTanggal mode="bulan" value={bulan} onChange={gantiBulan} required className="mt-1 block" />
       </label>
       <label className="text-xs text-muted">
         Dari
-        <input
-          type="date"
-          value={dariState}
-          onChange={(e) => setDari(e.target.value)}
-          required
-          className="mt-1 block rounded-lg border border-line px-3 py-2 text-sm"
-        />
+        <InputTanggal value={dariState} onChange={setDari} required className="mt-1 block" />
       </label>
       <label className="text-xs text-muted">
         Sampai
-        <input
-          type="date"
-          value={sampaiState}
-          onChange={(e) => setSampai(e.target.value)}
-          required
-          className="mt-1 block rounded-lg border border-line px-3 py-2 text-sm"
-        />
+        <InputTanggal value={sampaiState} onChange={setSampai} required className="mt-1 block" />
       </label>
       <button
         type="submit"

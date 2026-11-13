@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { InputTanggal } from "@/components/ui/input-tanggal";
 import {
   generateJadwalBulanan,
   importJadwalCsv,
@@ -136,7 +137,7 @@ export function AlatJadwal({
       <div className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
         <p className="text-sm font-semibold">Buat jadwal otomatis bulanan</p>
         <p className="mt-1 text-xs text-muted">Mengulang pola 7 hari mulai {polaMulai} ke seluruh bulan. Hasil tetap bisa diedit.</p>
-        <input type="month" value={bulan} onChange={(e) => setBulan(e.target.value)} className="mt-3 w-full rounded-lg border border-line px-3 py-2 text-sm" />
+        <InputTanggal mode="bulan" value={bulan} onChange={setBulan} className="mt-3 w-full" />
         <button type="button" onClick={generate} disabled={pending} className="mt-3 w-full rounded-lg bg-ink px-3 py-2 text-sm font-medium text-paper disabled:opacity-40">Lihat dampak &amp; generate</button>
       </div>
     </section>

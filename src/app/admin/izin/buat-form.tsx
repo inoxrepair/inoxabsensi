@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { buatIzinAdmin, type HasilIzin } from "./actions";
+import { InputTanggal } from "@/components/ui/input-tanggal";
 
 export function BuatIzinAdminForm({
   karyawan,
@@ -29,7 +30,7 @@ export function BuatIzinAdminForm({
         </label>
         <label className="text-xs text-muted">
           Tanggal
-          <input name="tanggal" type="date" required className="mt-1.5 w-full rounded-lg border border-line px-3 py-2 text-sm tabular-nums" />
+          <InputTanggal name="tanggal" required className="mt-1.5 w-full" />
         </label>
       </div>
       <label className="mt-3 block text-xs text-muted">

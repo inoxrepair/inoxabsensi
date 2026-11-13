@@ -5,6 +5,7 @@ import {
   ajukanKasbon,
   type HasilKasbon,
 } from "@/app/admin/kasbon/actions";
+import { InputTanggal } from "@/components/ui/input-tanggal";
 
 export function AjukanKasbonForm({ defaultPeriode }: { defaultPeriode: string }) {
   const [status, kirim, sedangProses] = useActionState<HasilKasbon | undefined, FormData>(
@@ -21,7 +22,7 @@ export function AjukanKasbonForm({ defaultPeriode }: { defaultPeriode: string })
         </label>
         <label className="text-xs text-muted">
           Periode
-          <input name="periode" type="month" defaultValue={defaultPeriode} required className="mt-1.5 w-full rounded-lg border border-line px-3 py-2 text-sm tabular-nums" />
+          <InputTanggal mode="bulan" name="periode" defaultValue={defaultPeriode} required className="mt-1.5 w-full" />
         </label>
       </div>
       <label className="mt-3 block text-xs text-muted">

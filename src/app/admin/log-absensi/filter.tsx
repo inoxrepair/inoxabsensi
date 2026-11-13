@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { StatusAbsensi } from "@/lib/domain";
 import type { StatusWajah } from "@/lib/wajah";
+import { InputTanggal } from "@/components/ui/input-tanggal";
 
 export type BarisLog = {
   id: string;
@@ -59,11 +60,11 @@ export function FilterLog({
     <form onSubmit={terapkan} className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-3">
       <label className="text-xs text-muted">
         Dari
-        <input type="date" value={dari} onChange={(e) => setDari(e.target.value)} required className="mt-1 block rounded-lg border border-line px-3 py-2 text-sm" />
+        <InputTanggal value={dari} onChange={setDari} required className="mt-1 block" />
       </label>
       <label className="text-xs text-muted">
         Sampai
-        <input type="date" value={sampai} onChange={(e) => setSampai(e.target.value)} required className="mt-1 block rounded-lg border border-line px-3 py-2 text-sm" />
+        <InputTanggal value={sampai} onChange={setSampai} required className="mt-1 block" />
       </label>
       {role === "super_admin" ? (
         <label className="text-xs text-muted">

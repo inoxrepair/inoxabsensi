@@ -9,6 +9,7 @@ import {
   type RingkasanMassal,
 } from "./konfirmasi-massal";
 import type { SeragamOption, Shift } from "./matriks-jadwal";
+import { InputTanggal } from "@/components/ui/input-tanggal";
 
 export function FormRentang({
   karyawan,
@@ -122,14 +123,7 @@ export function FormRentang({
       <div className="mt-3 grid gap-3 sm:grid-cols-4">
         <label className="text-xs text-muted">
           Dari
-          <input
-            name="dari"
-            type="date"
-            value={dari}
-            onChange={(e) => setDari(e.target.value)}
-            required
-            className="mt-1.5 w-full rounded-lg border border-line px-3 py-2 text-sm"
-          />
+          <InputTanggal name="dari" value={dari} onChange={setDari} required className="mt-1.5 w-full" />
         </label>
         <label className="text-xs text-muted">
           Seragam
@@ -142,14 +136,7 @@ export function FormRentang({
         </label>
         <label className="text-xs text-muted">
           Sampai
-          <input
-            name="sampai"
-            type="date"
-            value={sampai}
-            onChange={(e) => setSampai(e.target.value)}
-            required
-            className="mt-1.5 w-full rounded-lg border border-line px-3 py-2 text-sm"
-          />
+          <InputTanggal name="sampai" value={sampai} onChange={setSampai} required className="mt-1.5 w-full" />
         </label>
         <label className="text-xs text-muted">
           Shift

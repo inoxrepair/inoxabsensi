@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import type { RoleKaryawan } from "@/lib/domain";
 import { LABEL_ROLE } from "@/lib/domain";
 import { formatTanggal } from "@/lib/format";
+import { InputTanggal } from "@/components/ui/input-tanggal";
 import {
   simpanKaryawan,
   ubahStatusKaryawan,
@@ -316,7 +317,7 @@ function FormKaryawan({
           <input name="jabatan" defaultValue={awal?.jabatan} required className={INPUT} />
         </Field>
         <Field label="Tanggal masuk">
-          <input name="tanggalMasuk" type="date" defaultValue={awal?.tanggalMasuk} required className={INPUT} />
+          <InputTanggal name="tanggalMasuk" defaultValue={awal?.tanggalMasuk} required varian="kaca" className="mt-1.5 w-full" />
         </Field>
         <Field label="Role">
           <select
