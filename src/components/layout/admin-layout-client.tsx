@@ -120,12 +120,13 @@ export function AdminLayoutClient({
                   <Link
                     href={item.href}
                     aria-current={isAktif ? "page" : undefined}
-                    className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
+                    className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
                       isAktif
                         ? "bg-ink font-medium text-paper"
                         : "text-muted hover:bg-white/70 dark:bg-zinc-900/60 hover:text-ink"
                     }`}
                   >
+                    <IkonMenu href={item.href} className="size-5 shrink-0" />
                     {item.label}
                   </Link>
                 </li>
