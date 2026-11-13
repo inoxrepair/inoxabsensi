@@ -6,9 +6,13 @@
  * Alur sinkron (jalankanSinkronInsentif): login ke inox.my.id -> ambil
  * CSRF dari halaman laporan insentif -> tarik feed AJAX
  * /reports/incentive-line-orders -> kelompokkan per karyawan (cocok nama)
- * -> simpan ke tabel Insentif (satu baris per karyawan per periode).
- * Tabel Insentif adalah SATU-SATUNYA sumber nilai insentif yang dibaca
- * Payroll; kolom Payroll.insentif sudah dihapus.
+ * -> simpan ke tabel InsentifTransaksi (satu baris per transaksi).
+ * Baris transaksi disimpan apa adanya (dengan tanggalnya), supaya laporan
+ * Insentif dan Payroll bisa menjumlahkan insentif untuk rentang tanggal
+ * apa pun — bukan hanya per bulan. Sinkron menimpa baris dalam rentang
+ * yang ditarik (hapus lalu isi ulang), jadi sinkron ulang tidak
+ * menggandakan. Tabel Insentif lama (agregat per karyawan per periode)
+ * sudah tidak dibaca lagi; kolom Payroll.insentif sudah dihapus.
  */
 
 import { randomUUID } from "node:crypto";
@@ -18,30 +22,47 @@ import { takeHomePay } from "@/lib/payroll";
 import { periodeValid, rentangPeriodeGajian, tanggalValid } from "@/lib/rekap";
 
 /**
- * Akses tabel Insentif / PemetaanInsentif sengaja lewat SQL mentah, bukan
- * delegate Prisma: delegate baru tersedia setelah `prisma generate`
- * dijalankan ulang, sedangkan generate di VM ini gagal mengunduh engine
- * (jaringan proxy). Tabelnya tetap didefinisikan di schema Prisma +
- * migrasi Postgres, jadi delegate bisa dipakai nanti setelah generate
- * berhasil (mis. saat build di VPS). SQL di sini kompatibel dengan
- * Postgres (produksi) maupun SQLite (dev lokal).
+ * Akses tabel InsentifTransaksi / PemetaanInsentif sengaja lewat SQL
+ * mentah, bukan delegate Prisma: delegate baru tersedia setelah
+ * `prisma generate` dijalankan ulang, sedangkan generate di VM ini gagal
+ * mengunduh engine (jaringan proxy). Tabelnya tetap didefinisikan di
+ * schema Prisma + migrasi Postgres, jadi delegate bisa dipakai nanti
+ * setelah generate berhasil (mis. saat build di VPS). SQL di sini
+ * kompatibel dengan Postgres (produksi) maupun SQLite (dev lokal).
  */
 
-/** Satu baris tabel Insentif, sesuai model di schema Prisma. */
-export type BarisInsentif = {
+/** Satu baris transaksi insentif tersimpan (satu baris feed iNOX). */
+export type BarisInsentifTransaksi = {
   id: string;
   userId: string;
-  periode: string;
+  tanggal: string;
+  transactionId: number;
+  invoiceNo: string;
+  productName: string;
+  quantity: number;
+  jumlah: number;
+  lokasi: string;
+  sinkronPada: Date;
+};
+
+/** Ringkasan insentif per karyawan untuk satu rentang tanggal. */
+export type RingkasanInsentif = {
+  userId: string;
   jumlah: number;
   jumlahTransaksi: number;
   tanggalAwal: string | null;
   tanggalAkhir: string | null;
-  sinkronPada: Date;
+  sinkronPada: Date | null;
 };
 
-/** Baris Insentif beserta data user pemiliknya (seperti include user). */
-export type BarisInsentifDenganUser = BarisInsentif & {
-  user: { id: string; name: string; username: string | null };
+/** Ringkasan insentif beserta data user pemiliknya (nama + cabang). */
+export type RingkasanInsentifDenganUser = RingkasanInsentif & {
+  user: {
+    id: string;
+    name: string;
+    username: string | null;
+    cabangNama: string | null;
+  };
 };
 
 /** Normalisasi nama untuk pencocokan: huruf kecil, buang semua spasi/simbol. */
@@ -237,6 +258,92 @@ export function cocokkanUser(
   return ketemu ? ketemu.id : null;
 }
 
+/**
+ * Kelompokkan baris feed yang sudah dipetakan per karyawan (murni, tanpa
+ * I/O — bisa diuji). Satu baris feed = satu transaksi insentif; tanggal
+ * disimpan sebagai ISO (yyyy-mm-dd) supaya bisa difilter rentang.
+ * Baris yang tanggalnya tidak bisa dibaca dilewati dan dihitung di
+ * `tanpaTanggal` (uangnya tidak ikut tersimpan — tanggal adalah kunci
+ * rentang, jadi baris tanpa tanggal tidak bisa dilaporkan dengan benar).
+ */
+export type BarisInsentifDikelompokkan = {
+  userId: string;
+  jumlah: number;
+  jumlahTransaksi: number;
+  tanggalAwal: string | null;
+  tanggalAkhir: string | null;
+  baris: Array<{
+    transactionId: number;
+    invoiceNo: string;
+    tanggal: string;
+    productName: string;
+    quantity: number;
+    jumlah: number;
+    lokasi: string;
+  }>;
+};
+
+export function kelompokkanInsentifPerUser(
+  data: Array<ReturnType<typeof petakanBarisInsentif>>,
+  users: Array<{ id: string; name: string }>,
+  pemetaan: Array<{ namaKunci: string; userId: string }> = [],
+): {
+  perUser: BarisInsentifDikelompokkan[];
+  tidakDicocokkan: string[];
+  tanpaTanggal: number;
+} {
+  const perUser = new Map<string, BarisInsentifDikelompokkan>();
+  const tidakDicocokkan = new Set<string>();
+  let tanpaTanggal = 0;
+
+  for (const d of data) {
+    const userId = cocokkanUser(d.serviceStaff, users, pemetaan);
+    if (!userId) {
+      tidakDicocokkan.add(d.serviceStaff);
+      continue;
+    }
+
+    const tanggalIso = ubahTanggalKeIso(d.tanggal);
+    if (!tanggalIso) {
+      tanpaTanggal += 1;
+      continue;
+    }
+
+    const kelompok = perUser.get(userId) ?? {
+      userId,
+      jumlah: 0,
+      jumlahTransaksi: 0,
+      tanggalAwal: null,
+      tanggalAkhir: null,
+      baris: [],
+    };
+    kelompok.jumlah += d.totalKomisi;
+    kelompok.jumlahTransaksi += 1;
+    if (!kelompok.tanggalAwal || tanggalIso < kelompok.tanggalAwal) {
+      kelompok.tanggalAwal = tanggalIso;
+    }
+    if (!kelompok.tanggalAkhir || tanggalIso > kelompok.tanggalAkhir) {
+      kelompok.tanggalAkhir = tanggalIso;
+    }
+    kelompok.baris.push({
+      transactionId: d.transactionId,
+      invoiceNo: d.invoiceNo,
+      tanggal: tanggalIso,
+      productName: d.productName,
+      quantity: d.quantity,
+      jumlah: d.totalKomisi,
+      lokasi: d.businessLocation,
+    });
+    perUser.set(userId, kelompok);
+  }
+
+  return {
+    perUser: [...perUser.values()],
+    tidakDicocokkan: [...tidakDicocokkan],
+    tanpaTanggal,
+  };
+}
+
 /** Login ke inox.my.id dan kembalikan cookie jar (string Cookie header). */
 async function loginInox(username: string, password: string): Promise<string> {
   const loginPage = await fetch("https://inox.my.id/login", {
@@ -375,155 +482,159 @@ export async function jalankanSinkronInsentif(
     SELECT "namaKunci", "userId" FROM "PemetaanInsentif"
   `;
 
-  // 5. Group data insentif per user (tanggal disimpan sebagai yyyy-mm-dd)
-  const perUser = new Map<
-    string,
-    {
-      jumlah: number;
-      jumlahTransaksi: number;
-      tanggalAwal?: string;
-      tanggalAkhir?: string;
-    }
-  >();
-  const tidakDicocokkan = new Set<string>();
+  // 5. Kelompokkan per karyawan (murni) — baris transaksi + ringkasan.
+  const { perUser, tidakDicocokkan, tanpaTanggal } =
+    kelompokkanInsentifPerUser(data, users, pemetaan);
 
-  for (const d of data) {
-    const userId = cocokkanUser(d.serviceStaff, users, pemetaan);
-    if (!userId) {
-      tidakDicocokkan.add(d.serviceStaff);
-      continue;
-    }
-
-    const tanggalIso = ubahTanggalKeIso(d.tanggal);
-    const existing = perUser.get(userId) ?? { jumlah: 0, jumlahTransaksi: 0 };
-    existing.jumlah += d.totalKomisi;
-    existing.jumlahTransaksi += 1;
-    if (tanggalIso) {
-      if (!existing.tanggalAwal || tanggalIso < existing.tanggalAwal) {
-        existing.tanggalAwal = tanggalIso;
-      }
-      if (!existing.tanggalAkhir || tanggalIso > existing.tanggalAkhir) {
-        existing.tanggalAkhir = tanggalIso;
-      }
-    }
-    perUser.set(userId, existing);
+  // 6. Simpan baris transaksi: hapus baris lama dalam rentang untuk semua
+  //    karyawan aktif (supaya sinkron ulang tidak menggandakan dan nama
+  //    yang dipetakan ulang pindah ke akun yang benar), lalu sisipkan
+  //    baris baru. Baris karyawan nonaktif dibiarkan — riwayat mereka
+  //    tidak bisa dicocokkan ulang dari feed, jadi jangan dihapus.
+  for (const u of users) {
+    await db.$executeRaw`
+      DELETE FROM "InsentifTransaksi"
+      WHERE "userId" = ${u.id}
+        AND "tanggal" >= ${tanggalDari} AND "tanggal" <= ${tanggalSampai}
+    `;
   }
-
-  // 6. Simpan ke database
-  const hasil = [];
-  for (const [userId, val] of perUser) {
-    const simpan = await simpanInsentifPeriode({
-      userId,
-      periode,
-      jumlah: val.jumlah,
-      jumlahTransaksi: val.jumlahTransaksi,
-      tanggalAwal: val.tanggalAwal ?? null,
-      tanggalAkhir: val.tanggalAkhir ?? null,
-    });
-    hasil.push(simpan);
+  for (const kelompok of perUser) {
+    for (const b of kelompok.baris) {
+      await db.$executeRaw`
+        INSERT INTO "InsentifTransaksi" ("id", "userId", "tanggal", "transactionId", "invoiceNo", "productName", "quantity", "jumlah", "lokasi")
+        VALUES (${randomUUID()}, ${kelompok.userId}, ${b.tanggal}, ${b.transactionId}, ${b.invoiceNo}, ${b.productName}, ${b.quantity}, ${b.jumlah}, ${b.lokasi})
+      `;
+    }
   }
 
   return {
     ok: true,
     periode,
-    totalUserDisinkron: hasil.length,
+    totalUserDisinkron: perUser.length,
     totalTransaksi: data.length,
-    tidakDicocokkan: Array.from(tidakDicocokkan),
-    pesan: `Sinkron selesai: ${hasil.length} karyawan, ${data.length} transaksi (${formatTanggal(tanggalDari)}–${formatTanggal(tanggalSampai)}).`,
+    tidakDicocokkan,
+    pesan: `Sinkron selesai: ${perUser.length} karyawan, ${data.length} transaksi (${formatTanggal(tanggalDari)}–${formatTanggal(tanggalSampai)}).${tanpaTanggal > 0 ? ` ${tanpaTanggal} baris tanpa tanggal dilewati.` : ""}`,
   };
 }
 
-/** Simpan/perbarui insentif per user per periode ke database. */
-export async function simpanInsentifPeriode({
-  userId,
-  periode,
-  jumlah,
-  jumlahTransaksi,
-  tanggalAwal,
-  tanggalAkhir,
-}: {
-  userId: string;
-  periode: string; // yyyy-mm
-  jumlah: number;
-  jumlahTransaksi: number;
-  tanggalAwal?: string | null;
-  tanggalAkhir?: string | null;
-}): Promise<BarisInsentif | null> {
-  if (!periodeValid(periode)) {
-    throw new Error("Periode tidak valid.");
-  }
-
-  // Upsert lewat SQL mentah (lihat catatan di atas): update dulu, insert
-  // bila belum ada — cara ini jalan di Postgres maupun SQLite tanpa
-  // ON CONFLICT (preseden: simpanLogoAplikasi di logo-actions.ts).
-  const diubah = await db.$executeRaw`
-    UPDATE "Insentif"
-    SET "jumlah" = ${jumlah},
-      "jumlahTransaksi" = ${jumlahTransaksi},
-      "tanggalAwal" = ${tanggalAwal ?? null},
-      "tanggalAkhir" = ${tanggalAkhir ?? null},
-      "sinkronPada" = CURRENT_TIMESTAMP
-    WHERE "userId" = ${userId} AND "periode" = ${periode}
-  `;
-  if (diubah === 0) {
-    await db.$executeRaw`
-      INSERT INTO "Insentif" ("id", "userId", "periode", "jumlah", "jumlahTransaksi", "tanggalAwal", "tanggalAkhir")
-      VALUES (${randomUUID()}, ${userId}, ${periode}, ${jumlah}, ${jumlahTransaksi}, ${tanggalAwal ?? null}, ${tanggalAkhir ?? null})
-    `;
-  }
-  return ambilInsentifUserPeriode(userId, periode);
-}
-
-/** Ambil insentif satu user untuk periode tertentu. */
-export async function ambilInsentifUserPeriode(
-  userId: string,
-  periode: string,
-): Promise<BarisInsentif | null> {
-  const rows = await db.$queryRaw<BarisInsentif[]>`
-    SELECT "id", "userId", "periode", "jumlah", "jumlahTransaksi",
-      "tanggalAwal", "tanggalAkhir", "sinkronPada"
-    FROM "Insentif"
-    WHERE "userId" = ${userId} AND "periode" = ${periode}
-  `;
-  return rows[0] ?? null;
-}
-
-/** Ambil semua insentif untuk periode (admin/super_admin lihat semua). */
-export async function ambilSemuaInsentifPeriode(
-  periode: string,
-): Promise<BarisInsentifDenganUser[]> {
+/** Ambil baris transaksi insentif dalam rentang tanggal (apa adanya). */
+export async function ambilInsentifTransaksiRentang(
+  dari: string,
+  sampai: string,
+  cabangId?: string,
+): Promise<
+  Array<
+    BarisInsentifTransaksi & {
+      user: {
+        id: string;
+        name: string;
+        username: string | null;
+        cabangNama: string | null;
+      };
+    }
+  >
+> {
   const rows = await db.$queryRaw<{
     id: string;
     userId: string;
-    periode: string;
+    tanggal: string;
+    transactionId: number;
+    invoiceNo: string;
+    productName: string;
+    quantity: number;
     jumlah: number;
-    jumlahTransaksi: number;
-    tanggalAwal: string | null;
-    tanggalAkhir: string | null;
+    lokasi: string;
     sinkronPada: Date;
     user_id: string;
     user_name: string;
     user_username: string | null;
+    cabang_nama: string | null;
   }[]>`
-    SELECT i."id", i."userId", i."periode", i."jumlah", i."jumlahTransaksi",
-      i."tanggalAwal", i."tanggalAkhir", i."sinkronPada",
-      u."id" AS "user_id", u."name" AS "user_name", u."username" AS "user_username"
-    FROM "Insentif" i
-    JOIN "User" u ON u."id" = i."userId"
-    WHERE i."periode" = ${periode}
-    ORDER BY u."name" ASC
+    SELECT t."id", t."userId", t."tanggal", t."transactionId", t."invoiceNo",
+      t."productName", t."quantity", t."jumlah", t."lokasi", t."sinkronPada",
+      u."id" AS "user_id", u."name" AS "user_name", u."username" AS "user_username",
+      c."nama" AS "cabang_nama"
+    FROM "InsentifTransaksi" t
+    JOIN "User" u ON u."id" = t."userId"
+    LEFT JOIN "Cabang" c ON c."id" = u."cabangId"
+    WHERE t."tanggal" >= ${dari} AND t."tanggal" <= ${sampai}
+      AND (${cabangId === undefined} OR u."cabangId" = ${cabangId ?? ""})
+    ORDER BY t."tanggal" ASC, u."name" ASC
   `;
   return rows.map((r) => ({
     id: r.id,
     userId: r.userId,
-    periode: r.periode,
+    tanggal: r.tanggal,
+    transactionId: r.transactionId,
+    invoiceNo: r.invoiceNo,
+    productName: r.productName,
+    quantity: r.quantity,
     jumlah: r.jumlah,
-    jumlahTransaksi: r.jumlahTransaksi,
-    tanggalAwal: r.tanggalAwal,
-    tanggalAkhir: r.tanggalAkhir,
+    lokasi: r.lokasi,
     sinkronPada: r.sinkronPada,
-    user: { id: r.user_id, name: r.user_name, username: r.user_username },
+    user: {
+      id: r.user_id,
+      name: r.user_name,
+      username: r.user_username,
+      cabangNama: r.cabang_nama,
+    },
   }));
+}
+
+/**
+ * Jumlahkan baris transaksi per karyawan (murni, tanpa I/O — bisa diuji).
+ * Dipakai halaman Insentif dan Payroll supaya keduanya memakai angka yang
+ * sama untuk rentang yang sama.
+ */
+export function ringkasInsentifPerUser(
+  baris: Array<{
+    userId: string;
+    tanggal: string;
+    jumlah: number;
+    sinkronPada: Date;
+    user: {
+      id: string;
+      name: string;
+      username: string | null;
+      cabangNama: string | null;
+    };
+  }>,
+): RingkasanInsentifDenganUser[] {
+  const perUser = new Map<string, RingkasanInsentifDenganUser>();
+  for (const b of baris) {
+    const r = perUser.get(b.userId) ?? {
+      userId: b.userId,
+      jumlah: 0,
+      jumlahTransaksi: 0,
+      tanggalAwal: null,
+      tanggalAkhir: null,
+      sinkronPada: null,
+      user: b.user,
+    };
+    r.jumlah += b.jumlah;
+    r.jumlahTransaksi += 1;
+    if (!r.tanggalAwal || b.tanggal < r.tanggalAwal) r.tanggalAwal = b.tanggal;
+    if (!r.tanggalAkhir || b.tanggal > r.tanggalAkhir) r.tanggalAkhir = b.tanggal;
+    if (!r.sinkronPada || b.sinkronPada > r.sinkronPada) r.sinkronPada = b.sinkronPada;
+    perUser.set(b.userId, r);
+  }
+  return [...perUser.values()].sort((a, b) =>
+    a.user.name < b.user.name ? -1 : a.user.name > b.user.name ? 1 : 0,
+  );
+}
+
+/**
+ * Jumlahkan insentif per karyawan untuk rentang tanggal (dari baris
+ * transaksi tersimpan). Dipakai halaman Insentif (rentang filter) dan
+ * Payroll (jendela Dari/Sampai) — keduanya membaca sumber yang sama.
+ */
+export async function ambilInsentifRentang(
+  dari: string,
+  sampai: string,
+  cabangId?: string,
+): Promise<RingkasanInsentifDenganUser[]> {
+  const baris = await ambilInsentifTransaksiRentang(dari, sampai, cabangId);
+  return ringkasInsentifPerUser(baris);
 }
 
 /**

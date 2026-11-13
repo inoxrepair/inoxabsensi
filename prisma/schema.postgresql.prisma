@@ -27,6 +27,7 @@ model User {
   cabangId      String?
   cabang        Cabang?   @relation(fields: [cabangId], references: [id], onDelete: SetNull)
   insentif      Insentif[]
+  insentifTransaksi InsentifTransaksi[]
   pemetaanInsentif PemetaanInsentif[]
   accounts      Account[]
   sessions      Session[]
@@ -251,6 +252,8 @@ model Pengaturan {
 /// Insentif karyawan dari laporan inox.my.id. Satu baris per karyawan per
 /// periode "yyyy-mm". Dihasilkan dari sinkronisasi endpoint
 /// /reports/incentive-line-orders di inox.my.id.
+/// LEGACY: tidak lagi dibaca sejak 13 Nov 2026 — digantikan
+/// InsentifTransaksi (satu baris per transaksi). Tabel dibiarkan sebagai arsip.
 model Insentif {
   id        String @id @default(cuid())
   userId    String
@@ -266,6 +269,34 @@ model Insentif {
   @@unique([userId, periode])
   @@index([periode])
   @@index([userId, periode])
+}
+
+/// Satu baris transaksi insentif dari inox.my.id (feed
+/// /reports/incentive-line-orders). Disimpan per baris, bukan agregat
+/// bulanan, supaya laporan bisa dijumlahkan untuk rentang tanggal apa pun.
+/// Sinkron menimpa baris dalam rentang yang ditarik (hapus lalu isi ulang),
+/// jadi sinkron ulang tidak menggandakan.
+model InsentifTransaksi {
+  id        String @id @default(cuid())
+  userId    String
+  /// Tanggal transaksi lokal "yyyy-mm-dd".
+  tanggal   String
+  /// ID transaksi di inox.my.id (transaction_id); satu transaksi bisa punya
+  /// beberapa baris produk.
+  transactionId Int
+  invoiceNo   String @default("")
+  productName String @default("")
+  quantity    Int @default(0)
+  /// Total komisi baris ini dalam rupiah (Tetap + Persentase).
+  jumlah    Int
+  /// Cabang/lokasi bisnis di iNOX (business_location).
+  lokasi    String @default("")
+  sinkronPada DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, tanggal])
+  @@index([tanggal])
 }
 
 model PemetaanInsentif {

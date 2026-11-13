@@ -2,7 +2,7 @@
 
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { rentangPeriodeGajian } from "@/lib/rekap";
 import { InputTanggal } from "@/components/ui/input-tanggal";
 
@@ -26,6 +26,15 @@ export function FilterInsentif({
   const [bulan, setBulan] = useState(periode);
   const [dariState, setDari] = useState(dari);
   const [sampaiState, setSampai] = useState(sampai);
+
+  // Sinkronkan kembali dari server setelah navigasi: halaman menjepit
+  // rentang ke siklus gajian bulan itu, jadi nilai yang tampil harus
+  // mengikuti hasil jepitan (bukan yang diketik sebelum Tampilkan).
+  useEffect(() => {
+    setBulan(periode);
+    setDari(dari);
+    setSampai(sampai);
+  }, [periode, dari, sampai]);
 
   function gantiBulan(nilai: string) {
     setBulan(nilai);

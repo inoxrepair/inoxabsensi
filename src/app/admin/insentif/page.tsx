@@ -1,6 +1,6 @@
 import { PageHeader, StatCard } from "@/components/ui/primitives";
 import { formatRupiah, formatTanggal } from "@/lib/format";
-import { labelPeriode, periodeTerakhir, periodeValid, rentangPeriodeGajian, tanggalValid } from "@/lib/rekap";
+import { bacaRentangGajian, labelPeriode, periodeValid } from "@/lib/rekap";
 import { wajibAkses } from "@/lib/session";
 import { tanggalLokal } from "@/lib/waktu";
 import { ambilInsentifAdmin, ambilPemetaanInsentif, ambilPenggunaAktif, hapusPemetaanInsentif } from "./actions";
@@ -19,17 +19,16 @@ export default async function AdminInsentifPage({
   const bulanIni = tanggalLokal().slice(0, 7);
   const periode = q.periode && periodeValid(q.periode) ? q.periode : bulanIni;
 
-  // Rentang transaksi: yang dipilih di filter (seperti Log Absensi);
-  // bila tidak dipilih, dipakai siklus gajian default bulan itu
-  // (28 bulan sebelumnya s.d. 27 bulan periode).
-  const rentang =
-    q.dari && q.sampai && tanggalValid(q.dari) && tanggalValid(q.sampai)
-      ? q.dari <= q.sampai
-        ? { dari: q.dari, sampai: q.sampai }
-        : { dari: q.sampai, sampai: q.dari }
-      : rentangPeriodeGajian(periode);
+  // Rentang transaksi: yang dipilih di filter, dijepit ke siklus gajian
+  // bulan itu (28 bulan sebelumnya s.d. 27 bulan periode); bila tidak
+  // dipilih, dipakai siklus gajian default bulan itu. Tabel di bawah
+  // menjumlahkan baris transaksi tersimpan dalam rentang ini.
+  const rentang = bacaRentangGajian(
+    { dari: q.dari, sampai: q.sampai, periode },
+    bulanIni,
+  );
 
-  const data = await ambilInsentifAdmin(periode);
+  const data = await ambilInsentifAdmin(rentang.dari, rentang.sampai);
 
   const superAdmin = admin.role === "super_admin";
   const pemetaan = superAdmin ? await ambilPemetaanInsentif() : [];
@@ -49,8 +48,8 @@ export default async function AdminInsentifPage({
       Data insentif karyawan dari inox.my.id (laporan insentif).{" "}
       {superAdmin ? (
         <>
-          Sinkronisasi manual via tombol di bawah. Data per karyawan
-          per periode "yyyy-mm".
+          Sinkronisasi manual via tombol di bawah. Data per karyawan,
+          dijumlahkan untuk rentang yang dipilih.
         </>
       ) : (
         <>Lihat insentif tim cabang Anda.</>
@@ -99,13 +98,14 @@ export default async function AdminInsentifPage({
                 <th className="p-3 text-sm font-medium text-right">
                   Transaksi
                 </th>
+                <th className="p-3 text-sm font-medium">Rentang</th>
                 <th className="p-3 text-sm font-medium">Sinkron Terakhir</th>
               </tr>
             </thead>
             <tbody>
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-4 text-center text-muted">
+                  <td colSpan={6} className="p-4 text-center text-muted">
                     Belum ada data insentif untuk periode{" "}
                     <strong>{labelPeriode(periode)}</strong>. Klik{" "}
                     <strong>Sinkron Insentif</strong> untuk ambil data dari
@@ -114,15 +114,20 @@ export default async function AdminInsentifPage({
                 </tr>
               ) : (
                 data.map((d: any) => (
-                  <tr key={d.id} className="border-b border-line hover:bg-muted/30">
+                  <tr key={d.userId} className="border-b border-line hover:bg-muted/30">
                     <td className="p-3 text-sm">{d.user.name}</td>
                     <td className="p-3 text-sm">
-                      {d.user.cabang?.nama ?? "—"}
+                      {d.user.cabangNama ?? "—"}
                     </td>
                     <td className="p-3 text-sm text-right font-medium">
                       {formatRupiah(d.jumlah)}
                     </td>
                     <td className="p-3 text-sm text-center">{d.jumlahTransaksi}</td>
+                    <td className="p-3 text-sm text-muted">
+                      {d.tanggalAwal && d.tanggalAkhir
+                        ? `${formatTanggal(d.tanggalAwal)}–${formatTanggal(d.tanggalAkhir)}`
+                        : "—"}
+                    </td>
                     <td className="p-3 text-sm text-muted">
                       {d.sinkronPada ? new Date(d.sinkronPada).toLocaleString("id-ID") : "—"}
                     </td>
@@ -151,17 +156,23 @@ export default async function AdminInsentifPage({
                     <th className="p-2 text-sm font-medium text-right">
                       Transaksi
                     </th>
+                    <th className="p-2 text-sm font-medium">Rentang</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.map((d: any) => (
-                    <tr key={d.id} className="border-b border-line">
+                    <tr key={d.userId} className="border-b border-line">
                       <td className="p-2 text-sm">{d.user.name}</td>
                       <td className="p-2 text-sm text-right font-medium">
                         {formatRupiah(d.jumlah)}
                       </td>
                       <td className="p-2 text-sm text-center">
                         {d.jumlahTransaksi}
+                      </td>
+                      <td className="p-2 text-sm text-muted">
+                        {d.tanggalAwal && d.tanggalAkhir
+                          ? `${formatTanggal(d.tanggalAwal)}–${formatTanggal(d.tanggalAkhir)}`
+                          : "—"}
                       </td>
                     </tr>
                   ))}
@@ -184,7 +195,11 @@ export default async function AdminInsentifPage({
             dipilih di filter di atas (seperti filter Log Absensi).
             Bila tidak dipilih, dipakai siklus gajian default: 28 bulan
             sebelumnya s.d. 27 bulan periode (mis. November 2026 =
-            28/10/2026–27/11/2026).
+            28/10/2026–27/11/2026). Transaksi disimpan per baris
+            (dengan tanggalnya), jadi tabel di atas menjumlahkan
+            rentang yang dipilih — ganti rentang tidak perlu sinkron
+            ulang. Sinkron ulang pada rentang yang sama mengganti baris
+            di rentang itu (tidak menggandakan).
           </li>
           <li>
             Pencocokan karyawan dilakukan berdasarkan nama
@@ -194,8 +209,9 @@ export default async function AdminInsentifPage({
             pemetaan itu (lihat daftar pemetaan di bawah).
           </li>
           <li>
-            Nilai insentif di Payroll diambil dari tabel ini; sinkronisasi
-            adalah satu-satunya sumber nilai tersebut.
+            Nilai insentif di Payroll diambil dari baris transaksi ini,
+            mengikuti rentang tanggal yang dipilih di Payroll;
+            sinkronisasi adalah satu-satunya sumber nilai tersebut.
           </li>
           <li>
             Sinkronisasi tidak realtime; jalankan tombol di atas (atau cron)

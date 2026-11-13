@@ -4,12 +4,13 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import {
+  ambilInsentifRentang,
   jalankanSinkronInsentif,
   normalisasiNama,
-  type BarisInsentif,
+  type RingkasanInsentifDenganUser,
 } from "@/lib/insentif";
 import { wajibAkses } from "@/lib/session";
-import { periodeValid } from "@/lib/rekap";
+import { periodeValid, tanggalValid } from "@/lib/rekap";
 
 export type HasilSinkronInsentif = {
   ok: boolean;
@@ -65,84 +66,24 @@ export async function sinkronInsentifForm(
   return sinkronInsentif(periode, dari, sampai);
 }
 
-/** Baris Insentif beserta user + cabang (seperti include user/cabang Prisma). */
-export type BarisInsentifAdmin = BarisInsentif & {
-  user: {
-    id: string;
-    name: string;
-    username: string | null;
-    cabang: { nama: string } | null;
-  };
-};
+/** Baris insentif per karyawan untuk satu rentang tanggal (nama + cabang). */
+export type BarisInsentifAdmin = RingkasanInsentifDenganUser;
 
-/** Ambil semua insentif untuk periode (admin). Admin cabang hanya tim cabangnya. */
+/**
+ * Ambil insentif per karyawan untuk rentang tanggal (dijumlahkan dari
+ * baris transaksi tersimpan). Admin cabang hanya tim cabangnya.
+ */
 export async function ambilInsentifAdmin(
-  periode: string,
+  dari: string,
+  sampai: string,
 ): Promise<BarisInsentifAdmin[]> {
   const admin = await wajibAkses("insentif");
-  // SQL mentah (lihat lib/insentif.ts kenapa): delegate Insentif belum ada
-  // di generated client VM ini. Filter cabang ikut di SQL: super_admin
-  // melihat semua (parameter pertama true), admin_cabang hanya tim cabangnya.
-  const rows = await db.$queryRaw<{
-    id: string;
-    userId: string;
-    periode: string;
-    jumlah: number;
-    jumlahTransaksi: number;
-    tanggalAwal: string | null;
-    tanggalAkhir: string | null;
-    sinkronPada: Date;
-    user_id: string;
-    user_name: string;
-    user_username: string | null;
-    cabang_nama: string | null;
-  }[]>`
-    SELECT i."id", i."userId", i."periode", i."jumlah", i."jumlahTransaksi",
-      i."tanggalAwal", i."tanggalAkhir", i."sinkronPada",
-      u."id" AS "user_id", u."name" AS "user_name", u."username" AS "user_username",
-      c."nama" AS "cabang_nama"
-    FROM "Insentif" i
-    JOIN "User" u ON u."id" = i."userId"
-    LEFT JOIN "Cabang" c ON c."id" = u."cabangId"
-    WHERE i."periode" = ${periode}
-      AND (${admin.role !== "admin_cabang"} OR u."cabangId" = ${admin.cabangId ?? ""})
-    ORDER BY u."name" ASC
-  `;
-  return rows.map((r) => ({
-    id: r.id,
-    userId: r.userId,
-    periode: r.periode,
-    jumlah: r.jumlah,
-    jumlahTransaksi: r.jumlahTransaksi,
-    tanggalAwal: r.tanggalAwal,
-    tanggalAkhir: r.tanggalAkhir,
-    sinkronPada: r.sinkronPada,
-    user: {
-      id: r.user_id,
-      name: r.user_name,
-      username: r.user_username,
-      cabang: r.cabang_nama ? { nama: r.cabang_nama } : null,
-    },
-  }));
-}
-
-/** Ambil insentif satu user untuk periode (karyawan lihat sendiri). */
-export async function ambilInsentifSaya(
-  userId: string,
-  periode: string,
-): Promise<BarisInsentif | null> {
-  const admin = await wajibAkses("insentif");
-  // karyawan hanya boleh lihat sendiri
-  if (admin.role === "karyawan" && admin.id !== userId) {
-    return null;
-  }
-  const rows = await db.$queryRaw<BarisInsentif[]>`
-    SELECT "id", "userId", "periode", "jumlah", "jumlahTransaksi",
-      "tanggalAwal", "tanggalAkhir", "sinkronPada"
-    FROM "Insentif"
-    WHERE "userId" = ${userId} AND "periode" = ${periode}
-  `;
-  return rows[0] ?? null;
+  if (!tanggalValid(dari) || !tanggalValid(sampai)) return [];
+  // Admin cabang hanya tim cabangnya (filter di SQL, pola yang sama
+  // dengan pembaca lama); super_admin melihat semua.
+  const cabangId =
+    admin.role === "admin_cabang" ? (admin.cabangId ?? "") : undefined;
+  return ambilInsentifRentang(dari, sampai, cabangId);
 }
 
 /** Satu baris pemetaan nama iNOX -> user (seperti include user Prisma). */

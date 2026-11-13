@@ -3,9 +3,11 @@ import {
   bacaCookieDariHeaders,
   cocokkanUser,
   gabungkanCookie,
+  kelompokkanInsentifPerUser,
   normalisasiNama,
   pecahSetCookie,
   petakanBarisInsentif,
+  ringkasInsentifPerUser,
   ubahTanggalKeIso,
 } from "./insentif";
 
@@ -206,5 +208,120 @@ describe("bacaCookieDariHeaders", () => {
           : null,
     } as unknown as Headers;
     expect(bacaCookieDariHeaders(tiruan)).toBe("session=abc123; XSRF-TOKEN=xyz");
+  });
+});
+
+describe("kelompokkanInsentifPerUser", () => {
+  const span = (nilai: number) =>
+    `<span class="display_currency" data-orig-value="${nilai}">${nilai}</span>`;
+  // Baris feed yang sudah dipetakan (tanggal dd-mm-yyyy seperti di iNOX).
+  const barisFeed = (tanggal: string, staf: string, komisiTetap: number) =>
+    petakanBarisInsentif({
+      transaction_id: 1,
+      invoice_no: "INV-1",
+      transaction_date: tanggal,
+      service_staff: staf,
+      product_name: "Service Fee",
+      quantity: span(1),
+      unit_price_before_discount: span(100000),
+      technician_commission_value: span(0),
+      total_technician_commission_value: span(komisiTetap),
+      total_technician_commission_percent_value: span(0),
+      total_unit_price: span(100000),
+      business_location: "KWSN",
+    });
+
+  it("mengelompokkan per karyawan dengan jumlah dan rentang tanggal", () => {
+    const { perUser, tidakDicocokkan, tanpaTanggal } =
+      kelompokkanInsentifPerUser(
+        [
+          barisFeed("03-11-2026", "FajriMokodompit", 75000),
+          barisFeed("05-11-2026", "FajriMokodompit", 25000),
+          barisFeed("05-11-2026", "nizam", 52500),
+          barisFeed("06-11-2026", "Siapa", 10000),
+        ],
+        USERS,
+      );
+    expect(tanpaTanggal).toBe(0);
+    expect(tidakDicocokkan).toEqual(["Siapa"]);
+    expect(perUser).toHaveLength(2);
+    const fajri = perUser.find((p) => p.userId === "u1")!;
+    expect(fajri.jumlah).toBe(100000);
+    expect(fajri.jumlahTransaksi).toBe(2);
+    expect(fajri.tanggalAwal).toBe("2026-11-03");
+    expect(fajri.tanggalAkhir).toBe("2026-11-05");
+    expect(fajri.baris).toHaveLength(2);
+    expect(fajri.baris[0].tanggal).toBe("2026-11-03");
+    const nizam = perUser.find((p) => p.userId === "u4")!;
+    expect(nizam.jumlah).toBe(52500);
+    expect(nizam.jumlahTransaksi).toBe(1);
+  });
+
+  it("pemetaan manual menang atas pencocokan nama", () => {
+    const { perUser, tidakDicocokkan } = kelompokkanInsentifPerUser(
+      [barisFeed("03-11-2026", "Fajri", 75000)],
+      USERS,
+      [{ namaKunci: "fajri", userId: "u2" }],
+    );
+    expect(tidakDicocokkan).toEqual([]);
+    expect(perUser).toHaveLength(1);
+    expect(perUser[0].userId).toBe("u2");
+  });
+
+  it("baris tanpa tanggal dilewati dan dihitung, bukan ditebak", () => {
+    const { perUser, tanpaTanggal } = kelompokkanInsentifPerUser(
+      [
+        barisFeed("03-11-2026", "FajriMokodompit", 75000),
+        barisFeed("bukan-tanggal", "FajriMokodompit", 25000),
+      ],
+      USERS,
+    );
+    expect(tanpaTanggal).toBe(1);
+    expect(perUser).toHaveLength(1);
+    expect(perUser[0].jumlah).toBe(75000);
+    expect(perUser[0].jumlahTransaksi).toBe(1);
+  });
+});
+
+describe("ringkasInsentifPerUser", () => {
+  const user = (id: string, name: string) => ({
+    id,
+    name,
+    username: null,
+    cabangNama: "KWSN",
+  });
+  const baris = (
+    userId: string,
+    tanggal: string,
+    jumlah: number,
+    sinkronPada: string,
+  ) => ({
+    userId,
+    tanggal,
+    jumlah,
+    sinkronPada: new Date(sinkronPada),
+    user: user(userId, userId === "u1" ? "Fajri Mokodompit" : "nizam"),
+  });
+
+  it("menjumlahkan per karyawan dengan rentang dan sinkron terakhir", () => {
+    const hasil = ringkasInsentifPerUser([
+      baris("u1", "2026-11-03", 75000, "2026-11-13T10:00:00Z"),
+      baris("u1", "2026-11-05", 25000, "2026-11-13T11:00:00Z"),
+      baris("u4", "2026-11-05", 52500, "2026-11-13T09:00:00Z"),
+    ]);
+    expect(hasil).toHaveLength(2);
+    // Diurutkan menurut nama karyawan.
+    expect(hasil[0].user.name).toBe("Fajri Mokodompit");
+    expect(hasil[0].jumlah).toBe(100000);
+    expect(hasil[0].jumlahTransaksi).toBe(2);
+    expect(hasil[0].tanggalAwal).toBe("2026-11-03");
+    expect(hasil[0].tanggalAkhir).toBe("2026-11-05");
+    expect(hasil[0].sinkronPada).toEqual(new Date("2026-11-13T11:00:00Z"));
+    expect(hasil[1].jumlah).toBe(52500);
+    expect(hasil[1].jumlahTransaksi).toBe(1);
+  });
+
+  it("daftar kosong menghasilkan ringkasan kosong", () => {
+    expect(ringkasInsentifPerUser([])).toEqual([]);
   });
 });

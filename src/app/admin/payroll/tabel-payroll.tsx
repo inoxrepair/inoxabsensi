@@ -115,7 +115,8 @@ export function TabelPayroll({
         pada periode ini; menit telat sudah dikurangi toleransi shift, jadi
         ubah toleransi di definisi shift bila perlu (berlaku untuk absen
         berikutnya). Insentif berasal dari sinkron inox.my.id (menu Insentif)
-        dan tidak bisa diubah di sini. Tombol &quot;Isi kasbon dari
+        dan mengikuti rentang tanggal yang dipilih di atas; insentif tidak
+        bisa diubah di sini. Tombol &quot;Isi kasbon dari
         pengajuan&quot; hanya mengisi kolom, nilai baru tersimpan setelah
         tombol Simpan ditekan.
       </p>

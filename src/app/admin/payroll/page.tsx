@@ -9,7 +9,7 @@ import {
   totalPayroll,
   tunjanganMakan,
 } from "@/lib/payroll";
-import { ambilSemuaInsentifPeriode } from "@/lib/insentif";
+import { ambilInsentifRentang } from "@/lib/insentif";
 import { sisaKasbon } from "@/lib/kasbon";
 import {
   bacaRentangGajian,
@@ -81,8 +81,10 @@ export default async function AdminPayrollPage({
         },
         select: { userId: true, jumlah: true, jumlahTerbayar: true },
       }),
-      // Insentif dari inox.my.id (periode ini).
-      ambilSemuaInsentifPeriode(periode),
+      // Insentif dari inox.my.id, mengikuti jendela aktif (periode penuh
+      // atau rentang tanggal kustom di dalamnya) — sama seperti
+      // tunjangan makan dan potongan telat.
+      ambilInsentifRentang(jendela.dari, jendela.sampai),
     ]);
 
   const peta = new Map(payroll.map((p) => [p.userId, p]));
