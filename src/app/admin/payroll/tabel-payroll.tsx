@@ -162,6 +162,9 @@ function Baris({
       <th scope="row" className="p-3 text-left">
         <span className="font-medium">{awal.nama}</span>
         <span className="block text-xs font-normal text-muted">{awal.cabang}</span>
+        <span className="block text-xs font-normal text-muted">
+          Makan: {formatRupiah(awal.tunjanganMakan)} · {awal.hariHadir} hari
+        </span>
       </th>
       {KOMPONEN.map(([key, label]) => (
         <td key={key} className="p-2 text-right">
