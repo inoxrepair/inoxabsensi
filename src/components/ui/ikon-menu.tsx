@@ -117,6 +117,15 @@ export function IkonMenu({
           <path d="M15.5 7H20v4.5" />
         </Bingkai>
       );
+    case "/admin/informasi":
+      // Informasi: huruf "i" dalam lingkaran.
+      return (
+        <Bingkai {...props}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 11v5" />
+          <path d="M12 8h.01" />
+        </Bingkai>
+      );
     case "/admin/pengaturan":
       // Pengaturan: roda gigi minimalis.
       return (

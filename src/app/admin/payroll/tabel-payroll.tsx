@@ -5,6 +5,8 @@ import { formatRupiah } from "@/lib/format";
 import {
   melebihiPendapatan,
   takeHomePay,
+  TARIF_LEMBUR_PER_JAM,
+  TARIF_PER_JAM,
   TARIF_POTONGAN_TELAT_PER_MENIT,
   TARIF_TUNJANGAN_MAKAN_PER_HARI,
 } from "@/lib/payroll";
@@ -57,7 +59,7 @@ export function TabelPayroll({
       ) : null}
 
       <div className="overflow-x-auto rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
-        <table className="w-full min-w-[1040px] text-sm">
+        <table className="w-full min-w-[1120px] text-sm">
           <caption className="sr-only">Payroll editable per karyawan</caption>
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
@@ -71,6 +73,7 @@ export function TabelPayroll({
               <th className="p-3 text-right font-medium">Kasbon disetujui (sisa)</th>
               <th className="p-3 text-right font-medium">Insentif</th>
               <th className="p-3 text-right font-medium">Tunjangan makan</th>
+              <th className="p-3 text-right font-medium">Lembur</th>
               <th className="p-3 text-right font-medium">Diterima</th>
               <th className="p-3 font-medium">Aksi</th>
             </tr>
@@ -91,15 +94,25 @@ export function TabelPayroll({
         </table>
       </div>
       <p className="text-xs text-muted">
-        Nilai disimpan dalam rupiah. Gaji diterima = gaji pokok + tunjangan +
-        tunjangan makan + insentif - potongan - kasbon. Tunjangan makan
+        Nilai disimpan dalam rupiah. Gaji diterima = gaji pokok + gaji pokok
+        fleksibel + tunjangan + tunjangan makan + lembur + insentif -
+        potongan - kasbon. Tunjangan makan
         dihitung otomatis {formatRupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)} × hari
         hadir (status hadir/telat) pada periode ini; alpa, izin, dan off
         tidak dihitung. Potongan telat dihitung otomatis{" "}
         {formatRupiah(TARIF_POTONGAN_TELAT_PER_MENIT)} × menit telat tercatat
         pada periode ini; menit telat sudah dikurangi toleransi shift, jadi
         ubah toleransi di definisi shift bila perlu (berlaku untuk absen
-        berikutnya). Insentif berasal dari sinkron inox.my.id (menu Insentif)
+        berikutnya). Lembur dihitung otomatis{" "}
+        {formatRupiah(TARIF_LEMBUR_PER_JAM)} × jam lembur: shift terjadwal di
+        atas 8 jam (ikut definisi shift, bukan jam absen nyata), sisa 30
+        menit atau lebih dibulatkan ke atas per hari; shift fleksibel tidak
+        dihitung lembur. Gaji pokok fleksibel dihitung otomatis{" "}
+        {formatRupiah(TARIF_PER_JAM)} × jam kerja hari fleksibel: jumlah
+        cycle absen hari itu (1–3 cycle diakumulasi), dibulatkan per hari
+        dengan aturan yang sama; ditambahkan ke gaji pokok manual di atas —
+        untuk karyawan yang sepenuhnya fleksibel, isi gaji pokok manual 0
+        supaya tidak dobel. Insentif berasal dari sinkron inox.my.id (menu Insentif)
         dan mengikuti rentang tanggal yang dipilih di atas; insentif tidak
         bisa diubah di sini. Tombol &quot;Isi kasbon dari
         pengajuan&quot; hanya mengisi kolom, nilai baru tersimpan setelah
@@ -130,10 +143,15 @@ function Baris({
 
   const angka = {
     gajiPokok: Number(nilai.gajiPokok) || 0,
+    // Gaji pokok fleksibel juga read-only: jam kerja hari fleksibel
+    // (jumlah cycle, dibulatkan per hari) × Rp 12.000.
+    gajiPokokFleksibel: awal.gajiPokokFleksibel,
     tunjangan: Number(nilai.tunjangan) || 0,
     // Tunjangan makan dibaca (read-only) dari hitungan hari hadir,
     // seperti insentif — bukan dari form.
     tunjanganMakan: awal.tunjanganMakan,
+    // Lembur juga read-only: shift terjadwal di atas 8 jam × Rp 12.000.
+    lembur: awal.lembur,
     // Potongan telat juga read-only: menit telat tercatat × Rp 1.000.
     potonganTelat: awal.potonganTelat,
     kasbon: Number(nilai.kasbon) || 0,
@@ -185,6 +203,12 @@ function Baris({
             onChange={(e) => setNilai((n) => ({ ...n, [key]: e.target.value }))}
             className="w-32 rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-right tabular-nums"
           />
+          {key === "gajiPokok" && awal.gajiPokokFleksibel > 0 ? (
+            <span className="block text-xs font-normal text-muted">
+              + {awal.jamFleksibel} jam fleksibel ×{" "}
+              {formatRupiah(TARIF_PER_JAM)}
+            </span>
+          ) : null}
         </td>
       ))}
       <td className="p-3 text-right tabular-nums">
@@ -205,6 +229,12 @@ function Baris({
         {formatRupiah(awal.tunjanganMakan)}
         <span className="block text-xs font-normal text-muted">
           {awal.hariHadir} hari × {formatRupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)}
+        </span>
+      </td>
+      <td className="p-3 text-right tabular-nums">
+        {formatRupiah(awal.lembur)}
+        <span className="block text-xs font-normal text-muted">
+          {awal.jamLembur} jam × {formatRupiah(TARIF_LEMBUR_PER_JAM)}
         </span>
       </td>
       <td className="p-3 text-right tabular-nums">

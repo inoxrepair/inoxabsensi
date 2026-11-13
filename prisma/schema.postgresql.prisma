@@ -249,6 +249,33 @@ model Pengaturan {
   updatedAt DateTime @updatedAt
 }
 
+/// Pesan informasi (pengumuman) yang muncul sebagai popup setelah karyawan
+/// absen masuk. Diatur di menu Informasi (super_admin): judul, isi, tombol
+/// CTA, tanggal mulai tampil + durasi (hari), dan toggle aktif.
+model Informasi {
+  id           String   @id @default(cuid())
+  judul        String
+  isi          String
+  /// Label tombol CTA; kosong = "Mengerti".
+  ctaLabel     String   @default("Mengerti")
+  /// Aksi tombol CTA: tutup (tutup popup), tautan (buka URL), halaman
+  /// (buka halaman aplikasi).
+  ctaAksi      String   @default("tutup")
+  /// URL tujuan bila ctaAksi = tautan.
+  ctaTautan    String?
+  /// Path halaman aplikasi bila ctaAksi = halaman.
+  ctaHalaman   String?
+  /// Tanggal mulai tampil "yyyy-mm-dd".
+  mulaiTanggal String
+  /// Lama tampil dalam hari (termasuk tanggal mulai).
+  durasiHari   Int      @default(3)
+  aktif        Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([aktif, mulaiTanggal])
+}
+
 /// Insentif karyawan dari laporan inox.my.id. Satu baris per karyawan per
 /// periode "yyyy-mm". Dihasilkan dari sinkronisasi endpoint
 /// /reports/incentive-line-orders di inox.my.id.

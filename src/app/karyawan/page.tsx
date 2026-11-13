@@ -3,9 +3,10 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { db } from "@/lib/db";
 import { bacaStatusAbsensi } from "@/lib/domain";
+import { ambilInformasiAktif } from "@/lib/informasi-data";
 import { wajibLogin } from "@/lib/session";
 import { formatDurasi, keJam, menitLokal, namaHari, tanggalLokal, durasiMenit } from "@/lib/waktu";
-import { TombolAbsen } from "./tombol-absen";
+import { AreaAbsen } from "./area-absen";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export default async function KaryawanAbsenPage() {
   const sesi = await wajibLogin();
   const tanggal = tanggalLokal();
 
-  const [user, jadwal, absensi] = await Promise.all([
+  const [user, jadwal, absensi, informasi] = await Promise.all([
     db.user.findUniqueOrThrow({
       where: { id: sesi.id },
       select: { name: true, jabatan: true, image: true, cabang: true },
@@ -45,6 +46,8 @@ export default async function KaryawanAbsenPage() {
       where: { userId_tanggal: { userId: sesi.id, tanggal } },
        select: { status: true, masukMenit: true, keluarMenit: true, maksimalCycle: true, cycles: { orderBy: { urutan: "asc" } } },
     }),
+    // Pesan informasi yang tampil hari ini (untuk popup setelah absen masuk).
+    ambilInformasiAktif(tanggal),
   ]);
 
   const shift = jadwal?.shift ?? null;
@@ -202,11 +205,12 @@ export default async function KaryawanAbsenPage() {
           </p>
         </LiquidGlass>
       ) : (
-        <TombolAbsen
+        <AreaAbsen
           mode={mode}
           cycleKe={jumlahCycle + 1}
           maksimalCycle={maksimalCycle}
           mulaiMenit={cycleAktif?.masukMenit ?? null}
+          daftar={informasi}
         />
       )}
 

@@ -644,8 +644,10 @@ export async function ambilInsentifRentang(
  */
 export function takeHomePayDenganInsentif(k: {
   gajiPokok: number;
+  gajiPokokFleksibel: number;
   tunjangan: number;
   tunjanganMakan: number;
+  lembur: number;
   potonganTelat: number;
   kasbon: number;
   insentif: number;

@@ -1,5 +1,6 @@
 import { namaAman } from "@/lib/arsip";
 import { db } from "@/lib/db";
+import { ambilLogAbsensiSlip } from "@/lib/log-absensi-slip";
 import { buatPayrollPdf, buatSlipPayrollPdf } from "@/lib/payroll-pdf";
 import { hitungPayroll } from "@/lib/payroll-data";
 import { bacaNamaPerusahaan } from "@/lib/pengaturan";
@@ -56,13 +57,18 @@ export async function GET(request: Request) {
         status: 404,
       });
     }
+    const [perusahaan, log] = await Promise.all([
+      bacaNamaPerusahaan(),
+      ambilLogAbsensiSlip(karyawanId, jendela.dari, jendela.sampai),
+    ]);
     const pdf = await buatSlipPayrollPdf({
       periode,
       rentang,
       jendelaKustom: jendela.kustom,
       jendela,
-      perusahaan: await bacaNamaPerusahaan(),
+      perusahaan,
       baris: r,
+      log,
     });
     return new Response(Buffer.from(pdf), {
       headers: {

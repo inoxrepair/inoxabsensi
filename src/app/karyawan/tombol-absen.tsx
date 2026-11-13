@@ -36,11 +36,14 @@ export function TombolAbsen({
   cycleKe,
   maksimalCycle,
   mulaiMenit,
+  onMasukBerhasil,
 }: {
   mode: Mode;
   cycleKe: number;
   maksimalCycle: number;
   mulaiMenit: number | null;
+  /** Dipanggil setelah absen masuk berhasil (untuk popup informasi). */
+  onMasukBerhasil?: () => void;
 }) {
   const [hasil, setHasil] = useState<HasilAbsen | null>(null);
   const [mengambilLokasi, setMengambilLokasi] = useState(false);
@@ -85,6 +88,7 @@ export function TombolAbsen({
           judul: mode === "masuk" ? "Absen masuk tercatat" : "Absen keluar tercatat",
         });
         window.setTimeout(() => setAnimasi(null), DURASI_ANIMASI_MS);
+        if (mode === "masuk") onMasukBerhasil?.();
       } else {
         bunyiGagal();
       }
