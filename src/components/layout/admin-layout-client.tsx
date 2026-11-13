@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { TombolKeluar } from "@/components/layout/tombol-keluar";
+import { IkonMenu } from "@/components/ui/ikon-menu";
 import type { NavItem } from "@/lib/nav";
 
 /**
@@ -15,29 +16,6 @@ import type { NavItem } from "@/lib/nav";
  * hydration mismatch (server dan render pertama selalu expanded).
  */
 const KUNCI_SIDEBAR = "inox-admin-sidebar-collapsed";
-
-/** Singkatan ubin saat sidebar diciutkan (tanpa library ikon baru). */
-const SINGKATAN: Record<string, string> = {
-  "/admin": "Da",
-  "/admin/cabang": "Ca",
-  "/admin/karyawan": "Kar",
-  "/admin/log-absensi": "LA",
-  "/admin/izin": "Iz",
-  "/admin/jadwal": "Ja",
-  "/admin/rekap": "Re",
-  "/admin/kasbon": "Kas",
-  "/admin/payroll": "Pa",
-  "/admin/pengaturan": "Pen",
-};
-
-function singkatan(item: NavItem): string {
-  if (SINGKATAN[item.href]) return SINGKATAN[item.href];
-  return item.label
-    .split(/\s+/)
-    .map((k) => k[0]?.toUpperCase() ?? "")
-    .join("")
-    .slice(0, 2);
-}
 
 function inisial(nama: string) {
   return nama
@@ -126,13 +104,13 @@ export function AdminLayoutClient({
                       title={item.label}
                       aria-label={item.label}
                       aria-current={isAktif ? "page" : undefined}
-                      className={`mx-auto grid size-10 place-items-center rounded-lg text-xs font-medium transition-colors ${
+                      className={`mx-auto grid size-10 place-items-center rounded-lg transition-colors ${
                         isAktif
                           ? "bg-ink text-paper"
                           : "text-muted hover:bg-white/70 dark:bg-zinc-900/60 hover:text-ink"
                       }`}
                     >
-                      {singkatan(item)}
+                      <IkonMenu href={item.href} className="size-5" />
                     </Link>
                   </li>
                 );
