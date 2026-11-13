@@ -401,3 +401,26 @@ export function labelRentang(r: Rentang & { kustom: boolean }): string {
     ? `${formatTanggal(r.dari)} s.d. ${formatTanggal(r.sampai)}`
     : labelPeriode(r.dari.slice(0, 7));
 }
+
+/**
+ * Seperti bacaRentang, tapi untuk Payroll: fallback-nya rentang periode
+ * penggajian (28–27), dan rentang kustom dijepit ke dalam rentang itu —
+ * filter bulan tetap jadi periode gajian; rentang tanggal hanya
+ * membatasi hitungan hadir/telat di dalam bulan itu. Rentang yang
+ * seluruhnya di luar periode gajian jatuh ke periode penuh.
+ */
+export function bacaRentangGajian(
+  q: { dari?: string; sampai?: string; periode?: string },
+  bulanBerjalan: string,
+): Rentang & { kustom: boolean } {
+  const periode = q.periode && periodeValid(q.periode) ? q.periode : bulanBerjalan;
+  const gajian = rentangPeriodeGajian(periode);
+  if (q.dari && q.sampai && tanggalValid(q.dari) && tanggalValid(q.sampai)) {
+    const [dari, sampai] =
+      q.dari <= q.sampai ? [q.dari, q.sampai] : [q.sampai, q.dari];
+    const d = dari < gajian.dari ? gajian.dari : dari;
+    const s = sampai > gajian.sampai ? gajian.sampai : sampai;
+    if (d <= s) return { dari: d, sampai: s, kustom: true };
+  }
+  return { ...gajian, kustom: false };
+}

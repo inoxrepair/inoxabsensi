@@ -1,27 +1,71 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { labelPeriode } from "@/lib/rekap";
+import { InputTanggal } from "@/components/ui/input-tanggal";
 
+/**
+ * Filter payroll: periode bulanan (tetap jadi periode gajian dan tempat
+ * simpan) + rentang tanggal opsional yang membatasi hitungan hadir/telat
+ * (tunjangan makan & potongan telat) di dalam bulan itu. Rentang yang
+ * melewati batas periode gajian dijepit server (lihat bacaRentangGajian).
+ */
 export function FilterPayroll({
   periode,
   daftarPeriode,
   cabangId,
   cabang,
+  jendela,
+  batas,
 }: {
   periode: string;
   daftarPeriode: string[];
   cabangId: string;
   cabang: { id: string; nama: string }[];
+  /** Jendela hitung aktif (periode penuh bila tidak kustom). */
+  jendela: { dari: string; sampai: string; kustom: boolean };
+  /** Batas periode gajian — rentang tanggal dijepit ke dalamnya. */
+  batas: { dari: string; sampai: string };
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const [dari, setDari] = useState(jendela.kustom ? jendela.dari : "");
+  const [sampai, setSampai] = useState(jendela.kustom ? jendela.sampai : "");
+
+  // Navigasi browser atau perubahan periode dari server harus menyegarkan
+  // state input lokal; tanpa ini tanggal bulan sebelumnya bisa tertinggal.
+  useEffect(() => {
+    setDari(jendela.kustom ? jendela.dari : "");
+    setSampai(jendela.kustom ? jendela.sampai : "");
+  }, [jendela.dari, jendela.sampai, jendela.kustom]);
+
+  function navigasi(ubah: (q: URLSearchParams) => void) {
+    const q = new URLSearchParams(params);
+    ubah(q);
+    router.push(`/admin/payroll?${q}`);
+  }
 
   function ubah(kunci: string, nilai: string) {
-    const q = new URLSearchParams(params);
-    if (nilai) q.set(kunci, nilai);
-    else q.delete(kunci);
-    router.push(`/admin/payroll?${q}`);
+    navigasi((q) => {
+      if (nilai) q.set(kunci, nilai);
+      else q.delete(kunci);
+    });
+  }
+
+  function terapkanRentang() {
+    if (!dari || !sampai) return;
+    navigasi((q) => {
+      q.set("dari", dari);
+      q.set("sampai", sampai);
+    });
+  }
+
+  function resetRentang() {
+    navigasi((q) => {
+      q.delete("dari");
+      q.delete("sampai");
+    });
   }
 
   return (
@@ -64,6 +108,52 @@ export function FilterPayroll({
           </select>
         </span>
       ) : null}
+
+      <span className="inline-flex flex-wrap items-center gap-2">
+        <label htmlFor="dari-payroll" className="text-xs text-muted">
+          Dari
+        </label>
+        <InputTanggal
+          id="dari-payroll"
+          value={dari}
+          min={batas.dari}
+          max={sampai || batas.sampai}
+          onChange={setDari}
+          varian="kaca"
+          padat
+          className="w-36"
+        />
+        <label htmlFor="sampai-payroll" className="text-xs text-muted">
+          Sampai
+        </label>
+        <InputTanggal
+          id="sampai-payroll"
+          value={sampai}
+          min={dari || batas.dari}
+          max={batas.sampai}
+          onChange={setSampai}
+          varian="kaca"
+          padat
+          className="w-36"
+        />
+        <button
+          type="button"
+          onClick={terapkanRentang}
+          disabled={!dari || !sampai}
+          className="rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-paper disabled:opacity-40"
+        >
+          Terapkan
+        </button>
+        {jendela.kustom ? (
+          <button
+            type="button"
+            onClick={resetRentang}
+            className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium"
+          >
+            Reset rentang
+          </button>
+        ) : null}
+      </span>
     </div>
   );
 }

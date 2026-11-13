@@ -12,6 +12,7 @@ import {
 import { ambilSemuaInsentifPeriode } from "@/lib/insentif";
 import { sisaKasbon } from "@/lib/kasbon";
 import {
+  bacaRentangGajian,
   labelPeriode,
   periodeTerakhir,
   periodeValid,
@@ -27,7 +28,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPayrollPage({
   searchParams,
 }: {
-  searchParams: Promise<{ periode?: string; cabang?: string }>;
+  searchParams: Promise<{ periode?: string; cabang?: string; dari?: string; sampai?: string }>;
 }) {
   const admin = await wajibAkses("payroll");
   const q = await searchParams;
@@ -42,6 +43,12 @@ export default async function AdminPayrollPage({
   const filterCabang = cabangId ? { cabangId } : {};
 
   const rentang = rentangPeriodeGajian(periode);
+  // Jendela hitung hadir/telat: periode penuh, atau rentang tanggal kustom
+  // yang dijepit ke dalam periode gajian (filter bulan tetap berlaku).
+  const jendela = bacaRentangGajian(
+    { dari: q.dari, sampai: q.sampai, periode },
+    bulanIni,
+  );
   const [karyawan, payroll, cabang, absensiPeriode, kasbonPeriode, insentifPeriode] =
     await Promise.all([
       db.user.findMany({
@@ -56,11 +63,11 @@ export default async function AdminPayrollPage({
         orderBy: { nama: "asc" },
         select: { id: true, nama: true },
       }),
-      // Menit telat rekap periode ini (angka tersimpan saat check-in).
-      // Status ikut diambil untuk menghitung hari hadir tunjangan makan.
+      // Menit telat & hari hadir dihitung dari jendela aktif (periode
+      // penuh atau rentang tanggal kustom di dalamnya).
       db.absensi.findMany({
         where: {
-          tanggal: { gte: rentang.dari, lte: rentang.sampai },
+          tanggal: { gte: jendela.dari, lte: jendela.sampai },
           user: { aktif: true, ...filterCabang },
         },
         select: { userId: true, menitTelat: true, status: true },
@@ -122,7 +129,7 @@ export default async function AdminPayrollPage({
     <>
       <PageHeader
         title="Payroll"
-        description={`Komponen gaji periode ${labelPeriode(periode)} (${formatTanggal(rentang.dari)}–${formatTanggal(rentang.sampai)}). Gaji pokok, tunjangan, dan kasbon dapat diubah super admin; tunjangan makan, potongan telat, dan insentif dihitung otomatis.`}
+        description={`Komponen gaji periode ${labelPeriode(periode)} (${formatTanggal(rentang.dari)}–${formatTanggal(rentang.sampai)}). Gaji pokok, tunjangan, dan kasbon dapat diubah super admin; tunjangan makan, potongan telat, dan insentif dihitung otomatis.${jendela.kustom ? ` Hitungan hadir/telat dibatasi ${formatTanggal(jendela.dari)}–${formatTanggal(jendela.sampai)}.` : ""}`}
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -151,10 +158,20 @@ export default async function AdminPayrollPage({
           daftarPeriode={periodeTerakhir(bulanIni, 12)}
           cabangId={cabangId}
           cabang={cabang}
+          jendela={jendela}
+          batas={rentang}
         />
 
         {superAdmin ? (
-          <TabelPayroll periode={periode} baris={baris} />
+          <TabelPayroll
+            periode={periode}
+            baris={baris}
+            infoJendela={
+              jendela.kustom
+                ? `Tunjangan makan dan potongan telat dihitung dari ${formatTanggal(jendela.dari)}–${formatTanggal(jendela.sampai)}; komponen lain tetap sebulan penuh.`
+                : undefined
+            }
+          />
         ) : (
           <p className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-6 text-sm text-muted">
             Hanya super admin dapat melihat dan mengubah payroll.

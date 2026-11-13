@@ -40,9 +40,12 @@ const KOMPONEN = [
 export function TabelPayroll({
   periode,
   baris,
+  infoJendela,
 }: {
   periode: string;
   baris: BarisPayroll[];
+  /** Keterangan bila hitungan hadir/telat dibatasi rentang tanggal kustom. */
+  infoJendela?: string;
 }) {
   const [pesan, setPesan] = useState<HasilPayroll | null>(null);
 
@@ -116,6 +119,7 @@ export function TabelPayroll({
         pengajuan&quot; hanya mengisi kolom, nilai baru tersimpan setelah
         tombol Simpan ditekan.
       </p>
+      {infoJendela ? <p className="text-xs text-muted">{infoJendela}</p> : null}
     </div>
   );
 }

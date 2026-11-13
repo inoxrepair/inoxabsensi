@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   bacaRentang,
+  bacaRentangGajian,
   daftarTanggal,
   keadaanHarian,
   labelPeriode,
@@ -505,6 +506,57 @@ describe("bacaRentang", () => {
   it("mengabaikan tanggal yang hanya terisi separuh", () => {
     expect(bacaRentang({ dari: "2026-08-05" }, bulan).kustom).toBe(false);
     expect(bacaRentang({ sampai: "2026-08-05" }, bulan).kustom).toBe(false);
+  });
+});
+
+describe("bacaRentangGajian", () => {
+  const bulan = "2026-11";
+  const gajian = { dari: "2026-10-28", sampai: "2026-11-27", kustom: false };
+
+  it("jatuh ke rentang gajian penuh bila query kosong", () => {
+    expect(bacaRentangGajian({}, bulan)).toEqual(gajian);
+  });
+
+  it("memakai rentang kustom di dalam periode gajian", () => {
+    expect(
+      bacaRentangGajian({ dari: "2026-11-01", sampai: "2026-11-15", periode: bulan }, bulan),
+    ).toEqual({ dari: "2026-11-01", sampai: "2026-11-15", kustom: true });
+  });
+
+  it("menjepit rentang yang melewati batas periode gajian", () => {
+    expect(
+      bacaRentangGajian({ dari: "2026-10-20", sampai: "2026-11-15", periode: bulan }, bulan),
+    ).toEqual({ dari: "2026-10-28", sampai: "2026-11-15", kustom: true });
+    expect(
+      bacaRentangGajian({ dari: "2026-11-20", sampai: "2026-12-05", periode: bulan }, bulan),
+    ).toEqual({ dari: "2026-11-20", sampai: "2026-11-27", kustom: true });
+  });
+
+  it("jatuh ke periode penuh bila rentang seluruhnya di luar periode gajian", () => {
+    expect(
+      bacaRentangGajian({ dari: "2026-09-01", sampai: "2026-09-10", periode: bulan }, bulan),
+    ).toEqual(gajian);
+  });
+
+  it("menukar tanggal yang terbalik lalu menjepit", () => {
+    expect(
+      bacaRentangGajian({ dari: "2026-11-15", sampai: "2026-11-01", periode: bulan }, bulan),
+    ).toEqual({ dari: "2026-11-01", sampai: "2026-11-15", kustom: true });
+  });
+
+  it("rentang satu hari diperbolehkan", () => {
+    expect(
+      bacaRentangGajian({ dari: "2026-11-10", sampai: "2026-11-10", periode: bulan }, bulan),
+    ).toEqual({ dari: "2026-11-10", sampai: "2026-11-10", kustom: true });
+  });
+
+  it("jatuh ke periode penuh bila tanggal tidak sah atau hanya satu tanggal", () => {
+    expect(
+      bacaRentangGajian({ dari: "2026-11-01", sampai: "2026-02-31", periode: bulan }, bulan),
+    ).toEqual(gajian);
+    expect(
+      bacaRentangGajian({ dari: "2026-11-01", periode: bulan }, bulan),
+    ).toEqual(gajian);
   });
 });
 
