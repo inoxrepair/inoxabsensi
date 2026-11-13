@@ -23,7 +23,18 @@ export type BarisKaryawan = {
   role: RoleKaryawan;
   tanggalMasuk: string;
   aktif: boolean;
+  /** Foto profil (data URL) bila karyawan sudah mengunggahnya. */
+  foto: string | null;
 };
+
+/** Inisial untuk lingkaran pengganti bila karyawan belum punya foto. */
+function inisial(nama: string) {
+  return nama
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((k) => k[0]?.toUpperCase() ?? "")
+    .join("");
+}
 
 const INPUT =
   "mt-1.5 w-full rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-3 py-2 text-sm";
@@ -196,11 +207,27 @@ function Kartu({
   return (
     <article className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="font-medium">{r.nama}</p>
-          <p className="text-sm text-muted">
-            @{r.username || "belum-diatur"} · {r.email} · {r.jabatan}
-          </p>
+        <div className="flex items-center gap-3">
+          {r.foto ? (
+            <img
+              src={r.foto}
+              alt={`Foto profil ${r.nama}`}
+              className="size-12 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              className="grid size-12 shrink-0 place-items-center rounded-full bg-ink text-sm font-medium text-paper"
+            >
+              {inisial(r.nama)}
+            </span>
+          )}
+          <div>
+            <p className="font-medium">{r.nama}</p>
+            <p className="text-sm text-muted">
+              @{r.username || "belum-diatur"} · {r.email} · {r.jabatan}
+            </p>
+          </div>
         </div>
         <div className="flex gap-2">
           <button

@@ -33,6 +33,7 @@ export default async function AdminKaryawanPage() {
         role: true,
         tanggalMasuk: true,
         aktif: true,
+        image: true,
         cabangId: true,
         cabang: { select: { nama: true } },
       },
@@ -58,6 +59,7 @@ export default async function AdminKaryawanPage() {
     role: bacaRole(k.role),
     tanggalMasuk: k.tanggalMasuk,
     aktif: k.aktif,
+    foto: k.image,
   }));
 
   const cabang: CabangOption[] = cabangRows;
