@@ -9,26 +9,7 @@ import {
   TARIF_TUNJANGAN_MAKAN_PER_HARI,
 } from "@/lib/payroll";
 import { simpanPayroll, type HasilPayroll } from "./actions";
-
-export type BarisPayroll = {
-  userId: string;
-  nama: string;
-  cabang: string;
-  gajiPokok: number;
-  tunjangan: number;
-  /** Jumlah hari berstatus hadir/telat pada periode ini. */
-  hariHadir: number;
-  /** Dihitung otomatis: hari hadir × Rp 20.000. Tidak diisi manual. */
-  tunjanganMakan: number;
-  /** Dihitung otomatis: menit telat tercatat × Rp 1.000. Tidak diisi manual. */
-  potonganTelat: number;
-  kasbon: number;
-  insentif: number;
-  /** Total menit telat tercatat periode ini (sudah dikurangi toleransi shift). */
-  menitTelatRekap: number;
-  /** Sisa kasbon disetujui periode ini (jumlah - terbayar). */
-  kasbonDisetujuiSisa: number;
-};
+import type { BarisPayroll } from "@/lib/payroll";
 
 const KOMPONEN = [
   ["gajiPokok", "Gaji pokok"],
@@ -41,11 +22,14 @@ export function TabelPayroll({
   periode,
   baris,
   infoJendela,
+  rentangKustom,
 }: {
   periode: string;
   baris: BarisPayroll[];
   /** Keterangan bila hitungan hadir/telat dibatasi rentang tanggal kustom. */
   infoJendela?: string;
+  /** Rentang kustom aktif (bila ada) — diteruskan ke tautan Slip PDF per baris. */
+  rentangKustom?: { dari: string; sampai: string };
 }) {
   const [pesan, setPesan] = useState<HasilPayroll | null>(null);
 
@@ -100,6 +84,7 @@ export function TabelPayroll({
                 periode={periode}
                 awal={r}
                 onPesan={setPesan}
+                rentangKustom={rentangKustom}
               />
             ))}
           </tbody>
@@ -129,10 +114,12 @@ function Baris({
   periode,
   awal,
   onPesan,
+  rentangKustom,
 }: {
   periode: string;
   awal: BarisPayroll;
   onPesan: (h: HasilPayroll) => void;
+  rentangKustom?: { dari: string; sampai: string };
 }) {
   const [nilai, setNilai] = useState({
     gajiPokok: String(awal.gajiPokok),
@@ -155,6 +142,17 @@ function Baris({
   };
   const diterima = takeHomePay(angka);
   const peringatan = melebihiPendapatan(angka);
+
+  // Tautan slip gaji karyawan ini (mengikuti periode + rentang kustom
+  // yang sedang tampil, supaya angkanya sama dengan baris ini).
+  const slipParams = new URLSearchParams({
+    periode,
+    karyawan: awal.userId,
+  });
+  if (rentangKustom) {
+    slipParams.set("dari", rentangKustom.dari);
+    slipParams.set("sampai", rentangKustom.sampai);
+  }
 
   function simpan() {
     const form = new FormData();
@@ -227,6 +225,13 @@ function Baris({
           >
             {menunggu ? "Menyimpan…" : "Simpan"}
           </button>
+          <a
+            href={`/admin/payroll/ekspor?${slipParams.toString()}`}
+            className="rounded-lg border border-line px-3 py-1.5 text-center text-xs font-medium"
+            title="Unduh slip gaji karyawan ini (PDF)"
+          >
+            Slip PDF
+          </a>
           <button
             type="button"
             disabled={menunggu}

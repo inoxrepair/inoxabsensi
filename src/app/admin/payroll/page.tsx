@@ -2,26 +2,19 @@ import { PageHeader, StatCard } from "@/components/ui/primitives";
 import { db } from "@/lib/db";
 import { formatRupiah, formatTanggal } from "@/lib/format";
 import {
-  dihitungHadir,
-  potonganTelat,
   TARIF_POTONGAN_TELAT_PER_MENIT,
   TARIF_TUNJANGAN_MAKAN_PER_HARI,
-  totalPayroll,
-  tunjanganMakan,
 } from "@/lib/payroll";
-import { ambilInsentifRentang } from "@/lib/insentif";
-import { sisaKasbon } from "@/lib/kasbon";
+import { hitungPayroll } from "@/lib/payroll-data";
 import {
-  bacaRentangGajian,
   labelPeriode,
   periodeTerakhir,
   periodeValid,
-  rentangPeriodeGajian,
 } from "@/lib/rekap";
 import { wajibAkses } from "@/lib/session";
 import { tanggalLokal } from "@/lib/waktu";
 import { FilterPayroll } from "./filter-payroll";
-import { TabelPayroll, type BarisPayroll } from "./tabel-payroll";
+import { TabelPayroll } from "./tabel-payroll";
 
 export const dynamic = "force-dynamic";
 
@@ -42,96 +35,45 @@ export default async function AdminPayrollPage({
   const cabangId = superAdmin ? (q.cabang ?? "") : "";
   const filterCabang = cabangId ? { cabangId } : {};
 
-  const rentang = rentangPeriodeGajian(periode);
-  // Jendela hitung hadir/telat: periode penuh, atau rentang tanggal kustom
-  // yang dijepit ke dalam periode gajian (filter bulan tetap berlaku).
-  const jendela = bacaRentangGajian(
-    { dari: q.dari, sampai: q.sampai, periode },
+  // Satu sumber kebenaran dengan ekspor PDF (lib/payroll-data): angka di
+  // layar dan di PDF dihitung dari fungsi yang sama.
+  const { baris, total, jendela, rentang } = await hitungPayroll({
+    periode,
+    cabangId,
+    dari: q.dari,
+    sampai: q.sampai,
     bulanIni,
-  );
-  const [karyawan, payroll, cabang, absensiPeriode, kasbonPeriode, insentifPeriode] =
-    await Promise.all([
-      db.user.findMany({
-        where: { aktif: true, role: { not: "super_admin" }, ...filterCabang },
-        orderBy: [{ cabang: { nama: "asc" } }, { name: "asc" }],
-        select: { id: true, name: true, cabang: { select: { nama: true } } },
-      }),
-      db.payroll.findMany({
-        where: { periode, user: { aktif: true, ...filterCabang } },
-      }),
-      db.cabang.findMany({
-        orderBy: { nama: "asc" },
-        select: { id: true, nama: true },
-      }),
-      // Menit telat & hari hadir dihitung dari jendela aktif (periode
-      // penuh atau rentang tanggal kustom di dalamnya).
-      db.absensi.findMany({
-        where: {
-          tanggal: { gte: jendela.dari, lte: jendela.sampai },
-          user: { aktif: true, ...filterCabang },
-        },
-        select: { userId: true, menitTelat: true, status: true },
-      }),
-      // Kasbon yang disetujui periode ini, dihitung sisanya saja.
-      db.kasbon.findMany({
-        where: {
-          periode,
-          status: "disetujui",
-          user: { aktif: true, ...filterCabang },
-        },
-        select: { userId: true, jumlah: true, jumlahTerbayar: true },
-      }),
-      // Insentif dari inox.my.id, mengikuti jendela aktif (periode penuh
-      // atau rentang tanggal kustom di dalamnya) — sama seperti
-      // tunjangan makan dan potongan telat.
-      ambilInsentifRentang(jendela.dari, jendela.sampai),
-    ]);
-
-  const peta = new Map(payroll.map((p) => [p.userId, p]));
-  const petaTelat = new Map<string, number>();
-  const petaHadir = new Map<string, number>();
-  for (const a of absensiPeriode) {
-    petaTelat.set(a.userId, (petaTelat.get(a.userId) ?? 0) + a.menitTelat);
-    if (dihitungHadir(a.status)) {
-      petaHadir.set(a.userId, (petaHadir.get(a.userId) ?? 0) + 1);
-    }
-  }
-  const petaKasbonSisa = new Map<string, number>();
-  for (const k of kasbonPeriode) {
-    petaKasbonSisa.set(
-      k.userId,
-      (petaKasbonSisa.get(k.userId) ?? 0) + sisaKasbon(k),
-    );
-  }
-  const petaInsentif = new Map(insentifPeriode.map((i) => [i.userId, i.jumlah]));
-  const baris: BarisPayroll[] = karyawan.map((k) => {
-    const p = peta.get(k.id);
-    return {
-      userId: k.id,
-      nama: k.name,
-      cabang: k.cabang?.nama ?? "—",
-      gajiPokok: p?.gajiPokok ?? 0,
-      tunjangan: p?.tunjangan ?? 0,
-      hariHadir: petaHadir.get(k.id) ?? 0,
-      tunjanganMakan: tunjanganMakan(petaHadir.get(k.id) ?? 0),
-      // Potongan telat dihitung otomatis dari menit telat tercatat
-      // (sudah dikurangi toleransi shift) × Rp 1.000 — bukan dari nilai
-      // lama yang tersimpan di tabel Payroll.
-      potonganTelat: potonganTelat(petaTelat.get(k.id) ?? 0),
-      kasbon: p?.kasbon ?? 0,
-      insentif: petaInsentif.get(k.id) ?? 0,
-      menitTelatRekap: petaTelat.get(k.id) ?? 0,
-      kasbonDisetujuiSisa: petaKasbonSisa.get(k.id) ?? 0,
-    };
+  });
+  const cabang = await db.cabang.findMany({
+    orderBy: { nama: "asc" },
+    select: { id: true, nama: true },
   });
 
-  const total = totalPayroll(baris);
+  // Tautan ekspor mengikuti filter yang sedang tampil (periode + cabang +
+  // rentang kustom bila ada).
+  const eksporParams = new URLSearchParams({ periode });
+  if (cabangId) eksporParams.set("cabang", cabangId);
+  if (jendela.kustom) {
+    eksporParams.set("dari", jendela.dari);
+    eksporParams.set("sampai", jendela.sampai);
+  }
 
   return (
     <>
       <PageHeader
         title="Payroll"
         description={`Komponen gaji periode ${labelPeriode(periode)} (${formatTanggal(rentang.dari)}–${formatTanggal(rentang.sampai)}). Gaji pokok, tunjangan, dan kasbon dapat diubah super admin; tunjangan makan, potongan telat, dan insentif dihitung otomatis.${jendela.kustom ? ` Hitungan hadir/telat dibatasi ${formatTanggal(jendela.dari)}–${formatTanggal(jendela.sampai)}.` : ""}`}
+        action={
+          superAdmin && (
+            <a
+              href={`/admin/payroll/ekspor?${eksporParams.toString()}`}
+              className="rounded-lg border border-line px-4 py-2 text-sm font-medium"
+              title="Unduh laporan payroll periode ini (PDF)"
+            >
+              Ekspor PDF
+            </a>
+          )
+        }
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -173,6 +115,7 @@ export default async function AdminPayrollPage({
                 ? `Tunjangan makan dan potongan telat dihitung dari ${formatTanggal(jendela.dari)}–${formatTanggal(jendela.sampai)}; komponen lain tetap sebulan penuh.`
                 : undefined
             }
+            rentangKustom={jendela.kustom ? jendela : undefined}
           />
         ) : (
           <p className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-6 text-sm text-muted">

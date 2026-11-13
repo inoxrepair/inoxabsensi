@@ -6,8 +6,13 @@ import { wajibAkses } from "@/lib/session";
 import { keJam } from "@/lib/waktu";
 import { DaftarSeragam } from "./seragam";
 import { FormLogo } from "./logo-form";
+import { FormNamaPerusahaan } from "./nama-perusahaan-form";
 import { BackupJadwalPanel } from "./backup-jadwal";
-import { bacaLogoAplikasi, bacaVersiLogo } from "@/lib/pengaturan";
+import {
+  bacaLogoAplikasi,
+  bacaNamaPerusahaan,
+  bacaVersiLogo,
+} from "@/lib/pengaturan";
 import { tanggalLokal } from "@/lib/waktu";
 
 /** Hak akses dibaca dari database, jadi perubahan tidak perlu deploy. */
@@ -16,16 +21,18 @@ export const dynamic = "force-dynamic";
 export default async function AdminPengaturanPage() {
   await wajibAkses("pengaturan");
 
-  const [izin, shift, seragam, logo, versiLogo] = await Promise.all([
-    db.rolePermission.findMany(),
-    db.shift.findMany({ orderBy: { mulaiMenit: "asc" } }),
-    db.jenisSeragam.findMany({
-      orderBy: [{ aktif: "desc" }, { nama: "asc" }],
-      include: { _count: { select: { jadwal: true } } },
-    }),
-    bacaLogoAplikasi(),
-    bacaVersiLogo(),
-  ]);
+  const [izin, shift, seragam, logo, versiLogo, namaPerusahaan] =
+    await Promise.all([
+      db.rolePermission.findMany(),
+      db.shift.findMany({ orderBy: { mulaiMenit: "asc" } }),
+      db.jenisSeragam.findMany({
+        orderBy: [{ aktif: "desc" }, { nama: "asc" }],
+        include: { _count: { select: { jadwal: true } } },
+      }),
+      bacaLogoAplikasi(),
+      bacaVersiLogo(),
+      bacaNamaPerusahaan(),
+    ]);
 
   // Set gabungan "role:menu" untuk lookup O(1) saat render matriks.
   const akses = new Set(izin.map((i) => `${bacaRole(i.role)}:${i.menu}`));
@@ -94,6 +101,15 @@ export default async function AdminPengaturanPage() {
           footer="Logo disimpan di database, jadi ikut backup dan tidak hilang saat container di-rebuild. Ikon aplikasi di home screen HP tidak ikut berubah dari sini."
         >
           <FormLogo adaLogoKustom={logo !== null} versiLogo={versiLogo} />
+        </Card>
+      </div>
+
+      <div className="mt-6">
+        <Card
+          title="Nama perusahaan"
+          footer="Nama ini dipakai di slip gaji karyawan. Dikosongkan lalu disimpan akan kembali ke nama bawaan."
+        >
+          <FormNamaPerusahaan nilaiSaatIni={namaPerusahaan} />
         </Card>
       </div>
 

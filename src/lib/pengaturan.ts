@@ -1,6 +1,9 @@
 import { db } from "@/lib/db";
 
 export const KUNCI_LOGO_APLIKASI = "logo_aplikasi";
+export const KUNCI_NAMA_PERUSAHAAN = "nama_perusahaan";
+/** Nama perusahaan bila belum pernah diatur (sesuai logo iNOX). */
+export const NAMA_PERUSAHAAN_BAWAAN = "iNOX Repair";
 
 /**
  * Logo kustom (data URL) bila sudah diunggah lewat Pengaturan, null bila belum.
@@ -21,6 +24,23 @@ export async function bacaLogoAplikasi(): Promise<string | null> {
   } catch {
     // Tabel belum ada (migrasi belum jalan): anggap belum ada logo kustom.
     return null;
+  }
+}
+
+/**
+ * Nama perusahaan untuk slip gaji (diatur di Pengaturan). Bila belum pernah
+ * diatur atau kosong, kembali ke nama bawaan "iNOX Repair".
+ */
+export async function bacaNamaPerusahaan(): Promise<string> {
+  try {
+    const rows = await db.$queryRaw<{ nilai: string }[]>`
+      SELECT "nilai" FROM "Pengaturan" WHERE "kunci" = ${KUNCI_NAMA_PERUSAHAAN}
+    `;
+    const nilai = rows[0]?.nilai?.trim();
+    return nilai ? nilai : NAMA_PERUSAHAAN_BAWAAN;
+  } catch {
+    // Tabel belum ada (migrasi belum jalan): pakai nama bawaan.
+    return NAMA_PERUSAHAAN_BAWAAN;
   }
 }
 

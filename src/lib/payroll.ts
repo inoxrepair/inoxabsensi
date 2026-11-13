@@ -100,6 +100,19 @@ export type KomponenGaji = {
   insentif: number;
 };
 
+/** Satu baris payroll per karyawan (dipakai tabel web + laporan PDF). */
+export type BarisPayroll = KomponenGaji & {
+  userId: string;
+  nama: string;
+  cabang: string;
+  /** Jumlah hari berstatus hadir/telat pada periode ini. */
+  hariHadir: number;
+  /** Total menit telat tercatat periode ini (sudah dikurangi toleransi shift). */
+  menitTelatRekap: number;
+  /** Sisa kasbon disetujui periode ini (jumlah - terbayar). */
+  kasbonDisetujuiSisa: number;
+};
+
 /** Gaji bersih yang diterima karyawan (termasuk tunjangan makan & insentif). */
 export function takeHomePay(k: KomponenGaji): number {
   return (
