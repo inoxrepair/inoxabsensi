@@ -93,6 +93,9 @@ export async function hitungPayroll({
     );
   }
   const petaInsentif = new Map(insentifPeriode.map((i) => [i.userId, i.jumlah]));
+  const petaInsentifTransaksi = new Map(
+    insentifPeriode.map((i) => [i.userId, i.jumlahTransaksi]),
+  );
   const baris: BarisPayroll[] = karyawan.map((k) => {
     const p = peta.get(k.id);
     return {
@@ -111,6 +114,7 @@ export async function hitungPayroll({
       insentif: petaInsentif.get(k.id) ?? 0,
       menitTelatRekap: petaTelat.get(k.id) ?? 0,
       kasbonDisetujuiSisa: petaKasbonSisa.get(k.id) ?? 0,
+      insentifTransaksi: petaInsentifTransaksi.get(k.id) ?? 0,
     };
   });
 

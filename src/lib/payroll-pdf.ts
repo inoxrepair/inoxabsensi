@@ -422,7 +422,11 @@ export async function buatSlipPayrollPdf(
     false,
     false,
   );
-  gambarBarisSlip(["Insentif", "-", rupiah(r.insentif)], false, false);
+  gambarBarisSlip(
+    ["Insentif", `${r.insentifTransaksi} transaksi`, rupiah(r.insentif)],
+    false,
+    false,
+  );
   gambarBarisSlip(
     [
       "Potongan Telat",

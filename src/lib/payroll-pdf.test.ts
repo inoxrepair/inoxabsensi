@@ -17,6 +17,7 @@ function barisContoh(nama: string, cabang: string): BarisPayroll {
     insentif: 685000,
     menitTelatRekap: 15,
     kasbonDisetujuiSisa: 200000,
+    insentifTransaksi: 27,
   };
 }
 

@@ -124,9 +124,10 @@ export default async function AdminInsentifPage({
                     </td>
                     <td className="p-3 text-sm text-center">{d.jumlahTransaksi}</td>
                     <td className="p-3 text-sm text-muted">
-                      {d.tanggalAwal && d.tanggalAkhir
-                        ? `${formatTanggal(d.tanggalAwal)}–${formatTanggal(d.tanggalAkhir)}`
-                        : "—"}
+                      {/* Rentang yang dipilih di filter (sama di semua
+                          baris), bukan tanggal transaksi pertama–terakhir
+                          karyawan itu — supaya sinkron dengan filter. */}
+                      {`${formatTanggal(rentang.dari)}–${formatTanggal(rentang.sampai)}`}
                     </td>
                     <td className="p-3 text-sm text-muted">
                       {d.sinkronPada ? new Date(d.sinkronPada).toLocaleString("id-ID") : "—"}
@@ -170,9 +171,9 @@ export default async function AdminInsentifPage({
                         {d.jumlahTransaksi}
                       </td>
                       <td className="p-2 text-sm text-muted">
-                        {d.tanggalAwal && d.tanggalAkhir
-                          ? `${formatTanggal(d.tanggalAwal)}–${formatTanggal(d.tanggalAkhir)}`
-                          : "—"}
+                        {/* Rentang yang dipilih di filter (sama di semua
+                            baris), supaya sinkron dengan filter. */}
+                        {`${formatTanggal(rentang.dari)}–${formatTanggal(rentang.sampai)}`}
                       </td>
                     </tr>
                   ))}

@@ -111,6 +111,8 @@ export type BarisPayroll = KomponenGaji & {
   menitTelatRekap: number;
   /** Sisa kasbon disetujui periode ini (jumlah - terbayar). */
   kasbonDisetujuiSisa: number;
+  /** Jumlah transaksi iNOX dalam jendela hitung yang membentuk insentif. */
+  insentifTransaksi: number;
 };
 
 /** Gaji bersih yang diterima karyawan (termasuk tunjangan makan & insentif). */
