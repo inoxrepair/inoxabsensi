@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { formatRupiah, formatTanggal } from "@/lib/format";
 import {
   dihitungHadir,
+  potonganTelat,
+  TARIF_POTONGAN_TELAT_PER_MENIT,
   TARIF_TUNJANGAN_MAKAN_PER_HARI,
   totalPayroll,
   tunjanganMakan,
@@ -103,7 +105,10 @@ export default async function AdminPayrollPage({
       tunjangan: p?.tunjangan ?? 0,
       hariHadir: petaHadir.get(k.id) ?? 0,
       tunjanganMakan: tunjanganMakan(petaHadir.get(k.id) ?? 0),
-      potonganTelat: p?.potonganTelat ?? 0,
+      // Potongan telat dihitung otomatis dari menit telat tercatat
+      // (sudah dikurangi toleransi shift) × Rp 1.000 — bukan dari nilai
+      // lama yang tersimpan di tabel Payroll.
+      potonganTelat: potonganTelat(petaTelat.get(k.id) ?? 0),
       kasbon: p?.kasbon ?? 0,
       insentif: petaInsentif.get(k.id) ?? 0,
       menitTelatRekap: petaTelat.get(k.id) ?? 0,
@@ -117,7 +122,7 @@ export default async function AdminPayrollPage({
     <>
       <PageHeader
         title="Payroll"
-        description={`Komponen gaji periode ${labelPeriode(periode)} (${formatTanggal(rentang.dari)}–${formatTanggal(rentang.sampai)}). Semua nilai dapat diubah super admin.`}
+        description={`Komponen gaji periode ${labelPeriode(periode)} (${formatTanggal(rentang.dari)}–${formatTanggal(rentang.sampai)}). Gaji pokok, tunjangan, dan kasbon dapat diubah super admin; tunjangan makan, potongan telat, dan insentif dihitung otomatis.`}
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

@@ -5,6 +5,7 @@ import { formatRupiah } from "@/lib/format";
 import {
   melebihiPendapatan,
   takeHomePay,
+  TARIF_POTONGAN_TELAT_PER_MENIT,
   TARIF_TUNJANGAN_MAKAN_PER_HARI,
 } from "@/lib/payroll";
 import { simpanPayroll, type HasilPayroll } from "./actions";
@@ -19,10 +20,11 @@ export type BarisPayroll = {
   hariHadir: number;
   /** Dihitung otomatis: hari hadir × Rp 20.000. Tidak diisi manual. */
   tunjanganMakan: number;
+  /** Dihitung otomatis: menit telat tercatat × Rp 1.000. Tidak diisi manual. */
   potonganTelat: number;
   kasbon: number;
   insentif: number;
-  /** Acuan saja, tidak otomatis jadi potongan (tidak ada tarif di sistem). */
+  /** Total menit telat tercatat periode ini (sudah dikurangi toleransi shift). */
   menitTelatRekap: number;
   /** Sisa kasbon disetujui periode ini (jumlah - terbayar). */
   kasbonDisetujuiSisa: number;
@@ -31,7 +33,6 @@ export type BarisPayroll = {
 const KOMPONEN = [
   ["gajiPokok", "Gaji pokok"],
   ["tunjangan", "Tunjangan"],
-  ["potonganTelat", "Potongan"],
   ["kasbon", "Kasbon"],
 ] as const;
 
@@ -69,7 +70,7 @@ export function TabelPayroll({
       ) : null}
 
       <div className="overflow-x-auto rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
-        <table className="w-full min-w-[1120px] text-sm">
+        <table className="w-full min-w-[1040px] text-sm">
           <caption className="sr-only">Payroll editable per karyawan</caption>
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
@@ -79,7 +80,7 @@ export function TabelPayroll({
                   {label}
                 </th>
               ))}
-              <th className="p-3 text-right font-medium">Telat rekap</th>
+              <th className="p-3 text-right font-medium">Potongan</th>
               <th className="p-3 text-right font-medium">Kasbon disetujui (sisa)</th>
               <th className="p-3 text-right font-medium">Insentif</th>
               <th className="p-3 text-right font-medium">Tunjangan makan</th>
@@ -106,12 +107,14 @@ export function TabelPayroll({
         tunjangan makan + insentif - potongan - kasbon. Tunjangan makan
         dihitung otomatis {formatRupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)} × hari
         hadir (status hadir/telat) pada periode ini; alpa, izin, dan off
-        tidak dihitung. Insentif berasal dari sinkron inox.my.id (menu
-        Insentif) dan tidak bisa diubah di sini. Potongan telat tetap diisi
-        manual karena tidak ada tarif rupiah per menit telat di sistem; kolom
-        Telat rekap hanya acuan. Tombol &quot;Isi kasbon dari pengajuan&quot;
-        hanya mengisi kolom, nilai baru tersimpan setelah tombol Simpan
-        ditekan.
+        tidak dihitung. Potongan telat dihitung otomatis{" "}
+        {formatRupiah(TARIF_POTONGAN_TELAT_PER_MENIT)} × menit telat tercatat
+        pada periode ini; menit telat sudah dikurangi toleransi shift, jadi
+        ubah toleransi di definisi shift bila perlu (berlaku untuk absen
+        berikutnya). Insentif berasal dari sinkron inox.my.id (menu Insentif)
+        dan tidak bisa diubah di sini. Tombol &quot;Isi kasbon dari
+        pengajuan&quot; hanya mengisi kolom, nilai baru tersimpan setelah
+        tombol Simpan ditekan.
       </p>
     </div>
   );
@@ -129,7 +132,6 @@ function Baris({
   const [nilai, setNilai] = useState({
     gajiPokok: String(awal.gajiPokok),
     tunjangan: String(awal.tunjangan),
-    potonganTelat: String(awal.potonganTelat),
     kasbon: String(awal.kasbon),
   });
   const [menunggu, mulai] = useTransition();
@@ -140,7 +142,8 @@ function Baris({
     // Tunjangan makan dibaca (read-only) dari hitungan hari hadir,
     // seperti insentif — bukan dari form.
     tunjanganMakan: awal.tunjanganMakan,
-    potonganTelat: Number(nilai.potonganTelat) || 0,
+    // Potongan telat juga read-only: menit telat tercatat × Rp 1.000.
+    potonganTelat: awal.potonganTelat,
     kasbon: Number(nilai.kasbon) || 0,
     // Insentif dibaca (read-only) dari tabel Insentif, bukan dari form.
     insentif: awal.insentif,
@@ -162,9 +165,6 @@ function Baris({
       <th scope="row" className="p-3 text-left">
         <span className="font-medium">{awal.nama}</span>
         <span className="block text-xs font-normal text-muted">{awal.cabang}</span>
-        <span className="block text-xs font-normal text-muted">
-          Makan: {formatRupiah(awal.tunjanganMakan)} · {awal.hariHadir} hari
-        </span>
       </th>
       {KOMPONEN.map(([key, label]) => (
         <td key={key} className="p-2 text-right">
@@ -185,8 +185,10 @@ function Baris({
         </td>
       ))}
       <td className="p-3 text-right tabular-nums">
-        {awal.menitTelatRekap} m
-        <span className="block text-xs font-normal text-muted">periode ini</span>
+        {formatRupiah(awal.potonganTelat)}
+        <span className="block text-xs font-normal text-muted">
+          {awal.menitTelatRekap} menit × {formatRupiah(TARIF_POTONGAN_TELAT_PER_MENIT)}
+        </span>
       </td>
       <td className="p-3 text-right tabular-nums">
         {formatRupiah(awal.kasbonDisetujuiSisa)}

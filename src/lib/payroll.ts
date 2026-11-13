@@ -31,6 +31,21 @@ export function tunjanganMakan(hariHadir: number): number {
   return Math.max(0, Math.floor(hariHadir)) * TARIF_TUNJANGAN_MAKAN_PER_HARI;
 }
 
+/**
+ * Tarif potongan telat per menit tercatat (Rp 1.000). Menit telat tercatat
+ * sudah dikurangi toleransi shift (Shift.toleransiMenit) saat check-in —
+ * mis. toleransi 10 menit, masuk 25 menit terlambat → yang dihitung 15
+ * menit → Rp 15.000. Jadi potongan ikut dinamis bila toleransi di definisi
+ * shift diubah (berlaku untuk check-in berikutnya; menit yang sudah
+ * tercatat tidak berubah karena disimpan sebagai snapshot).
+ */
+export const TARIF_POTONGAN_TELAT_PER_MENIT = 1_000;
+
+/** Potongan telat = tarif × menit telat tercatat periode ini. */
+export function potonganTelat(menitTelat: number): number {
+  return Math.max(0, Math.floor(menitTelat)) * TARIF_POTONGAN_TELAT_PER_MENIT;
+}
+
 /** FormData mengirim string; terima juga "3.500.000" dan "3 500 000". */
 function rupiah(label: string) {
   return z.preprocess(
@@ -63,12 +78,13 @@ export const payrollSkema = z.object({
     .refine(periodeValid, "Periode tidak valid."),
   gajiPokok: rupiah("Gaji pokok"),
   tunjangan: rupiah("Tunjangan"),
-  potonganTelat: rupiah("Potongan"),
   kasbon: rupiah("Kasbon"),
   // Insentif SENGAJA tidak ada di skema ini: satu-satunya sumber nilai
   // insentif adalah tabel Insentif (hasil sinkron inox.my.id) yang dibaca
   // halaman Payroll. Form payroll tidak boleh menulisnya, supaya tidak
   // ada dua sumber kebenaran yang bisa berbeda.
+  // Potongan telat juga SENGAJA tidak ada: dihitung otomatis dari menit
+  // telat tercatat × Rp 1.000 (lihat potonganTelat di bawah).
 });
 
 export type DataPayroll = z.output<typeof payrollSkema>;
@@ -78,6 +94,7 @@ export type KomponenGaji = {
   tunjangan: number;
   /** Dihitung otomatis dari hari hadir; tidak diisi manual. */
   tunjanganMakan: number;
+  /** Dihitung otomatis dari menit telat tercatat × Rp 1.000; tidak diisi manual. */
   potonganTelat: number;
   kasbon: number;
   insentif: number;

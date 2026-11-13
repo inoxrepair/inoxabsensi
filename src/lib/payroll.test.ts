@@ -3,8 +3,10 @@ import {
   dihitungHadir,
   melebihiPendapatan,
   payrollSkema,
+  potonganTelat,
   RUPIAH_MAKS,
   takeHomePay,
+  TARIF_POTONGAN_TELAT_PER_MENIT,
   TARIF_TUNJANGAN_MAKAN_PER_HARI,
   totalPayroll,
   tunjanganMakan,
@@ -95,6 +97,14 @@ describe("payrollSkema", () => {
       expect("tunjanganMakan" in h.data).toBe(false);
     }
   });
+
+  it("mengabaikan kunci potongan telat: dihitung otomatis dari menit telat", () => {
+    const h = payrollSkema.safeParse(form({ potonganTelat: "999999" } as any));
+    expect(h.success).toBe(true);
+    if (h.success) {
+      expect("potonganTelat" in h.data).toBe(false);
+    }
+  });
 });
 
 describe("takeHomePay", () => {
@@ -122,6 +132,19 @@ describe("takeHomePay", () => {
         insentif: 0,
       }),
     ).toBe(3_790_000);
+  });
+
+  it("mengurangi potongan telat hasil hitungan (15 menit × Rp 1.000)", () => {
+    expect(
+      takeHomePay({
+        gajiPokok: 3_500_000,
+        tunjangan: 400_000,
+        tunjanganMakan: 440_000,
+        potonganTelat: potonganTelat(15),
+        kasbon: 500_000,
+        insentif: 0,
+      }),
+    ).toBe(3_825_000);
   });
 
   it("bisa negatif bila potongan melebihi pendapatan", () => {
@@ -239,6 +262,22 @@ describe("tunjanganMakan", () => {
   it("nilai negatif dijaga nol, pecahan dibulatkan ke bawah", () => {
     expect(tunjanganMakan(-3)).toBe(0);
     expect(tunjanganMakan(2.9)).toBe(40_000);
+  });
+});
+
+describe("potonganTelat", () => {
+  it("tarif Rp 1.000 per menit telat tercatat", () => {
+    expect(TARIF_POTONGAN_TELAT_PER_MENIT).toBe(1_000);
+    expect(potonganTelat(15)).toBe(15_000);
+  });
+
+  it("nol menit menghasilkan nol", () => {
+    expect(potonganTelat(0)).toBe(0);
+  });
+
+  it("nilai negatif dijaga nol, pecahan dibulatkan ke bawah", () => {
+    expect(potonganTelat(-5)).toBe(0);
+    expect(potonganTelat(2.9)).toBe(2_000);
   });
 });
 
