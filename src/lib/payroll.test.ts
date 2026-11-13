@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  dihitungHadir,
   melebihiPendapatan,
   payrollSkema,
   RUPIAH_MAKS,
   takeHomePay,
+  TARIF_TUNJANGAN_MAKAN_PER_HARI,
   totalPayroll,
+  tunjanganMakan,
 } from "./payroll";
 
 function form(ubah: Record<string, string> = {}) {
@@ -84,6 +87,14 @@ describe("payrollSkema", () => {
       expect("insentif" in h.data).toBe(false);
     }
   });
+
+  it("mengabaikan kunci tunjangan makan: dihitung otomatis dari hari hadir", () => {
+    const h = payrollSkema.safeParse(form({ tunjanganMakan: "999999" } as any));
+    expect(h.success).toBe(true);
+    if (h.success) {
+      expect("tunjanganMakan" in h.data).toBe(false);
+    }
+  });
 });
 
 describe("takeHomePay", () => {
@@ -92,6 +103,7 @@ describe("takeHomePay", () => {
       takeHomePay({
         gajiPokok: 3_500_000,
         tunjangan: 400_000,
+        tunjanganMakan: 0,
         potonganTelat: 50_000,
         kasbon: 500_000,
         insentif: 0,
@@ -99,11 +111,25 @@ describe("takeHomePay", () => {
     ).toBe(3_350_000);
   });
 
+  it("menambahkan tunjangan makan ke pendapatan", () => {
+    expect(
+      takeHomePay({
+        gajiPokok: 3_500_000,
+        tunjangan: 400_000,
+        tunjanganMakan: 440_000,
+        potonganTelat: 50_000,
+        kasbon: 500_000,
+        insentif: 0,
+      }),
+    ).toBe(3_790_000);
+  });
+
   it("bisa negatif bila potongan melebihi pendapatan", () => {
     expect(
       takeHomePay({
         gajiPokok: 100_000,
         tunjangan: 0,
+        tunjanganMakan: 0,
         potonganTelat: 0,
         kasbon: 500_000,
         insentif: 0,
@@ -116,6 +142,7 @@ describe("takeHomePay", () => {
       takeHomePay({
         gajiPokok: 0,
         tunjangan: 0,
+        tunjanganMakan: 0,
         potonganTelat: 0,
         kasbon: 0,
         insentif: 0,
@@ -130,6 +157,7 @@ describe("melebihiPendapatan", () => {
       melebihiPendapatan({
         gajiPokok: 1_000_000,
         tunjangan: 0,
+        tunjanganMakan: 0,
         potonganTelat: 600_000,
         kasbon: 600_000,
         insentif: 0,
@@ -142,8 +170,22 @@ describe("melebihiPendapatan", () => {
       melebihiPendapatan({
         gajiPokok: 1_000_000,
         tunjangan: 0,
+        tunjanganMakan: 0,
         potonganTelat: 500_000,
         kasbon: 500_000,
+        insentif: 0,
+      }),
+    ).toBe(false);
+  });
+
+  it("tunjangan makan dihitung sebagai pendapatan", () => {
+    expect(
+      melebihiPendapatan({
+        gajiPokok: 0,
+        tunjangan: 0,
+        tunjanganMakan: 440_000,
+        potonganTelat: 100_000,
+        kasbon: 0,
         insentif: 0,
       }),
     ).toBe(false);
@@ -153,10 +195,11 @@ describe("melebihiPendapatan", () => {
 describe("totalPayroll", () => {
   it("menjumlahkan seluruh komponen dan gaji diterima", () => {
     const t = totalPayroll([
-      { gajiPokok: 1_000_000, tunjangan: 100_000, potonganTelat: 0, kasbon: 0, insentif: 0 },
+      { gajiPokok: 1_000_000, tunjangan: 100_000, tunjanganMakan: 0, potonganTelat: 0, kasbon: 0, insentif: 0 },
       {
         gajiPokok: 2_000_000,
         tunjangan: 200_000,
+        tunjanganMakan: 400_000,
         potonganTelat: 50_000,
         kasbon: 100_000,
         insentif: 0,
@@ -164,19 +207,51 @@ describe("totalPayroll", () => {
     ]);
     expect(t.gajiPokok).toBe(3_000_000);
     expect(t.tunjangan).toBe(300_000);
+    expect(t.tunjanganMakan).toBe(400_000);
     expect(t.potonganTelat).toBe(50_000);
     expect(t.kasbon).toBe(100_000);
-    expect(t.diterima).toBe(3_150_000);
+    expect(t.diterima).toBe(3_550_000);
   });
 
   it("array kosong menghasilkan nol semua", () => {
     expect(totalPayroll([])).toEqual({
       gajiPokok: 0,
       tunjangan: 0,
+      tunjanganMakan: 0,
       potonganTelat: 0,
       kasbon: 0,
       insentif: 0,
       diterima: 0,
     });
+  });
+});
+
+describe("tunjanganMakan", () => {
+  it("tarif Rp 20.000 per hari hadir", () => {
+    expect(TARIF_TUNJANGAN_MAKAN_PER_HARI).toBe(20_000);
+    expect(tunjanganMakan(22)).toBe(440_000);
+  });
+
+  it("nol hari menghasilkan nol", () => {
+    expect(tunjanganMakan(0)).toBe(0);
+  });
+
+  it("nilai negatif dijaga nol, pecahan dibulatkan ke bawah", () => {
+    expect(tunjanganMakan(-3)).toBe(0);
+    expect(tunjanganMakan(2.9)).toBe(40_000);
+  });
+});
+
+describe("dihitungHadir", () => {
+  it("hadir dan telat dihitung", () => {
+    expect(dihitungHadir("hadir")).toBe(true);
+    expect(dihitungHadir("telat")).toBe(true);
+  });
+
+  it("alpa, izin, libur, dan status asing tidak dihitung", () => {
+    expect(dihitungHadir("alpa")).toBe(false);
+    expect(dihitungHadir("izin")).toBe(false);
+    expect(dihitungHadir("libur")).toBe(false);
+    expect(dihitungHadir("lainnya")).toBe(false);
   });
 });

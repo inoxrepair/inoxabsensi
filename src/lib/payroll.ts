@@ -10,6 +10,27 @@ import { periodeValid } from "@/lib/rekap";
 /** Batas atas per komponen: menahan salah ketik nol berlebih. */
 export const RUPIAH_MAKS = 1_000_000_000;
 
+/**
+ * Tarif tunjangan makan per hari hadir (Rp 20.000). Dihitung OTOMATIS dari
+ * absensi periode ini — bukan angka yang diisi manual di form payroll
+ * (seperti insentif, sumbernya hanya data yang sudah ada).
+ */
+export const TARIF_TUNJANGAN_MAKAN_PER_HARI = 20_000;
+
+/**
+ * Status absensi yang dihitung sebagai satu hari hadir untuk tunjangan
+ * makan. Telat tetap dihitung karena karyawan hadir (hanya terlambat);
+ * alpa, izin, dan libur/off tidak dihitung.
+ */
+export function dihitungHadir(status: string): boolean {
+  return status === "hadir" || status === "telat";
+}
+
+/** Tunjangan makan = tarif × hari hadir. */
+export function tunjanganMakan(hariHadir: number): number {
+  return Math.max(0, Math.floor(hariHadir)) * TARIF_TUNJANGAN_MAKAN_PER_HARI;
+}
+
 /** FormData mengirim string; terima juga "3.500.000" dan "3 500 000". */
 function rupiah(label: string) {
   return z.preprocess(
@@ -55,14 +76,18 @@ export type DataPayroll = z.output<typeof payrollSkema>;
 export type KomponenGaji = {
   gajiPokok: number;
   tunjangan: number;
+  /** Dihitung otomatis dari hari hadir; tidak diisi manual. */
+  tunjanganMakan: number;
   potonganTelat: number;
   kasbon: number;
   insentif: number;
 };
 
-/** Gaji bersih yang diterima karyawan (termasuk insentif). */
+/** Gaji bersih yang diterima karyawan (termasuk tunjangan makan & insentif). */
 export function takeHomePay(k: KomponenGaji): number {
-  return k.gajiPokok + k.tunjangan + k.insentif - k.potonganTelat - k.kasbon;
+  return (
+    k.gajiPokok + k.tunjangan + k.tunjanganMakan + k.insentif - k.potonganTelat - k.kasbon
+  );
 }
 
 /**
@@ -70,13 +95,17 @@ export function takeHomePay(k: KomponenGaji): number {
  * hampir selalu salah input. Dipakai untuk memberi peringatan, bukan menolak.
  */
 export function melebihiPendapatan(k: KomponenGaji): boolean {
-  return k.potonganTelat + k.kasbon > k.gajiPokok + k.tunjangan;
+  return (
+    k.potonganTelat + k.kasbon >
+    k.gajiPokok + k.tunjangan + k.tunjanganMakan
+  );
 }
 
 export function totalPayroll(baris: KomponenGaji[]) {
   return baris.reduce<{
     gajiPokok: number;
     tunjangan: number;
+    tunjanganMakan: number;
     potonganTelat: number;
     kasbon: number;
     insentif: number;
@@ -85,11 +114,12 @@ export function totalPayroll(baris: KomponenGaji[]) {
     (a, b) => ({
       gajiPokok: a.gajiPokok + b.gajiPokok,
       tunjangan: a.tunjangan + b.tunjangan,
+      tunjanganMakan: a.tunjanganMakan + b.tunjanganMakan,
       potonganTelat: a.potonganTelat + b.potonganTelat,
       kasbon: a.kasbon + b.kasbon,
       insentif: a.insentif + b.insentif,
       diterima: a.diterima + takeHomePay(b),
     }),
-    { gajiPokok: 0, tunjangan: 0, potonganTelat: 0, kasbon: 0, insentif: 0, diterima: 0 },
+    { gajiPokok: 0, tunjangan: 0, tunjanganMakan: 0, potonganTelat: 0, kasbon: 0, insentif: 0, diterima: 0 },
   );
 }

@@ -2,7 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { formatRupiah } from "@/lib/format";
-import { melebihiPendapatan, takeHomePay } from "@/lib/payroll";
+import {
+  melebihiPendapatan,
+  takeHomePay,
+  TARIF_TUNJANGAN_MAKAN_PER_HARI,
+} from "@/lib/payroll";
 import { simpanPayroll, type HasilPayroll } from "./actions";
 
 export type BarisPayroll = {
@@ -11,6 +15,10 @@ export type BarisPayroll = {
   cabang: string;
   gajiPokok: number;
   tunjangan: number;
+  /** Jumlah hari berstatus hadir/telat pada periode ini. */
+  hariHadir: number;
+  /** Dihitung otomatis: hari hadir × Rp 20.000. Tidak diisi manual. */
+  tunjanganMakan: number;
   potonganTelat: number;
   kasbon: number;
   insentif: number;
@@ -61,7 +69,7 @@ export function TabelPayroll({
       ) : null}
 
       <div className="overflow-x-auto rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
-        <table className="w-full min-w-[980px] text-sm">
+        <table className="w-full min-w-[1120px] text-sm">
           <caption className="sr-only">Payroll editable per karyawan</caption>
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
@@ -74,6 +82,7 @@ export function TabelPayroll({
               <th className="p-3 text-right font-medium">Telat rekap</th>
               <th className="p-3 text-right font-medium">Kasbon disetujui (sisa)</th>
               <th className="p-3 text-right font-medium">Insentif</th>
+              <th className="p-3 text-right font-medium">Tunjangan makan</th>
               <th className="p-3 text-right font-medium">Diterima</th>
               <th className="p-3 font-medium">Aksi</th>
             </tr>
@@ -94,12 +103,15 @@ export function TabelPayroll({
       </div>
       <p className="text-xs text-muted">
         Nilai disimpan dalam rupiah. Gaji diterima = gaji pokok + tunjangan +
-        insentif - potongan - kasbon. Insentif berasal dari sinkron inox.my.id
-        (menu Insentif) dan tidak bisa diubah di sini. Potongan telat tetap
-        diisi manual karena tidak ada tarif rupiah per menit telat di sistem;
-        kolom Telat rekap hanya acuan. Tombol &quot;Isi kasbon dari
-        pengajuan&quot; hanya mengisi kolom, nilai baru tersimpan setelah
-        tombol Simpan ditekan.
+        tunjangan makan + insentif - potongan - kasbon. Tunjangan makan
+        dihitung otomatis {formatRupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)} × hari
+        hadir (status hadir/telat) pada periode ini; alpa, izin, dan off
+        tidak dihitung. Insentif berasal dari sinkron inox.my.id (menu
+        Insentif) dan tidak bisa diubah di sini. Potongan telat tetap diisi
+        manual karena tidak ada tarif rupiah per menit telat di sistem; kolom
+        Telat rekap hanya acuan. Tombol &quot;Isi kasbon dari pengajuan&quot;
+        hanya mengisi kolom, nilai baru tersimpan setelah tombol Simpan
+        ditekan.
       </p>
     </div>
   );
@@ -125,6 +137,9 @@ function Baris({
   const angka = {
     gajiPokok: Number(nilai.gajiPokok) || 0,
     tunjangan: Number(nilai.tunjangan) || 0,
+    // Tunjangan makan dibaca (read-only) dari hitungan hari hadir,
+    // seperti insentif — bukan dari form.
+    tunjanganMakan: awal.tunjanganMakan,
     potonganTelat: Number(nilai.potonganTelat) || 0,
     kasbon: Number(nilai.kasbon) || 0,
     // Insentif dibaca (read-only) dari tabel Insentif, bukan dari form.
@@ -177,6 +192,12 @@ function Baris({
       <td className="p-3 text-right tabular-nums">
         {formatRupiah(awal.insentif)}
         <span className="block text-xs font-normal text-muted">dari sinkron iNOX</span>
+      </td>
+      <td className="p-3 text-right tabular-nums">
+        {formatRupiah(awal.tunjanganMakan)}
+        <span className="block text-xs font-normal text-muted">
+          {awal.hariHadir} hari × {formatRupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)}
+        </span>
       </td>
       <td className="p-3 text-right tabular-nums">
         <span className={peringatan ? "text-status-alpa" : "font-medium"}>

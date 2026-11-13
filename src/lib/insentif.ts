@@ -14,6 +14,7 @@
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { formatTanggal } from "@/lib/format";
+import { takeHomePay } from "@/lib/payroll";
 import { periodeValid, rentangPeriodeGajian, tanggalValid } from "@/lib/rekap";
 
 /**
@@ -525,13 +526,18 @@ export async function ambilSemuaInsentifPeriode(
   }));
 }
 
-/** Hitung THP dengan menambahkan insentif dari payroll. */
+/**
+ * Hitung THP dengan menambahkan insentif dari payroll. Mendelegasikan ke
+ * rumus kanonik di lib/payroll supaya tidak ada dua rumus THP yang bisa
+ * berbeda (mis. saat komponen baru seperti tunjangan makan ditambahkan).
+ */
 export function takeHomePayDenganInsentif(k: {
   gajiPokok: number;
   tunjangan: number;
+  tunjanganMakan: number;
   potonganTelat: number;
   kasbon: number;
   insentif: number;
 }): number {
-  return k.gajiPokok + k.tunjangan + k.insentif - k.potonganTelat - k.kasbon;
+  return takeHomePay(k);
 }

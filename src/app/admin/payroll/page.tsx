@@ -1,7 +1,12 @@
 import { PageHeader, StatCard } from "@/components/ui/primitives";
 import { db } from "@/lib/db";
 import { formatRupiah, formatTanggal } from "@/lib/format";
-import { totalPayroll } from "@/lib/payroll";
+import {
+  dihitungHadir,
+  TARIF_TUNJANGAN_MAKAN_PER_HARI,
+  totalPayroll,
+  tunjanganMakan,
+} from "@/lib/payroll";
 import { ambilSemuaInsentifPeriode } from "@/lib/insentif";
 import { sisaKasbon } from "@/lib/kasbon";
 import {
@@ -50,12 +55,13 @@ export default async function AdminPayrollPage({
         select: { id: true, nama: true },
       }),
       // Menit telat rekap periode ini (angka tersimpan saat check-in).
+      // Status ikut diambil untuk menghitung hari hadir tunjangan makan.
       db.absensi.findMany({
         where: {
           tanggal: { gte: rentang.dari, lte: rentang.sampai },
           user: { aktif: true, ...filterCabang },
         },
-        select: { userId: true, menitTelat: true },
+        select: { userId: true, menitTelat: true, status: true },
       }),
       // Kasbon yang disetujui periode ini, dihitung sisanya saja.
       db.kasbon.findMany({
@@ -72,8 +78,12 @@ export default async function AdminPayrollPage({
 
   const peta = new Map(payroll.map((p) => [p.userId, p]));
   const petaTelat = new Map<string, number>();
+  const petaHadir = new Map<string, number>();
   for (const a of absensiPeriode) {
     petaTelat.set(a.userId, (petaTelat.get(a.userId) ?? 0) + a.menitTelat);
+    if (dihitungHadir(a.status)) {
+      petaHadir.set(a.userId, (petaHadir.get(a.userId) ?? 0) + 1);
+    }
   }
   const petaKasbonSisa = new Map<string, number>();
   for (const k of kasbonPeriode) {
@@ -91,6 +101,8 @@ export default async function AdminPayrollPage({
       cabang: k.cabang?.nama ?? "—",
       gajiPokok: p?.gajiPokok ?? 0,
       tunjangan: p?.tunjangan ?? 0,
+      hariHadir: petaHadir.get(k.id) ?? 0,
+      tunjanganMakan: tunjanganMakan(petaHadir.get(k.id) ?? 0),
       potonganTelat: p?.potonganTelat ?? 0,
       kasbon: p?.kasbon ?? 0,
       insentif: petaInsentif.get(k.id) ?? 0,
@@ -116,6 +128,11 @@ export default async function AdminPayrollPage({
         />
         <StatCard label="Gaji pokok" value={formatRupiah(total.gajiPokok)} />
         <StatCard label="Tunjangan" value={formatRupiah(total.tunjangan)} />
+        <StatCard
+          label="Tunjangan makan"
+          value={formatRupiah(total.tunjanganMakan)}
+          hint={`${formatRupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)} / hari hadir`}
+        />
         <StatCard
           label="Potongan / Kasbon"
           value={formatRupiah(total.potonganTelat + total.kasbon)}
