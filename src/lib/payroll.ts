@@ -49,10 +49,11 @@ export function potonganTelat(menitTelat: number): number {
 
 /**
  * Tarif per jam (Rp 12.000). Dipakai untuk lembur (shift terjadwal di atas
- * 8 jam) DAN untuk gaji pokok karyawan shift fleksibel (per jam kerja
- * nyata). Dihitung OTOMATIS — bukan angka yang diisi manual di form
- * payroll. Tarif ini sengaja konstanta dulu; penyesuaian per
- * karyawan/cabang (opsional) menyusul.
+ * 8 jam), untuk gaji pokok karyawan shift fleksibel (per jam kerja nyata),
+ * DAN untuk gaji pokok harian karyawan per-jam di hari shift terjadwal
+ * (per durasi shift, maksimal 8 jam). Dihitung OTOMATIS — bukan angka yang
+ * diisi manual di form payroll. Tarif ini sengaja konstanta dulu;
+ * penyesuaian per karyawan/cabang (opsional) menyusul.
  */
 export const TARIF_PER_JAM = 12_000;
 
@@ -99,6 +100,21 @@ export function jamDibulatkan(menit: number): number {
  */
 export function jamLembur(menit: number): number {
   return jamDibulatkan(menit);
+}
+
+/**
+ * Jam gaji pokok harian satu hari shift terjadwal untuk karyawan per-jam
+ * (gaji pokok manual 0): durasi shift definisinya, dibatasi 8 jam kerja
+ * normal (kelebihan di atas 8 jam sudah dihitung sebagai lembur, jadi
+ * tidak dihitung dua kali), dibulatkan per hari dengan aturan yang sama
+ * (sisa 30 menit atau lebih ke atas). Jam masuk-keluar nyata TIDAK
+ * dilihat — yang penting status hari itu hadir/telat; tidak check-out
+ * pun tetap dibayar penuh 1 hari.
+ */
+export function jamShiftBiasa(mulaiMenit: number, selesaiMenit: number): number {
+  return jamDibulatkan(
+    Math.min(durasiShiftMenit(mulaiMenit, selesaiMenit), BATAS_LEMBUR_MENIT),
+  );
 }
 
 /** Upah per jam = tarif × jam (jam sudah dibulatkan per hari). */
@@ -173,6 +189,11 @@ export const payrollSkema = z.object({
   // jam kerja nyata hari fleksibel × Rp 12.000 (lihat menitKerjaCycle/
   // jamDibulatkan/upahPerJam) — gaji pokok manual tetap ditambah untuk
   // hari terjadwal.
+  // Gaji pokok harian juga SENGAJA tidak ada: dihitung otomatis dari
+  // durasi shift hari terjadwal (maksimal 8 jam, dibulatkan per hari) ×
+  // Rp 12.000 untuk karyawan yang gaji pokok manualnya 0 (lihat
+  // jamShiftBiasa/upahPerJam) — kalau gaji pokok manual diisi, hitungan
+  // ini berhenti supaya tidak dobel.
 });
 
 export type DataPayroll = z.output<typeof payrollSkema>;
@@ -186,6 +207,14 @@ export type KomponenGaji = {
    * pokok manual diisi 0 supaya tidak dobel.
    */
   gajiPokokFleksibel: number;
+  /**
+   * Gaji pokok dari hari shift terjadwal untuk karyawan per-jam (gaji
+   * pokok manual 0): durasi shift hari itu (maksimal 8 jam, dibulatkan
+   * per hari) × Rp 12.000. Dihitung otomatis; tidak diisi manual. Hanya
+   * jalan bila gaji pokok manual 0 — kalau manual diisi, komponen ini
+   * 0 supaya tidak dobel (gaji bulanan sudah menutupi hari terjadwal).
+   */
+  gajiPokokHarian: number;
   tunjangan: number;
   /** Dihitung otomatis dari hari hadir; tidak diisi manual. */
   tunjanganMakan: number;
@@ -210,16 +239,20 @@ export type BarisPayroll = KomponenGaji & {
   jamLembur: number;
   /** Total jam kerja hari fleksibel (sudah dibulatkan per hari) pada jendela hitung. */
   jamFleksibel: number;
+  /** Jumlah hari shift terjadwal (hadir/telat) yang dibayar gaji pokok harian pada jendela hitung. */
+  hariShiftBiasa: number;
+  /** Total jam gaji pokok harian (durasi shift, maksimal 8 jam per hari, sudah dibulatkan) pada jendela hitung. */
+  jamShiftBiasa: number;
   /** Sisa kasbon disetujui periode ini (jumlah - terbayar). */
   kasbonDisetujuiSisa: number;
   /** Jumlah transaksi iNOX dalam jendela hitung yang membentuk insentif. */
   insentifTransaksi: number;
 };
 
-/** Gaji bersih yang diterima karyawan (termasuk tunjangan makan, lembur, gaji pokok fleksibel & insentif). */
+/** Gaji bersih yang diterima karyawan (termasuk tunjangan makan, lembur, gaji pokok fleksibel, gaji pokok harian & insentif). */
 export function takeHomePay(k: KomponenGaji): number {
   return (
-    k.gajiPokok + k.gajiPokokFleksibel + k.tunjangan + k.tunjanganMakan + k.lembur + k.insentif - k.potonganTelat - k.kasbon
+    k.gajiPokok + k.gajiPokokFleksibel + k.gajiPokokHarian + k.tunjangan + k.tunjanganMakan + k.lembur + k.insentif - k.potonganTelat - k.kasbon
   );
 }
 
@@ -238,6 +271,7 @@ export function totalPayroll(baris: KomponenGaji[]) {
   return baris.reduce<{
     gajiPokok: number;
     gajiPokokFleksibel: number;
+    gajiPokokHarian: number;
     tunjangan: number;
     tunjanganMakan: number;
     lembur: number;
@@ -249,6 +283,7 @@ export function totalPayroll(baris: KomponenGaji[]) {
     (a, b) => ({
       gajiPokok: a.gajiPokok + b.gajiPokok,
       gajiPokokFleksibel: a.gajiPokokFleksibel + b.gajiPokokFleksibel,
+      gajiPokokHarian: a.gajiPokokHarian + b.gajiPokokHarian,
       tunjangan: a.tunjangan + b.tunjangan,
       tunjanganMakan: a.tunjanganMakan + b.tunjanganMakan,
       lembur: a.lembur + b.lembur,
@@ -257,6 +292,6 @@ export function totalPayroll(baris: KomponenGaji[]) {
       insentif: a.insentif + b.insentif,
       diterima: a.diterima + takeHomePay(b),
     }),
-    { gajiPokok: 0, gajiPokokFleksibel: 0, tunjangan: 0, tunjanganMakan: 0, lembur: 0, potonganTelat: 0, kasbon: 0, insentif: 0, diterima: 0 },
+    { gajiPokok: 0, gajiPokokFleksibel: 0, gajiPokokHarian: 0, tunjangan: 0, tunjanganMakan: 0, lembur: 0, potonganTelat: 0, kasbon: 0, insentif: 0, diterima: 0 },
   );
 }

@@ -11,12 +11,15 @@ function barisContoh(nama: string, cabang: string): BarisPayroll {
     cabang,
     gajiPokok: 3500000,
     gajiPokokFleksibel: 0,
+    gajiPokokHarian: 0,
     tunjangan: 500000,
     hariHadir: 22,
     tunjanganMakan: 440000,
     lembur: 60000,
     jamLembur: 5,
     jamFleksibel: 0,
+    hariShiftBiasa: 0,
+    jamShiftBiasa: 0,
     potonganTelat: 15000,
     kasbon: 200000,
     insentif: 685000,
@@ -142,6 +145,46 @@ describe("buatPayrollPdf", () => {
       jendela: { dari: "2026-10-28", sampai: "2026-11-27" },
       perusahaan: "iNOX Repair",
       baris: fleksibel,
+      log: logContoh(),
+    });
+    expect(new TextDecoder().decode(slip.slice(0, 5))).toBe("%PDF-");
+    expect((await PDFDocument.load(slip)).getPageCount()).toBe(2);
+  });
+  it("tetap valid dengan karyawan per-jam campuran (baris gaji pokok harian di slip)", async () => {
+    const nathan: BarisPayroll = {
+      ...barisContoh("Nathan Keintjem", "KWSN"),
+      gajiPokok: 0,
+      gajiPokokFleksibel: 732000, // 61 jam × Rp 12.000
+      jamFleksibel: 61,
+      gajiPokokHarian: 480000, // 5 hari × 8 jam × Rp 12.000
+      hariShiftBiasa: 5,
+      jamShiftBiasa: 40,
+      tunjangan: 0,
+      hariHadir: 16,
+      tunjanganMakan: 320000,
+      lembur: 0,
+      jamLembur: 0,
+      potonganTelat: 415000,
+      kasbon: 0,
+      insentif: 665000,
+      menitTelatRekap: 415,
+      kasbonDisetujuiSisa: 0,
+      insentifTransaksi: 30,
+    };
+    const rekap = await buatPayrollPdf({
+      ...DATA,
+      baris: [nathan],
+      total: totalPayroll([nathan]),
+    });
+    expect(new TextDecoder().decode(rekap.slice(0, 5))).toBe("%PDF-");
+    expect((await PDFDocument.load(rekap)).getPageCount()).toBe(1);
+    const slip = await buatSlipPayrollPdf({
+      periode: "2026-11",
+      rentang: { dari: "2026-10-28", sampai: "2026-11-27" },
+      jendelaKustom: false,
+      jendela: { dari: "2026-10-28", sampai: "2026-11-27" },
+      perusahaan: "iNOX Repair",
+      baris: nathan,
       log: logContoh(),
     });
     expect(new TextDecoder().decode(slip.slice(0, 5))).toBe("%PDF-");

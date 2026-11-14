@@ -95,8 +95,8 @@ export function TabelPayroll({
       </div>
       <p className="text-xs text-muted">
         Nilai disimpan dalam rupiah. Gaji diterima = gaji pokok + gaji pokok
-        fleksibel + tunjangan + tunjangan makan + lembur + insentif -
-        potongan - kasbon. Tunjangan makan
+        fleksibel + gaji pokok harian + tunjangan + tunjangan makan + lembur
+        + insentif - potongan - kasbon. Tunjangan makan
         dihitung otomatis {formatRupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)} × hari
         hadir (status hadir/telat) pada periode ini; alpa, izin, dan off
         tidak dihitung. Potongan telat dihitung otomatis{" "}
@@ -112,7 +112,14 @@ export function TabelPayroll({
         cycle absen hari itu (1–3 cycle diakumulasi), dibulatkan per hari
         dengan aturan yang sama; ditambahkan ke gaji pokok manual di atas —
         untuk karyawan yang sepenuhnya fleksibel, isi gaji pokok manual 0
-        supaya tidak dobel. Insentif berasal dari sinkron inox.my.id (menu Insentif)
+        supaya tidak dobel. Gaji pokok harian dihitung otomatis{" "}
+        {formatRupiah(TARIF_PER_JAM)} × jam shift biasa: untuk karyawan yang
+        gaji pokok manualnya 0, hari shift terjadwal yang hadir/telat
+        dibayar penuh sesuai durasi shift (maksimal 8 jam, dibulatkan per
+        hari dengan aturan yang sama) — jam masuk-keluar tidak dilihat,
+        jadi tidak check-out pun tetap dibayar penuh 1 hari; kalau gaji
+        pokok manual diisi, hitungan ini berhenti supaya tidak dobel.
+        Insentif berasal dari sinkron inox.my.id (menu Insentif)
         dan mengikuti rentang tanggal yang dipilih di atas; insentif tidak
         bisa diubah di sini. Tombol &quot;Isi kasbon dari
         pengajuan&quot; hanya mengisi kolom, nilai baru tersimpan setelah
@@ -146,6 +153,10 @@ function Baris({
     // Gaji pokok fleksibel juga read-only: jam kerja hari fleksibel
     // (jumlah cycle, dibulatkan per hari) × Rp 12.000.
     gajiPokokFleksibel: awal.gajiPokokFleksibel,
+    // Gaji pokok harian juga read-only: durasi shift hari terjadwal
+    // (maksimal 8 jam, dibulatkan per hari) × Rp 12.000 — hanya bila
+    // gaji pokok manual 0 (karyawan per-jam).
+    gajiPokokHarian: awal.gajiPokokHarian,
     tunjangan: Number(nilai.tunjangan) || 0,
     // Tunjangan makan dibaca (read-only) dari hitungan hari hadir,
     // seperti insentif — bukan dari form.
@@ -203,11 +214,21 @@ function Baris({
             onChange={(e) => setNilai((n) => ({ ...n, [key]: e.target.value }))}
             className="w-32 rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-right tabular-nums"
           />
-          {key === "gajiPokok" && awal.gajiPokokFleksibel > 0 ? (
-            <span className="block text-xs font-normal text-muted">
-              + {awal.jamFleksibel} jam fleksibel ×{" "}
-              {formatRupiah(TARIF_PER_JAM)}
-            </span>
+          {key === "gajiPokok" ? (
+            <>
+              {awal.gajiPokokFleksibel > 0 ? (
+                <span className="block text-xs font-normal text-muted">
+                  + {awal.jamFleksibel} jam fleksibel ×{" "}
+                  {formatRupiah(TARIF_PER_JAM)}
+                </span>
+              ) : null}
+              {awal.gajiPokokHarian > 0 ? (
+                <span className="block text-xs font-normal text-muted">
+                  + {awal.jamShiftBiasa} jam shift biasa ({awal.hariShiftBiasa}{" "}
+                  hari) × {formatRupiah(TARIF_PER_JAM)}
+                </span>
+              ) : null}
+            </>
           ) : null}
         </td>
       ))}

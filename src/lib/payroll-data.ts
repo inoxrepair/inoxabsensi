@@ -5,6 +5,7 @@ import {
   dihitungHadir,
   jamDibulatkan,
   jamLembur,
+  jamShiftBiasa,
   menitKerjaCycle,
   menitLembur,
   potonganTelat,
@@ -26,7 +27,10 @@ import { bacaRentangGajian, rentangPeriodeGajian } from "@/lib/rekap";
  * definisi shift terjadwal di atas 8 jam (ikut shift, bukan jam absen
  * nyata), dibulatkan per hari, dalam jendela yang sama; gaji pokok
  * fleksibel dari jam kerja nyata hari fleksibel (jumlah cycle absen hari
- * itu, dibulatkan per hari) × Rp 12.000, dalam jendela yang sama.
+ * itu, dibulatkan per hari) × Rp 12.000, dalam jendela yang sama; gaji
+ * pokok harian dari durasi shift hari terjadwal (maksimal 8 jam,
+ * dibulatkan per hari) × Rp 12.000 — hanya untuk karyawan yang gaji
+ * pokok manualnya 0, dalam jendela yang sama.
  * Pembulatan berlaku mulai 30 menit (sisa 30 menit atau lebih ke atas).
  */
 export async function hitungPayroll({
@@ -133,11 +137,19 @@ export async function hitungPayroll({
   // nyata (jumlah cycle absen hari itu, 1–3 cycle diakumulasi, dibulatkan
   // per hari dengan aturan yang sama). Hari alpa/izin/off tidak dihitung
   // keduanya; shift fleksibel tidak dihitung lembur.
+  // Hari terjadwal karyawan per-jam (gaji pokok manual 0) dihitung juga
+  // gaji pokok hariannya: durasi shift hari itu (maksimal 8 jam,
+  // dibulatkan per hari dengan aturan yang sama) — jam masuk-keluar
+  // nyata tidak dilihat, jadi tidak check-out pun tetap dibayar penuh
+  // 1 hari; kalau gaji pokok manual diisi, hitungan ini tidak jalan
+  // (gaji bulanan sudah menutupi hari terjadwal).
   const petaJadwal = new Map(
     jadwalPeriode.map((j) => [`${j.userId}|${j.tanggal}`, j.shift]),
   );
   const petaJamLembur = new Map<string, number>();
   const petaJamFleksibel = new Map<string, number>();
+  const petaJamShiftBiasa = new Map<string, number>();
+  const petaHariShiftBiasa = new Map<string, number>();
   for (const a of absensiPeriode) {
     if (!dihitungHadir(a.status)) continue;
     const shift = petaJadwal.get(`${a.userId}|${a.tanggal}`);
@@ -145,6 +157,13 @@ export async function hitungPayroll({
     if (shift.mode === "terjadwal") {
       const jam = jamLembur(menitLembur(shift.mulaiMenit, shift.selesaiMenit, shift.mode));
       if (jam > 0) petaJamLembur.set(a.userId, (petaJamLembur.get(a.userId) ?? 0) + jam);
+      if ((peta.get(a.userId)?.gajiPokok ?? 0) === 0) {
+        const jamHarian = jamShiftBiasa(shift.mulaiMenit, shift.selesaiMenit);
+        if (jamHarian > 0) {
+          petaJamShiftBiasa.set(a.userId, (petaJamShiftBiasa.get(a.userId) ?? 0) + jamHarian);
+          petaHariShiftBiasa.set(a.userId, (petaHariShiftBiasa.get(a.userId) ?? 0) + 1);
+        }
+      }
     } else {
       // Fleksibel: akumulasi cycle hari itu dulu, baru dibulatkan.
       const jam = jamDibulatkan(menitKerjaCycle(a.cycles ?? []));
@@ -171,6 +190,13 @@ export async function hitungPayroll({
       // ditambahkan ke gaji pokok manual di atas.
       jamFleksibel: petaJamFleksibel.get(k.id) ?? 0,
       gajiPokokFleksibel: upahPerJam(petaJamFleksibel.get(k.id) ?? 0),
+      // Gaji pokok harian dihitung otomatis dari durasi shift hari
+      // terjadwal (maksimal 8 jam, dibulatkan per hari) × Rp 12.000 —
+      // hanya bila gaji pokok manual 0 (karyawan per-jam); kalau manual
+      // diisi, komponen ini 0 supaya tidak dobel.
+      hariShiftBiasa: petaHariShiftBiasa.get(k.id) ?? 0,
+      jamShiftBiasa: petaJamShiftBiasa.get(k.id) ?? 0,
+      gajiPokokHarian: upahPerJam(petaJamShiftBiasa.get(k.id) ?? 0),
       // Potongan telat dihitung otomatis dari menit telat tercatat
       // (sudah dikurangi toleransi shift) × Rp 1.000 — bukan dari nilai
       // lama yang tersimpan di tabel Payroll.

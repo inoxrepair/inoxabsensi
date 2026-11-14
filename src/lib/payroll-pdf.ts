@@ -97,7 +97,7 @@ export async function buatPayrollPdf(data: DataPayrollPdf): Promise<Uint8Array> 
   ];
   if (data.jendelaKustom) {
     info.push(
-      `Hitungan hadir/telat, insentif, lembur, dan gaji pokok fleksibel dibatasi ${formatTanggal(data.jendela.dari)}–${formatTanggal(data.jendela.sampai)} (rentang kustom)`,
+      `Hitungan hadir/telat, insentif, lembur, gaji pokok fleksibel, dan gaji pokok harian dibatasi ${formatTanggal(data.jendela.dari)}–${formatTanggal(data.jendela.sampai)} (rentang kustom)`,
     );
   }
   info.push("Semua nilai dalam rupiah.");
@@ -210,11 +210,13 @@ export async function buatPayrollPdf(data: DataPayrollPdf): Promise<Uint8Array> 
       ];
       if (r.jamLembur > 0) subBagian.push(`${r.jamLembur} jam lembur`);
       if (r.jamFleksibel > 0) subBagian.push(`${r.jamFleksibel} jam fleksibel`);
+      if (r.jamShiftBiasa > 0)
+        subBagian.push(`${r.jamShiftBiasa} jam shift biasa (${r.hariShiftBiasa} hari)`);
       gambarBaris(
         [
           String(i + 1),
           r.nama,
-          rupiah(r.gajiPokok + r.gajiPokokFleksibel),
+          rupiah(r.gajiPokok + r.gajiPokokFleksibel + r.gajiPokokHarian),
           rupiah(r.tunjangan),
           rupiah(r.tunjanganMakan),
           rupiah(r.lembur),
@@ -243,7 +245,7 @@ export async function buatPayrollPdf(data: DataPayrollPdf): Promise<Uint8Array> 
       [
         "",
         `TOTAL (${data.baris.length} karyawan)`,
-        rupiah(data.total.gajiPokok + data.total.gajiPokokFleksibel),
+        rupiah(data.total.gajiPokok + data.total.gajiPokokFleksibel + data.total.gajiPokokHarian),
         rupiah(data.total.tunjangan),
         rupiah(data.total.tunjanganMakan),
         rupiah(data.total.lembur),
@@ -260,10 +262,11 @@ export async function buatPayrollPdf(data: DataPayrollPdf): Promise<Uint8Array> 
   // Catatan rumus di bawah tabel.
   y -= 4;
   const catatan = [
-    "Gaji diterima = gaji pokok (manual + fleksibel) + tunjangan + tunjangan makan + lembur + insentif - potongan - kasbon.",
+    "Gaji diterima = gaji pokok (manual + fleksibel + harian) + tunjangan + tunjangan makan + lembur + insentif - potongan - kasbon.",
     `Tunjangan makan = ${rupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)} × hari hadir (hadir/telat); potongan telat = ${rupiah(TARIF_POTONGAN_TELAT_PER_MENIT)} × menit telat tercatat (sudah dikurangi toleransi shift).`,
     `Lembur = ${rupiah(TARIF_LEMBUR_PER_JAM)} × jam lembur (shift terjadwal di atas 8 jam, ikut definisi shift; sisa 30 menit atau lebih dibulatkan ke atas, per hari).`,
     `Gaji pokok fleksibel = ${rupiah(TARIF_PER_JAM)} × jam kerja hari fleksibel (jumlah cycle absen hari itu, dibulatkan per hari dengan aturan yang sama).`,
+    `Gaji pokok harian = ${rupiah(TARIF_PER_JAM)} × jam shift biasa (karyawan yang gaji pokok manualnya 0: hari shift terjadwal yang hadir/telat dibayar penuh sesuai durasi shift, maksimal 8 jam, dibulatkan per hari dengan aturan yang sama).`,
     "Kasbon = potongan kasbon periode ini. Insentif dari sinkron inox.my.id (menu Insentif).",
   ];
   catatan.forEach((teks) => {
@@ -446,6 +449,17 @@ export async function buatSlipPayrollPdf(
       false,
     );
   }
+  if (r.gajiPokokHarian > 0) {
+    gambarBarisSlip(
+      [
+        "Gaji Pokok Harian",
+        `${r.hariShiftBiasa} hari · ${r.jamShiftBiasa} jam × ${rupiah(TARIF_PER_JAM)}`,
+        rupiah(r.gajiPokokHarian),
+      ],
+      false,
+      false,
+    );
+  }
   gambarBarisSlip(["Tunjangan", "-", rupiah(r.tunjangan)], false, false);
   gambarBarisSlip(
     [
@@ -496,10 +510,11 @@ export async function buatSlipPayrollPdf(
 
   y -= 8;
   const catatan = [
-    "Gaji diterima = gaji pokok (manual + fleksibel) + tunjangan + tunjangan makan + lembur + insentif - potongan - kasbon.",
+    "Gaji diterima = gaji pokok (manual + fleksibel + harian) + tunjangan + tunjangan makan + lembur + insentif - potongan - kasbon.",
     `Tunjangan makan = ${rupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)} × hari hadir (hadir/telat); potongan telat = ${rupiah(TARIF_POTONGAN_TELAT_PER_MENIT)} × menit telat tercatat (sudah dikurangi toleransi shift).`,
     `Lembur = ${rupiah(TARIF_LEMBUR_PER_JAM)} × jam lembur (shift terjadwal di atas 8 jam; sisa 30 menit atau lebih dibulatkan ke atas, per hari).`,
     `Gaji pokok fleksibel = ${rupiah(TARIF_PER_JAM)} × jam kerja hari fleksibel (jumlah cycle absen hari itu, dibulatkan per hari dengan aturan yang sama).`,
+    `Gaji pokok harian = ${rupiah(TARIF_PER_JAM)} × jam shift biasa (gaji manual 0: hari shift terjadwal hadir/telat dibayar penuh, maksimal 8 jam).`,
   ];
   catatan.forEach((teks) => {
     page.drawText(teks, {

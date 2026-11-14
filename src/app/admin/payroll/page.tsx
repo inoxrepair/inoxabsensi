@@ -112,7 +112,7 @@ export default async function AdminPayrollPage({
             baris={baris}
             infoJendela={
               jendela.kustom
-                ? `Tunjangan makan, potongan telat, insentif, lembur, dan gaji pokok fleksibel dihitung dari ${formatTanggal(jendela.dari)}–${formatTanggal(jendela.sampai)}; komponen lain tetap sebulan penuh.`
+                ? `Tunjangan makan, potongan telat, insentif, lembur, gaji pokok fleksibel, dan gaji pokok harian dihitung dari ${formatTanggal(jendela.dari)}–${formatTanggal(jendela.sampai)}; komponen lain tetap sebulan penuh.`
                 : undefined
             }
             rentangKustom={jendela.kustom ? jendela : undefined}

@@ -4,6 +4,7 @@ import {
   durasiShiftMenit,
   jamDibulatkan,
   jamLembur,
+  jamShiftBiasa,
   melebihiPendapatan,
   menitKerjaCycle,
   menitLembur,
@@ -141,6 +142,7 @@ describe("takeHomePay", () => {
         tunjanganMakan: 0,
         lembur: 0,
         gajiPokokFleksibel: 0,
+        gajiPokokHarian: 0,
         potonganTelat: 50_000,
         kasbon: 500_000,
         insentif: 0,
@@ -156,6 +158,7 @@ describe("takeHomePay", () => {
         tunjanganMakan: 440_000,
         lembur: 0,
         gajiPokokFleksibel: 0,
+        gajiPokokHarian: 0,
         potonganTelat: 50_000,
         kasbon: 500_000,
         insentif: 0,
@@ -171,6 +174,7 @@ describe("takeHomePay", () => {
         tunjanganMakan: 440_000,
         lembur: 0,
         gajiPokokFleksibel: 0,
+        gajiPokokHarian: 0,
         potonganTelat: potonganTelat(15),
         kasbon: 500_000,
         insentif: 0,
@@ -186,6 +190,7 @@ describe("takeHomePay", () => {
         tunjanganMakan: 0,
         lembur: 0,
         gajiPokokFleksibel: 0,
+        gajiPokokHarian: 0,
         potonganTelat: 0,
         kasbon: 500_000,
         insentif: 0,
@@ -201,6 +206,7 @@ describe("takeHomePay", () => {
         tunjanganMakan: 440_000,
         lembur: 60_000,
         gajiPokokFleksibel: 0,
+        gajiPokokHarian: 0,
         potonganTelat: 50_000,
         kasbon: 500_000,
         insentif: 0,
@@ -216,6 +222,7 @@ describe("takeHomePay", () => {
         tunjanganMakan: 0,
         lembur: 0,
         gajiPokokFleksibel: 0,
+        gajiPokokHarian: 0,
         potonganTelat: 0,
         kasbon: 0,
         insentif: 0,
@@ -233,6 +240,7 @@ describe("melebihiPendapatan", () => {
         tunjanganMakan: 0,
         lembur: 0,
         gajiPokokFleksibel: 0,
+        gajiPokokHarian: 0,
         potonganTelat: 600_000,
         kasbon: 600_000,
         insentif: 0,
@@ -248,6 +256,7 @@ describe("melebihiPendapatan", () => {
         tunjanganMakan: 0,
         lembur: 0,
         gajiPokokFleksibel: 0,
+        gajiPokokHarian: 0,
         potonganTelat: 500_000,
         kasbon: 500_000,
         insentif: 0,
@@ -263,6 +272,7 @@ describe("melebihiPendapatan", () => {
         tunjanganMakan: 440_000,
         lembur: 0,
         gajiPokokFleksibel: 0,
+        gajiPokokHarian: 0,
         potonganTelat: 100_000,
         kasbon: 0,
         insentif: 0,
@@ -274,13 +284,14 @@ describe("melebihiPendapatan", () => {
 describe("totalPayroll", () => {
   it("menjumlahkan seluruh komponen dan gaji diterima", () => {
     const t = totalPayroll([
-      { gajiPokok: 1_000_000, tunjangan: 100_000, tunjanganMakan: 0, lembur: 0, gajiPokokFleksibel: 0, potonganTelat: 0, kasbon: 0, insentif: 0 },
+      { gajiPokok: 1_000_000, tunjangan: 100_000, tunjanganMakan: 0, lembur: 0, gajiPokokFleksibel: 0, gajiPokokHarian: 0, potonganTelat: 0, kasbon: 0, insentif: 0 },
       {
         gajiPokok: 2_000_000,
         tunjangan: 200_000,
         tunjanganMakan: 400_000,
         lembur: 60_000,
         gajiPokokFleksibel: 120_000,
+        gajiPokokHarian: 0,
         potonganTelat: 50_000,
         kasbon: 100_000,
         insentif: 0,
@@ -303,6 +314,7 @@ describe("totalPayroll", () => {
       tunjanganMakan: 0,
       lembur: 0,
       gajiPokokFleksibel: 0,
+      gajiPokokHarian: 0,
       potonganTelat: 0,
       kasbon: 0,
       insentif: 0,
@@ -426,6 +438,7 @@ describe("gaji pokok fleksibel", () => {
       takeHomePay({
         gajiPokok: 0,
         gajiPokokFleksibel: 1_152_000,
+        gajiPokokHarian: 0,
         tunjangan: 0,
         tunjanganMakan: 360_000, // 18 hari hadir
         lembur: 0,
@@ -434,6 +447,34 @@ describe("gaji pokok fleksibel", () => {
         insentif: 0,
       }),
     ).toBe(1_512_000);
+  });
+});
+
+describe("gaji pokok harian", () => {
+  it("jam shift biasa = durasi shift, dibatasi 8 jam, dibulatkan per hari", () => {
+    expect(jamShiftBiasa(510, 990)).toBe(8); // Pagi 08.30–16.30 = 8 jam
+    expect(jamShiftBiasa(840, 1320)).toBe(8); // Siang 14.00–22.00 = 8 jam
+    expect(jamShiftBiasa(510, 1320)).toBe(8); // 08.30–22.00 = 13,5 jam -> dibatasi 8
+    expect(jamShiftBiasa(480, 930)).toBe(8); // 08.00–15.30 = 7,5 jam -> dibulatkan 8
+    expect(jamShiftBiasa(480, 840)).toBe(6); // 08.00–14.00 = 6 jam
+    expect(jamShiftBiasa(1200, 360)).toBe(8); // 20.00–06.00 = 10 jam -> dibatasi 8
+    expect(jamShiftBiasa(480, 480)).toBe(0); // durasi 0
+  });
+
+  it("takeHomePay menambahkan gaji pokok harian (kasus Nathan: 5 hari shift biasa)", () => {
+    expect(
+      takeHomePay({
+        gajiPokok: 0,
+        gajiPokokFleksibel: 732_000, // 61 jam × Rp 12.000
+        gajiPokokHarian: 480_000, // 5 hari × 8 jam × Rp 12.000
+        tunjangan: 0,
+        tunjanganMakan: 320_000, // 16 hari hadir
+        lembur: 0,
+        potonganTelat: 415_000, // 415 menit telat tercatat
+        kasbon: 0,
+        insentif: 665_000, // 30 transaksi
+      }),
+    ).toBe(1_782_000);
   });
 });
 
