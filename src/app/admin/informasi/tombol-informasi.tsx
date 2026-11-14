@@ -3,19 +3,23 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { InformasiItem } from "@/lib/informasi";
 import {
   hapusInformasi,
   ubahAktifInformasi,
   type HasilInformasi,
 } from "./actions";
+import { PratinjauInformasi } from "./pratinjau-informasi";
 
-/** Tombol tiap kartu pesan: ubah, nyalakan/matikan, dan hapus. */
+/** Tombol tiap kartu pesan: pratinjau, ubah, nyalakan/matikan, hapus. */
 export function TombolInformasi({
   id,
   aktif,
+  item,
 }: {
   id: string;
   aktif: boolean;
+  item: InformasiItem;
 }) {
   const router = useRouter();
   const [pending, mulaiTransisi] = useTransition();
@@ -32,6 +36,7 @@ export function TombolInformasi({
   return (
     <div className="mt-4">
       <div className="flex flex-wrap gap-2">
+        <PratinjauInformasi pesan={item} />
         <Link
           href={{ pathname: "/admin/informasi", query: { ubah: id } }}
           className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium"

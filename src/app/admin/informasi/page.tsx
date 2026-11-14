@@ -109,7 +109,7 @@ export default async function AdminInformasiPage({
                     </div>
                   </dl>
 
-                  <TombolInformasi id={p.id} aktif={p.aktif} />
+                  <TombolInformasi id={p.id} aktif={p.aktif} item={p} />
                 </Card>
               );
             })}
