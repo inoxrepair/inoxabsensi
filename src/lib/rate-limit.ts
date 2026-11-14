@@ -11,7 +11,7 @@
  */
 
 export const BATAS_GAGAL_LOGIN = 10;
-export const JENDELA_GAGAL_LOGIN_MS = 15 * 60 * 1000;
+export const JENDELA_GAGAL_LOGIN_MS = 24 * 60 * 60 * 1000;
 
 export type PenyimpananGagalLogin = Map<string, number[]>;
 

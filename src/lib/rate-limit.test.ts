@@ -8,6 +8,9 @@ import {
 } from "./rate-limit";
 
 describe("rate limit login", () => {
+  it("jendela 1 hari: 10 gagal dalam 24 jam", () => {
+    expect(JENDELA_GAGAL_LOGIN_MS).toBe(24 * 60 * 60 * 1000);
+  });
   it("di bawah batas belum dibatasi, pada batas dibatasi", () => {
     const store = new Map<string, number[]>();
     const now = 1_000_000;

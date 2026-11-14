@@ -6,7 +6,17 @@ import type { NextAuthConfig } from "next-auth";
  * Provider yang butuh database didaftarkan di src/auth.ts.
  */
 export const authConfig = {
-  session: { strategy: "jwt" },
+  /**
+   * Sesi login berlaku 1 hari sejak login. updateAge sengaja sama dengan
+   * maxAge, jadi sesi TIDAK diperpanjang otomatis saat dipakai — karyawan
+   * login ulang tiap hari. Ini juga membatasi efek "password diubah
+   * diam-diam tertutup sesi lama" (dulu sampai 30 hari) menjadi 1 hari.
+   */
+  session: {
+    strategy: "jwt",
+    maxAge: 24 * 60 * 60,
+    updateAge: 24 * 60 * 60,
+  },
   pages: { signIn: "/login" },
   providers: [],
   callbacks: {

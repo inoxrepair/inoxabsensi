@@ -40,7 +40,7 @@ export async function masuk(
   if (batasLoginTercapai(identifier, ip)) {
     // Pesan generik: tidak membocorkan apakah akun ada maupun apakah
     // batas tercapai karena identifier atau IP.
-    return { pesan: "Terlalu banyak percobaan gagal. Coba lagi beberapa menit lagi." };
+    return { pesan: "Terlalu banyak percobaan gagal. Coba lagi besok." };
   }
 
   try {
