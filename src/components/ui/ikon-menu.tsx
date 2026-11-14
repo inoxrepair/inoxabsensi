@@ -117,6 +117,15 @@ export function IkonMenu({
           <path d="M15.5 7H20v4.5" />
         </Bingkai>
       );
+    case "/admin/log-login":
+      // Log Login: pintu dengan panah masuk.
+      return (
+        <Bingkai {...props}>
+          <path d="M15 3.5h3.5A1.5 1.5 0 0 1 20 5v14a1.5 1.5 0 0 1-1.5 1.5H15" />
+          <path d="M4 12h10" />
+          <path d="M11 8l4 4-4 4" />
+        </Bingkai>
+      );
     case "/admin/informasi":
       // Informasi: huruf "i" dalam lingkaran.
       return (

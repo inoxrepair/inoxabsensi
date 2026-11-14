@@ -8,8 +8,8 @@ import { PopupInformasi } from "./popup-informasi";
 
 /**
  * Area tombol absen + popup informasi. Popup dibuka setelah absen masuk
- * berhasil — ditunda sejenak supaya animasi centang selesai dulu — dan
- * hanya bila ada pesan yang tampil hari ini.
+ * maupun absen keluar berhasil — ditunda sejenak supaya animasi centang
+ * selesai dulu — dan hanya bila ada pesan yang tampil hari ini.
  */
 export function AreaAbsen({
   mode,
@@ -34,6 +34,10 @@ export function AreaAbsen({
         maksimalCycle={maksimalCycle}
         mulaiMenit={mulaiMenit}
         onMasukBerhasil={() => {
+          if (daftar.length === 0) return;
+          window.setTimeout(() => setPopupBuka(true), DURASI_ANIMASI_MS);
+        }}
+        onKeluarBerhasil={() => {
           if (daftar.length === 0) return;
           window.setTimeout(() => setPopupBuka(true), DURASI_ANIMASI_MS);
         }}

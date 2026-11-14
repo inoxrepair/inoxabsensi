@@ -3,8 +3,9 @@
 import { AuthError } from "next-auth";
 import { headers } from "next/headers";
 import { z } from "zod";
-import { signIn, signOut } from "@/auth";
+import { signIn, signOut, auth } from "@/auth";
 import { loginSkema } from "@/lib/akun";
+import { catatLogLogin } from "@/lib/log-login-data";
 import {
   batasLoginTercapai,
   catatGagalLogin,
@@ -71,5 +72,13 @@ export async function masukGoogle() {
 }
 
 export async function keluar() {
+  // Catat logout sebelum sesi dihapus; signOut melempar redirect, jadi
+  // pencatatan harus duluan. Sesi yang habis sendiri tidak tercatat.
+  try {
+    const sesi = await auth();
+    if (sesi?.user?.id) await catatLogLogin(sesi.user.id, "keluar");
+  } catch {
+    // Abaikan: keluar tetap jalan walau pencatatan gagal.
+  }
   await signOut({ redirectTo: "/login" });
 }

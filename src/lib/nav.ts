@@ -13,6 +13,7 @@ export const ADMIN_NAV: NavItem[] = [
   { href: "/admin/cabang", label: "Cabang", menu: "cabang" },
   { href: "/admin/karyawan", label: "Karyawan", menu: "karyawan" },
   { href: "/admin/log-absensi", label: "Log Absensi", menu: "karyawan" },
+  { href: "/admin/log-login", label: "Log Login", menu: "log-login" },
   { href: "/admin/izin", label: "Izin", menu: "karyawan" },
   { href: "/admin/jadwal", label: "Jadwal Shift", menu: "jadwal" },
   { href: "/admin/rekap", label: "Rekap Absensi", menu: "rekap" },

@@ -22,6 +22,17 @@ export function keJam(menit: number): string {
   return `${String(j).padStart(2, "0")}.${String(total % 60).padStart(2, "0")}`;
 }
 
+/** Date -> "09.00.12" (jam.menit.detik) pada zona waktu operasional. */
+export function formatJamDetik(saat: Date): string {
+  return new Intl.DateTimeFormat("id-ID", {
+    timeZone: ZONA_WAKTU,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(saat);
+}
+
 /** Durasi shift/kerja; menangani shift yang berakhir setelah tengah malam. */
 export function durasiMenit(mulai: number, selesai: number): number {
   return selesai >= mulai ? selesai - mulai : selesai + 1440 - mulai;

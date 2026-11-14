@@ -381,6 +381,27 @@ model Informasi {
   @@index([aktif, mulaiTanggal])
 }
 
+/// Riwayat login/logout karyawan (untuk menu Log Login, super_admin):
+/// tiap baris mencatat siapa, kapan (sampai detik), jenis masuk/keluar,
+/// alamat IP publik yang terlihat server, dan User-Agent mentah (untuk
+/// mengenali perangkat). Login gagal TIDAK dicatat — hanya yang berhasil.
+/// Logout hanya tercatat bila karyawan menekan tombol Keluar (sesi yang
+/// habis sendiri tidak menghasilkan baris keluar).
+model LogLogin {
+  id        String   @id @default(cuid())
+  userId    String
+  /// "masuk" | "keluar".
+  jenis     String
+  /// IP publik pertama dari x-forwarded-for (atau x-real-ip).
+  ip        String   @default("tidak-diketahui")
+  /// User-Agent mentah dari header; dipakai untuk sidik perangkat.
+  agen      String   @default("")
+  dibuatPada DateTime @default(now())
+
+  @@index([userId, dibuatPada])
+  @@index([dibuatPada])
+}
+
 /// Insentif karyawan dari laporan inox.my.id. Satu baris per karyawan per
 /// periode "yyyy-mm". Dihasilkan dari sinkronisasi endpoint
 /// /reports/incentive-line-orders di inox.my.id.

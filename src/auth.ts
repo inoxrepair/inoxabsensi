@@ -6,6 +6,7 @@ import { authConfig } from "@/auth.config";
 import { db } from "@/lib/db";
 import { bacaRole } from "@/lib/domain";
 import { loginSkema } from "@/lib/akun";
+import { catatLogLogin } from "@/lib/log-login-data";
 
 /** Login Google hanya diaktifkan jika kredensial OAuth tersedia. */
 const googleAktif = Boolean(
@@ -37,6 +38,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const cocok = await compare(parsed.data.password, user.passwordHash);
         if (!cocok) return null;
 
+        // Login berhasil: catat ke Log Login (IP + perangkat). Pencatatan
+        // tidak pernah menggagalkan login (catatLogLogin menelan galat).
+        await catatLogLogin(user.id, "masuk");
+
         return {
           id: user.id,
           name: user.name,
@@ -62,9 +67,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       const terdaftar = await db.user.findUnique({
         where: { email: user.email },
-        select: { aktif: true },
+        select: { id: true, aktif: true },
       });
-      return terdaftar?.aktif ?? false;
+      if (!terdaftar?.aktif) return false;
+
+      // Login Google berhasil: catat ke Log Login (IP + perangkat).
+      await catatLogLogin(terdaftar.id, "masuk");
+      return true;
     },
     /** Google tidak melewati authorize(), jadi atribut domain diambil di sini. */
     async jwt({ token, user, account }) {

@@ -3,6 +3,7 @@ import {
   awalMinggu,
   durasiMenit,
   formatDurasi,
+  formatJamDetik,
   indeksHari,
   keJam,
   keMenit,
@@ -48,6 +49,19 @@ describe("keJam", () => {
     for (const jam of ["00.00", "09.00", "13.45", "23.59"]) {
       expect(keJam(keMenit(jam)!)).toBe(jam);
     }
+  });
+});
+
+describe("formatJamDetik", () => {
+  it("jam.menit.detik pada zona WITA", () => {
+    // 01:02:03 UTC = 09:02:03 WITA.
+    expect(formatJamDetik(new Date("2026-11-14T01:02:03.000Z"))).toBe(
+      "09.02.03",
+    );
+    // 16:30:45 UTC sehari sebelum = 00:30:45 WITA.
+    expect(formatJamDetik(new Date("2026-11-13T16:30:45.000Z"))).toBe(
+      "00.30.45",
+    );
   });
 });
 

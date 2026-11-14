@@ -74,6 +74,7 @@ export const MENU_ADMIN = [
   "payroll",
   "insentif",
   "informasi",
+  "log-login",
   "pengaturan",
 ] as const;
 export type MenuAdmin = (typeof MENU_ADMIN)[number];
