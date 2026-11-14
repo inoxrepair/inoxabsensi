@@ -48,20 +48,24 @@ function nada(
   osc.stop(akhir + 0.02);
 }
 
-/** Bunyi "check" untuk absen masuk dan keluar yang berhasil. */
+/** Bunyi "check" untuk absen masuk dan keluar yang berhasil: lompat
+    satu oktaf 523 → 1046 Hz (pilihan Ucok 2026-11-14). */
 export function bunyiCheck(): void {
   const ctx = ambilKonteks();
   if (!ctx) return;
-  nada(ctx, 880, 0, 0.12, 0.18);
-  nada(ctx, 1320, 0.1, 0.18, 0.16);
+  nada(ctx, 523, 0, 0.12, 0.18);
+  nada(ctx, 1046, 0.1, 0.22, 0.16);
 }
 
-/** Bunyi lebih rendah saat verifikasi gagal atau ditolak. */
+/** Bunyi lebih rendah saat verifikasi gagal atau ditolak: turun tiga
+    langkah 330 → 262 → 196 Hz (pilihan Ucok 2026-11-14, no. 4 dari
+    10 contoh awal). */
 export function bunyiGagal(): void {
   const ctx = ambilKonteks();
   if (!ctx) return;
-  nada(ctx, 320, 0, 0.18, 0.16);
-  nada(ctx, 220, 0.14, 0.24, 0.14);
+  nada(ctx, 330, 0, 0.1, 0.16);
+  nada(ctx, 262, 0.09, 0.1, 0.15);
+  nada(ctx, 196, 0.18, 0.22, 0.14);
 }
 
 /**
