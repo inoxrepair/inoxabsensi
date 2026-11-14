@@ -86,9 +86,17 @@ export type BarisLogLogin = {
 /**
  * Tandai baris yang perlu diperiksa. Mengembalikan Map id -> alasan.
  *
- * Aturan 1: satu perangkat (ID perangkat sama, atau IP + User-Agent
- * sama bila belum ada ID) dipakai >= 2 akun berbeda dalam 30 menit —
- * pola titip absen.
+ * Sidik yang dipakai di sini adalah sidik KANONIK per akun: baris tanpa
+ * ID "mewarisi" ID dari baris ber-ID di akun yang sama dengan IP +
+ * User-Agent yang sama. Ini masa peralihan ID perangkat: HP yang sama
+ * tampil dua sidik (fallback lama vs ID baru) sebelum semua baris punya
+ * ID — tanpa ini, baris ber-ID pertama seorang karyawan langsung
+ * ditandai "Perangkat berbeda dari biasanya" padahal HP-nya sama. Bila
+ * satu kunci IP+UA memetakan ke >1 ID di akun itu (mis. dua HP), baris
+ * lama tetap memakai fallback — tidak ditebak.
+ *
+ * Aturan 1: satu perangkat (sidik kanonik sama) dipakai >= 2 akun
+ * berbeda dalam 30 menit — pola titip absen.
  *
  * Aturan 2: akun login dari perangkat yang berbeda dari perangkat yang
  * paling sering ia pakai — kemungkinan akun dipakai orang lain. Perlu
@@ -101,8 +109,31 @@ export function tandaiMencurigakan(
   baris: BarisLogLogin[],
 ): Map<string, string> {
   const hasil = new Map<string, string>();
-  const sidik = (b: BarisLogLogin) =>
-    sidikPerangkat(b.ip, b.agen, b.perangkatId);
+
+  const idPerKunciPerAkun = new Map<string, Map<string, Set<string>>>();
+  for (const b of baris) {
+    if (!b.perangkatId) continue;
+    const kunci = `${b.ip}|${b.agen}`;
+    let perAkun = idPerKunciPerAkun.get(b.userId);
+    if (!perAkun) {
+      perAkun = new Map();
+      idPerKunciPerAkun.set(b.userId, perAkun);
+    }
+    let ids = perAkun.get(kunci);
+    if (!ids) {
+      ids = new Set();
+      perAkun.set(kunci, ids);
+    }
+    ids.add(b.perangkatId);
+  }
+  const sidik = (b: BarisLogLogin): string => {
+    if (b.perangkatId) return `id:${b.perangkatId}`;
+    const ids = idPerKunciPerAkun
+      .get(b.userId)
+      ?.get(`${b.ip}|${b.agen}`);
+    if (ids && ids.size === 1) return `id:${[...ids][0]}`;
+    return `${b.ip}|${b.agen}`;
+  };
 
   // Aturan 1: jendela geser 30 menit per sidik perangkat.
   const perSidik = new Map<string, BarisLogLogin[]>();

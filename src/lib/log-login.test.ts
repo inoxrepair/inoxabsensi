@@ -242,4 +242,68 @@ describe("tandaiMencurigakan", () => {
     expect(hasil.has("b")).toBe(false);
     expect(hasil.has("c")).toBe(false);
   });
+
+  it("masa peralihan: 2 baris lama tanpa ID + 1 baris ber-ID di HP yang sama -> tidak ditandai", () => {
+    // Kasus Ucok 2026-11-15: baris ber-ID pertama langsung ditandai
+    // "Perangkat berbeda dari biasanya" padahal HP-nya sama — sidik
+    // lama (IP+UA) dan sidik baru (ID) dibaca sebagai dua perangkat.
+    const hasil = tandaiMencurigakan([
+      baris({
+        id: "a",
+        agen: AGEN_IPHONE,
+        perangkatId: null,
+        dibuatPada: new Date("2026-11-14T16:30:00.000Z"),
+      }),
+      baris({
+        id: "b",
+        jenis: "keluar",
+        agen: AGEN_IPHONE,
+        perangkatId: null,
+        dibuatPada: new Date("2026-11-14T17:00:00.000Z"),
+      }),
+      baris({
+        id: "c",
+        agen: AGEN_IPHONE,
+        perangkatId: "77D00B4003",
+        dibuatPada: new Date("2026-11-14T17:05:00.000Z"),
+      }),
+    ]);
+    expect(hasil.size).toBe(0);
+  });
+
+  it("ambigu: satu kunci IP+UA memetakan ke 2 ID di akun itu -> baris lama tetap fallback", () => {
+    // Dua HP di akun yang sama (IP + UA sama): baris lama tidak
+    // ditebak pemiliknya, jadi baris ber-ID tetap ditandai terhadap
+    // baseline fallback.
+    const hasil = tandaiMencurigakan([
+      baris({
+        id: "a",
+        agen: AGEN_IPHONE,
+        perangkatId: null,
+        dibuatPada: new Date("2026-11-12T00:30:00.000Z"),
+      }),
+      baris({
+        id: "b",
+        agen: AGEN_IPHONE,
+        perangkatId: null,
+        dibuatPada: new Date("2026-11-13T00:30:00.000Z"),
+      }),
+      baris({
+        id: "c",
+        agen: AGEN_IPHONE,
+        perangkatId: "A3F9C21E87",
+        dibuatPada: new Date("2026-11-14T00:30:00.000Z"),
+      }),
+      baris({
+        id: "d",
+        agen: AGEN_IPHONE,
+        perangkatId: "B71D04F3C2",
+        dibuatPada: new Date("2026-11-14T00:35:00.000Z"),
+      }),
+    ]);
+    expect(hasil.get("c")).toBe("Perangkat berbeda dari biasanya");
+    expect(hasil.get("d")).toBe("Perangkat berbeda dari biasanya");
+    expect(hasil.has("a")).toBe(false);
+    expect(hasil.has("b")).toBe(false);
+  });
 });
