@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EfekSalju } from "@/components/ui/efek-salju";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { db } from "@/lib/db";
@@ -81,6 +82,7 @@ export default async function KaryawanAbsenPage() {
 
   return (
     <>
+      <EfekSalju />
       <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-sm text-muted">{sapaan(menitLokal())},</p>
