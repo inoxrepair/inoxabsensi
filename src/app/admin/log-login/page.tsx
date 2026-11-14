@@ -99,7 +99,19 @@ export default async function AdminLogLoginPage({
       header: "Alamat IP",
       cell: (r) => <span className="tabular-nums">{r.ip}</span>,
     },
-    { header: "Perangkat", cell: (r) => perangkatDariAgen(r.agen) },
+    {
+      header: "Perangkat",
+      cell: (r) => (
+        <span className="inline-flex flex-col items-start gap-0.5">
+          <span>{perangkatDariAgen(r.agen)}</span>
+          {r.perangkatId ? (
+            <span className="text-xs text-muted tabular-nums">
+              ID {r.perangkatId}
+            </span>
+          ) : null}
+        </span>
+      ),
+    },
     {
       header: "Status",
       cell: (r) => {
@@ -140,7 +152,7 @@ export default async function AdminLogLoginPage({
         jenisTerpilih={jenisTerpilih}
       />
 
-      <Card footer="Logout hanya tercatat saat karyawan menekan tombol Keluar; sesi yang habis sendiri tidak menghasilkan baris keluar. IP adalah alamat publik yang terlihat server — satu WiFi kantor berbagi satu IP, jadi perangkat (kolom Perangkat) yang membedakan tiap HP. Tanda “Perlu diperiksa” berarti pola loginnya janggal dan layak ditanyakan ke karyawan, bukan bukti titip absen.">
+      <Card footer="Logout hanya tercatat saat karyawan menekan tombol Keluar; sesi yang habis sendiri tidak menghasilkan baris keluar. IP adalah alamat publik yang terlihat server — satu WiFi kantor berbagi satu IP, jadi perangkat (kolom Perangkat) yang membedakan tiap HP. ID perangkat adalah kode acak yang disimpan di browser HP karyawan — tiap HP punya kode sendiri, sehingga dua iPhone yang User-Agent-nya sama tetap bisa dibedakan; baris lama (sebelum fitur ini) tidak punya ID. Tanda “Perlu diperiksa” berarti pola loginnya janggal dan layak ditanyakan ke karyawan, bukan bukti titip absen.">
         <div className="overflow-x-auto">
           {tampil.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted">

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   bacaJenisLogLogin,
   perangkatDariAgen,
+  sidikPerangkat,
   tandaiMencurigakan,
   type BarisLogLogin,
 } from "./log-login";
@@ -24,6 +25,7 @@ function baris(
     jenis: "masuk",
     ip: "103.1.2.3",
     agen: AGEN_ANDROID,
+    perangkatId: null,
     dibuatPada: new Date("2026-11-14T00:30:00.000Z"),
     ...sebagian,
   };
@@ -47,6 +49,26 @@ describe("perangkatDariAgen", () => {
   it("kosong -> Tidak diketahui", () => {
     expect(perangkatDariAgen("")).toBe("Tidak diketahui");
     expect(perangkatDariAgen("  ")).toBe("Tidak diketahui");
+  });
+});
+
+describe("sidikPerangkat", () => {
+  it("ID perangkat menang atas IP + User-Agent", () => {
+    expect(sidikPerangkat("103.1.2.3", AGEN_IPHONE, "A3F9C21E87")).toBe(
+      "id:A3F9C21E87",
+    );
+    expect(sidikPerangkat("103.9.9.9", AGEN_ANDROID, "A3F9C21E87")).toBe(
+      "id:A3F9C21E87",
+    );
+  });
+
+  it("tanpa ID jatuh kembali ke IP + User-Agent", () => {
+    expect(sidikPerangkat("103.1.2.3", AGEN_IPHONE, null)).toBe(
+      `103.1.2.3|${AGEN_IPHONE}`,
+    );
+    expect(sidikPerangkat("103.1.2.3", AGEN_IPHONE)).toBe(
+      `103.1.2.3|${AGEN_IPHONE}`,
+    );
   });
 });
 
@@ -129,5 +151,95 @@ describe("tandaiMencurigakan", () => {
       baris({ id: "b", agen: AGEN_IPHONE }),
     ]);
     expect(hasil.size).toBe(0);
+  });
+
+  it("dua iPhone (UA sama) dengan ID perangkat sama dipakai 2 akun -> keduanya ditandai", () => {
+    const hasil = tandaiMencurigakan([
+      baris({
+        id: "a",
+        userId: "u1",
+        agen: AGEN_IPHONE,
+        perangkatId: "A3F9C21E87",
+      }),
+      baris({
+        id: "b",
+        userId: "u2",
+        nama: "Budi",
+        agen: AGEN_IPHONE,
+        perangkatId: "A3F9C21E87",
+        dibuatPada: new Date("2026-11-14T00:40:00.000Z"),
+      }),
+    ]);
+    expect(hasil.get("a")).toBe("Satu perangkat dipakai 2 akun");
+    expect(hasil.get("b")).toBe("Satu perangkat dipakai 2 akun");
+  });
+
+  it("dua iPhone (UA sama) dengan ID perangkat berbeda -> tidak ditandai", () => {
+    const hasil = tandaiMencurigakan([
+      baris({
+        id: "a",
+        userId: "u1",
+        agen: AGEN_IPHONE,
+        perangkatId: "A3F9C21E87",
+      }),
+      baris({
+        id: "b",
+        userId: "u2",
+        nama: "Budi",
+        agen: AGEN_IPHONE,
+        perangkatId: "B71D04F3C2",
+        dibuatPada: new Date("2026-11-14T00:40:00.000Z"),
+      }),
+    ]);
+    expect(hasil.size).toBe(0);
+  });
+
+  it("baris ber-ID dan baris tanpa ID tidak digabung walau IP + UA sama", () => {
+    const hasil = tandaiMencurigakan([
+      baris({
+        id: "a",
+        userId: "u1",
+        agen: AGEN_IPHONE,
+        perangkatId: "A3F9C21E87",
+      }),
+      baris({
+        id: "b",
+        userId: "u2",
+        nama: "Budi",
+        agen: AGEN_IPHONE,
+        perangkatId: null,
+        dibuatPada: new Date("2026-11-14T00:40:00.000Z"),
+      }),
+    ]);
+    expect(hasil.size).toBe(0);
+  });
+
+  it("aturan 2 memakai ID perangkat: akun biasa di ID A, sekali di ID B -> ditandai", () => {
+    const hasil = tandaiMencurigakan([
+      baris({
+        id: "a",
+        perangkatId: "A3F9C21E87",
+        dibuatPada: new Date("2026-11-12T00:30:00.000Z"),
+      }),
+      baris({
+        id: "b",
+        perangkatId: "A3F9C21E87",
+        dibuatPada: new Date("2026-11-13T00:30:00.000Z"),
+      }),
+      baris({
+        id: "c",
+        perangkatId: "A3F9C21E87",
+        dibuatPada: new Date("2026-11-14T00:30:00.000Z"),
+      }),
+      baris({
+        id: "d",
+        perangkatId: "B71D04F3C2",
+        dibuatPada: new Date("2026-11-14T00:35:00.000Z"),
+      }),
+    ]);
+    expect(hasil.get("d")).toBe("Perangkat berbeda dari biasanya");
+    expect(hasil.has("a")).toBe(false);
+    expect(hasil.has("b")).toBe(false);
+    expect(hasil.has("c")).toBe(false);
   });
 });

@@ -3,7 +3,9 @@
  *
  * Tujuannya menangkap titip absen: satu perangkat dipakai untuk login ke
  * beberapa akun. IP saja tidak cukup — satu WiFi kantor berbagi satu IP
- * publik — jadi sidik perangkat memakai IP + User-Agent mentah.
+ * publik — dan User-Agent iPhone tidak membawa model HP, jadi sidik
+ * perangkat memakai ID perangkat (kode acak per browser, dari cookie)
+ * bila ada, dan jatuh kembali ke IP + User-Agent mentah bila belum ada.
  */
 
 export const JENIS_LOG_LOGIN = ["masuk", "keluar"] as const;
@@ -50,8 +52,19 @@ export function perangkatDariAgen(agen: string): string {
   return model ? `${browser} · ${os} (${model})` : `${browser} · ${os}`;
 }
 
-/** Sidik perangkat untuk pengelompokan: IP + User-Agent mentah. */
-export function sidikPerangkat(ip: string, agen: string): string {
+/**
+ * Sidik perangkat untuk pengelompokan. Bila baris punya ID perangkat,
+ * sidiknya ID itu (dua iPhone yang User-Agent-nya sama tetap dibedakan);
+ * bila belum ada ID (baris lama), jatuh kembali ke IP + User-Agent
+ * mentah. Karena itu satu HP yang sama bisa punya dua sidik berbeda
+ * sebelum/sesudah ID perangkat dipasang — masa peralihan yang singkat.
+ */
+export function sidikPerangkat(
+  ip: string,
+  agen: string,
+  perangkatId?: string | null,
+): string {
+  if (perangkatId) return `id:${perangkatId}`;
   return `${ip}|${agen}`;
 }
 
@@ -65,14 +78,17 @@ export type BarisLogLogin = {
   jenis: JenisLogLogin;
   ip: string;
   agen: string;
+  /** ID perangkat per HP; null untuk baris sebelum fitur ini. */
+  perangkatId: string | null;
   dibuatPada: Date;
 };
 
 /**
  * Tandai baris yang perlu diperiksa. Mengembalikan Map id -> alasan.
  *
- * Aturan 1: satu perangkat (IP + User-Agent sama) dipakai >= 2 akun
- * berbeda dalam 30 menit — pola titip absen.
+ * Aturan 1: satu perangkat (ID perangkat sama, atau IP + User-Agent
+ * sama bila belum ada ID) dipakai >= 2 akun berbeda dalam 30 menit —
+ * pola titip absen.
  *
  * Aturan 2: akun login dari perangkat yang berbeda dari perangkat yang
  * paling sering ia pakai — kemungkinan akun dipakai orang lain. Perlu
@@ -85,7 +101,8 @@ export function tandaiMencurigakan(
   baris: BarisLogLogin[],
 ): Map<string, string> {
   const hasil = new Map<string, string>();
-  const sidik = (b: BarisLogLogin) => sidikPerangkat(b.ip, b.agen);
+  const sidik = (b: BarisLogLogin) =>
+    sidikPerangkat(b.ip, b.agen, b.perangkatId);
 
   // Aturan 1: jendela geser 30 menit per sidik perangkat.
   const perSidik = new Map<string, BarisLogLogin[]>();

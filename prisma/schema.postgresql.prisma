@@ -291,6 +291,9 @@ model LogLogin {
   ip        String   @default("tidak-diketahui")
   /// User-Agent mentah dari header; dipakai untuk sidik perangkat.
   agen      String   @default("")
+  /// ID perangkat per HP (10 karakter heksadesimal, dari cookie browser);
+  /// null untuk baris sebelum fitur ini. Dipakai untuk sidik perangkat.
+  perangkatId String?
   dibuatPada DateTime @default(now())
 
   @@index([userId, dibuatPada])

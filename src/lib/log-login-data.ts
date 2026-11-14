@@ -1,7 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { db } from "@/lib/db";
 import { bacaJenisLogLogin, type BarisLogLogin } from "@/lib/log-login";
+import {
+  apakahIdPerangkatValid,
+  NAMA_COOKIE_PERANGKAT,
+} from "@/lib/perangkat-id";
 
 /**
  * Akses database tabel LogLogin. Semua via raw SQL: client Prisma yang
@@ -25,6 +29,17 @@ export async function bacaIpDanAgen(): Promise<{ ip: string; agen: string }> {
   }
 }
 
+/** ID perangkat dari cookie browser; null bila tidak ada/tidak valid. */
+export async function bacaIdPerangkatCookie(): Promise<string | null> {
+  try {
+    const s = await cookies();
+    const nilai = s.get(NAMA_COOKIE_PERANGKAT)?.value;
+    return nilai && apakahIdPerangkatValid(nilai) ? nilai : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Catat satu baris login/logout. Tidak pernah melempar. */
 export async function catatLogLogin(
   userId: string,
@@ -32,9 +47,10 @@ export async function catatLogLogin(
 ): Promise<void> {
   try {
     const { ip, agen } = await bacaIpDanAgen();
+    const perangkatId = await bacaIdPerangkatCookie();
     await db.$executeRaw`
-      INSERT INTO "LogLogin" ("id", "userId", "jenis", "ip", "agen")
-      VALUES (${randomUUID()}, ${userId}, ${jenis}, ${ip}, ${agen})
+      INSERT INTO "LogLogin" ("id", "userId", "jenis", "ip", "agen", "perangkatId")
+      VALUES (${randomUUID()}, ${userId}, ${jenis}, ${ip}, ${agen}, ${perangkatId})
     `;
   } catch {
     // Abaikan: login/logout tetap jalan walau pencatatan gagal.
@@ -50,6 +66,7 @@ type BarisMentah = {
   jenis: string;
   ip: string;
   agen: string;
+  perangkatId: string | null;
   dibuatPada: Date;
 };
 
@@ -66,7 +83,7 @@ export async function ambilLogLogin(
     const awal = new Date(`${dari}T00:00:00+08:00`);
     const akhir = new Date(`${sampai}T23:59:59.999+08:00`);
     const rows = await db.$queryRaw<BarisMentah[]>`
-      SELECT l."id", l."userId", l."jenis", l."ip", l."agen", l."dibuatPada",
+      SELECT l."id", l."userId", l."jenis", l."ip", l."agen", l."perangkatId", l."dibuatPada",
         u."name" AS "nama", u."cabangId" AS "cabangId",
         COALESCE(c."nama", '—') AS "cabang"
       FROM "LogLogin" l
@@ -85,6 +102,7 @@ export async function ambilLogLogin(
       jenis: bacaJenisLogLogin(r.jenis),
       ip: r.ip,
       agen: r.agen,
+      perangkatId: r.perangkatId,
       dibuatPada: r.dibuatPada,
     }));
   } catch {

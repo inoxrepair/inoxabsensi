@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { PasangIdPerangkat } from "@/components/perangkat-id";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker";
 import "./globals.css";
 
@@ -30,6 +31,7 @@ export default function RootLayout({
     <html lang="id">
       <body className="min-h-dvh antialiased">
         {children}
+        <PasangIdPerangkat />
         <ServiceWorkerRegistration />
       </body>
     </html>
