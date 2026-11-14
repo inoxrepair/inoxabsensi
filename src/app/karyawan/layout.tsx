@@ -12,7 +12,7 @@ export default async function KaryawanLayout({
   const user = await wajibLogin();
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="relative flex min-h-dvh flex-col">
       <LatarLiquid />
       <main className="mx-auto w-full max-w-md flex-1 px-5 py-6">
         {user.role === "headstore" ? (

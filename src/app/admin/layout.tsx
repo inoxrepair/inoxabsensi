@@ -16,7 +16,7 @@ export default async function AdminLayout({
   const versiLogo = await bacaVersiLogo();
 
   return (
-    <>
+    <div className="relative min-h-dvh">
       <LatarLiquid />
       <AdminLayoutClient
         menu={menu}
@@ -26,6 +26,6 @@ export default async function AdminLayout({
       >
         {children}
       </AdminLayoutClient>
-    </>
+    </div>
   );
 }
