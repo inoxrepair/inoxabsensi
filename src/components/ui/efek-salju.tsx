@@ -7,10 +7,11 @@ import { useEffect, useRef } from "react";
  *
  * Satu canvas `fixed` di atas latar aurora (z-20, di bawah dialog dan
  * drawer) dengan `pointer-events: none`, jadi tidak mengganggu klik atau
- * isi halaman. Kepingan sedikit (±35–70 menyesuaikan layar), kecil, dan
+ * isi halaman. Kepingan sedikit (±22–45 menyesuaikan layar), kecil, dan
  * jatuh pelan supaya nuansa winter terasa tanpa mengganggu. Kepingan yang
  * cukup besar digambar sebagai kristal salju (bintang 6 lengan), yang
- * kecil tetap bulat.
+ * kecil tetap bulat. Animasi dibatasi ~30 fps dan DPR maks. 1.5 supaya
+ * tidak frame drop di HP.
  *
  * Menghormati `prefers-reduced-motion` (hanya gambar diam, tanpa animasi)
  * dan berhenti saat tab tidak terlihat (hemat baterai HP).
@@ -46,8 +47,11 @@ function acak(min: number, maks: number) {
 }
 
 function buatKeping(lebar: number, tinggi: number): Keping[] {
+  // Lebih sedikit di HP (layar kecil): 22–45 keping cukup memberi nuansa
+  // tanpa membebani GPU — canvas digambar ulang tiap frame, jadi jumlah
+  // keping dan ukuran pikselnya langsung terasa di frame rate.
   const jumlah = Math.round(
-    Math.min(70, Math.max(35, (lebar * tinggi) / 22000)),
+    Math.min(45, Math.max(22, (lebar * tinggi) / 22000)),
   );
   const daftar: Keping[] = [];
   for (let i = 0; i < jumlah; i++) {
@@ -80,7 +84,10 @@ export function EfekSalju() {
     const ctx = kanvas.getContext("2d");
     if (!ctx) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // DPR dibatasi 1.5: di HP retina (DPR 2–3) piksel yang digambar tiap
+    // frame turun ~44% dibanding DPR 2, dengan beda visual yang nyaris
+    // tidak terlihat untuk kepingan sekecil ini.
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     let lebar = 0;
     let tinggi = 0;
     let keping: Keping[] = [];
@@ -142,8 +149,17 @@ export function EfekSalju() {
       }
     }
 
+    // Dibatasi ~30 fps: salju yang jatuh pelan tidak butuh 60 fps, dan
+    // menggambar canvas layar penuh tiap frame adalah penyebab utama
+    // frame drop di halaman absen. Frame yang datang lebih cepat dari
+    // 33 ms dilewati saja (tanpa menggambar ulang).
     const langkah = (stempel: number) => {
-      const dt = Math.min(0.05, (stempel - terakhir) / 1000 || 0);
+      const berlalu = stempel - terakhir;
+      if (berlalu < 33) {
+        raf = requestAnimationFrame(langkah);
+        return;
+      }
+      const dt = Math.min(0.05, berlalu / 1000 || 0);
       terakhir = stempel;
       waktu += dt;
       for (const k of keping) {

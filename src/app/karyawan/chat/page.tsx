@@ -5,6 +5,8 @@ import { DaftarChat } from "./daftar-chat";
 import { FormChat } from "./form-chat";
 
 /** Ruang chat bersama untuk semua karyawan (semua cabang, semua role). */
+export const dynamic = "force-dynamic";
+
 export default async function ChatPage() {
   const sesi = await wajibLogin();
   const [pesan, mengetik, top10] = await Promise.all([

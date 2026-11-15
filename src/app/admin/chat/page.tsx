@@ -6,6 +6,8 @@ import { DaftarChat } from "@/app/karyawan/chat/daftar-chat";
 import { FormChat } from "@/app/karyawan/chat/form-chat";
 
 /** Ruang chat bersama, dilihat dari shell admin (ruang yang sama). */
+export const dynamic = "force-dynamic";
+
 export default async function ChatAdminPage() {
   const sesi = await wajibAkses("chat");
   const [pesan, mengetik, top10] = await Promise.all([

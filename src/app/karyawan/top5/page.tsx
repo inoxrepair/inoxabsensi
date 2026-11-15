@@ -36,12 +36,10 @@ const TINGGI_PODIUM: Record<number, string> = {
   3: "h-10",
 };
 
-/**
- * Top 10 performa absensi untuk siklus gajian berjalan. Juara 1–3 tampil
+/** Top 10 performa absensi untuk siklus gajian berjalan. Juara 1–3 tampil
  * sebagai podium (juara 2 kiri, juara 1 tengah dengan cincin api, juara 3
- * kanan), peringkat 4–10 sebagai daftar di bawahnya. Aturan satu hari
- * valid: absen masuk maks. 30 menit sebelum jam mulai shift (tidak telat),
- * ada absen pulang, dan log tidak pernah diedit admin.
+ * kanan), peringkat 4–10 sebagai daftar di bawahnya. Peringkat diurutkan
+ * dari jumlah hari valid terbanyak (lihat hitungPeringkat di lib/top5).
  */
 export const dynamic = "force-dynamic";
 
@@ -82,7 +80,7 @@ export default async function Top5Page() {
                   {item.nama}
                 </p>
                 <p className="text-xs text-muted tabular-nums">
-                  {Math.round(item.skor * 100)}% · {item.valid}/{item.total}
+                  {item.valid} hari valid
                 </p>
                 <div
                   className={`flex w-full items-start justify-center rounded-t-2xl pt-2 text-sm font-bold ${
@@ -109,6 +107,8 @@ export default async function Top5Page() {
                     <img
                       src={p.foto}
                       alt={`Foto ${p.nama}`}
+                      loading="lazy"
+                      decoding="async"
                       className="size-9 shrink-0 rounded-full object-cover"
                     />
                   ) : (
@@ -119,12 +119,11 @@ export default async function Top5Page() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{p.nama}</p>
                     <p className="truncate text-xs text-muted">
-                      {p.cabang ?? "Tanpa cabang"} · {p.valid}/{p.total} hari
-                      valid
+                      {p.cabang ?? "Tanpa cabang"} · {p.total} hari terjadwal
                     </p>
                   </div>
                   <p className="shrink-0 text-base font-bold tabular-nums">
-                    {Math.round(p.skor * 100)}%
+                    {p.valid} hari
                   </p>
                 </li>
               ))}
@@ -134,9 +133,11 @@ export default async function Top5Page() {
       )}
 
       <p className="mt-4 text-xs text-muted">
-        Hari dihitung bila absen masuk maks. 30 menit sebelum jam shift
-        (tidak telat), ada absen pulang, dan log tidak diedit. Shift
-        fleksibel tidak masuk penilaian.
+        Peringkat diurutkan dari jumlah hari valid terbanyak selama periode
+        ini (bukan persentase terhadap jadwal masing-masing). Hari dihitung
+        bila absen masuk maks. 30 menit sebelum jam shift (tidak telat), ada
+        absen pulang, dan log tidak diedit. Shift fleksibel tidak masuk
+        penilaian.
       </p>
     </>
   );

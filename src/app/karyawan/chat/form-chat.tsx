@@ -170,6 +170,7 @@ export function FormChat() {
     e.preventDefault();
     if ((!isi.trim() && !foto && !suara) || pending) return;
     setPending(true);
+    setHasil(undefined);
     const data = new FormData();
     data.append("isi", isi);
     if (foto) data.append("foto", foto, "chat.jpg");
@@ -180,13 +181,21 @@ export function FormChat() {
         suara.type === "audio/mp4" ? "voice-note.m4a" : "voice-note.webm",
       );
     }
-    const res = await kirimPesan(data);
-    setHasil(res);
-    setPending(false);
-    if (res?.ok) {
-      setIsi("");
-      batalFoto();
-      batalSuara();
+    try {
+      const res = await kirimPesan(data);
+      setHasil(res);
+      if (res?.ok) {
+        setIsi("");
+        batalFoto();
+        batalSuara();
+      }
+    } catch {
+      // Server action gagal (mis. database tidak bisa dihubungi): jangan
+      // biarkan tombol macet di "…" tanpa kabar — tampilkan error supaya
+      // pengguna tahu pesannya belum terkirim.
+      setHasil({ ok: false, pesan: "Pesan tidak terkirim. Coba lagi." });
+    } finally {
+      setPending(false);
     }
   }
 

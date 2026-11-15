@@ -48,8 +48,10 @@ export async function sapuPesanKadaluarsa(): Promise<void> {
   try {
     const batas = new Date(Date.now() - BATAS_CHAT_MS).toISOString();
     await db.$executeRaw`DELETE FROM "ChatPesan" WHERE "dibuatPada" < ${batas}`;
-  } catch {
-    // Pembersihan tidak boleh menggagalkan baca/kirim chat.
+  } catch (error) {
+    // Pembersihan tidak boleh menggagalkan baca/kirim chat, tapi kegagalan
+    // dicatat supaya terlihat di log server bila tabel bermasalah.
+    console.error("[chat] sapuPesanKadaluarsa gagal:", error);
   }
 }
 
@@ -68,7 +70,10 @@ export async function ambilPesanChat(): Promise<PesanChat[]> {
       LIMIT ${BATAS_PESAN_CHAT}
     `;
     return rows.map(kePesan);
-  } catch {
+  } catch (error) {
+    // Halaman chat tetap bisa dibuka bila tabel bermasalah, tapi kegagalan
+    // dicatat supaya terlihat di log server (bukan hilang diam-diam).
+    console.error("[chat] ambilPesanChat gagal:", error);
     return [];
   }
 }
@@ -96,8 +101,9 @@ export async function tandaiMengetik(userId: string): Promise<void> {
       VALUES (${userId}, CURRENT_TIMESTAMP)
       ON CONFLICT ("userId") DO UPDATE SET "diperbarui" = CURRENT_TIMESTAMP
     `;
-  } catch {
-    // Abaikan: indikator bersifat sementara.
+  } catch (error) {
+    // Abaikan: indikator bersifat sementara, tapi catat bila tabel rusak.
+    console.error("[chat] tandaiMengetik gagal:", error);
   }
 }
 
@@ -105,8 +111,9 @@ export async function tandaiMengetik(userId: string): Promise<void> {
 export async function berhentiMengetik(userId: string): Promise<void> {
   try {
     await db.$executeRaw`DELETE FROM "ChatMengetik" WHERE "userId" = ${userId}`;
-  } catch {
+  } catch (error) {
     // Abaikan: baris kedaluwarsa dengan sendirinya.
+    console.error("[chat] berhentiMengetik gagal:", error);
   }
 }
 
@@ -124,7 +131,8 @@ export async function ambilYangMengetik(userIdSaya: string): Promise<string[]> {
       LIMIT 3
     `;
     return rows.map((r) => r.nama ?? "Karyawan");
-  } catch {
+  } catch (error) {
+    console.error("[chat] ambilYangMengetik gagal:", error);
     return [];
   }
 }

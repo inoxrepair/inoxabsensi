@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { labelPeriode, rentangPeriodeGajian } from "@/lib/rekap";
 import {
+  hitungHariPeriode,
   hitungPeringkat,
   type BarisAbsensiTop,
   type HariTerjadwal,
@@ -53,7 +54,15 @@ export async function ambilTop5(): Promise<HasilTop5> {
       LEFT JOIN "Cabang" c ON c."id" = u."cabangId"
       WHERE u."aktif" = true
     `;
-    return { ...kosong, peringkat: hitungPeringkat(hari, absensi, pengguna) };
+    return {
+      ...kosong,
+      peringkat: hitungPeringkat(
+        hari,
+        absensi,
+        pengguna,
+        hitungHariPeriode(rentang.dari, rentang.sampai),
+      ),
+    };
   } catch {
     return kosong;
   }

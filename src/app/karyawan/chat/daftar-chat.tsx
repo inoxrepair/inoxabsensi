@@ -104,6 +104,8 @@ export function DaftarChat({
                 <img
                   src={p.foto}
                   alt="Foto dari chat"
+                  loading="lazy"
+                  decoding="async"
                   className="mt-1.5 max-w-full rounded-xl"
                 />
               ) : null}

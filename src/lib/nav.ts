@@ -24,6 +24,7 @@ export const ADMIN_NAV: NavItem[] = [
   { href: "/admin/insentif", label: "Insentif", menu: "insentif" },
   { href: "/admin/informasi", label: "Informasi", menu: "informasi" },
   { href: "/admin/chat", label: "Chat", menu: "chat" },
+  { href: "/admin/top5", label: "Top 10", menu: "top5" },
   { href: "/admin/pengaturan", label: "Pengaturan", menu: "pengaturan" },
 ];
 

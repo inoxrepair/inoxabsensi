@@ -72,24 +72,28 @@ export default async function KaryawanInsentifPage({
           </p>
         </div>
       ) : (
-        <ul className="mt-4 divide-y divide-line rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
-          {baris.map((b) => (
-            <li
-              key={b.id}
-              className="flex items-center justify-between gap-3 px-4 py-3"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{b.productName}</p>
-                <p className="text-xs tabular-nums text-muted">
-                  {formatTanggal(b.tanggal)}
+        // Jendela scroll: daftar dibatasi tingginya supaya halaman tidak
+        // meluber memanjang saat transaksinya banyak; gulir di dalam kartu.
+        <div className="mt-4 max-h-[55vh] overflow-y-auto overscroll-contain rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
+          <ul className="divide-y divide-line">
+            {baris.map((b) => (
+              <li
+                key={b.id}
+                className="flex items-center justify-between gap-3 px-4 py-3"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{b.productName}</p>
+                  <p className="text-xs tabular-nums text-muted">
+                    {formatTanggal(b.tanggal)}
+                  </p>
+                </div>
+                <p className="shrink-0 text-sm font-medium tabular-nums">
+                  {formatRupiah(b.jumlah)}
                 </p>
-              </div>
-              <p className="shrink-0 text-sm font-medium tabular-nums">
-                {formatRupiah(b.jumlah)}
-              </p>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       <p className="mt-4 text-xs text-muted">

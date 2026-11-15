@@ -8,10 +8,29 @@
  * - ada absen pulang (keluarMenit terisi);
  * - log tidak pernah diedit admin (editedBy terisi atau catatan
  *   "Diedit manual." = hangus).
- * Skor = hari valid / hari terjadwal. Urutan: skor turun, lalu hari valid
- * turun, lalu nama naik. Juara 1–3 tampil sebagai podium (juara 2 kiri,
- * juara 1 tengah, juara 3 kanan); juara 1 memakai cincin api.
+ * Peringkat diurutkan dari JUMLAH hari valid terbanyak selama periode
+ * (bukan rasio terhadap jadwal masing-masing — itu tidak adil bagi yang
+ * jadwalnya sedikit; keputusan Ucok 2026-11-15). Skor = hari valid /
+ * jumlah hari periode (penyebut sama untuk semua orang, jadi urutannya
+ * sama dengan urutan jumlah hari valid). Seri: nama naik. Juara 1–3
+ * tampil sebagai podium (juara 2 kiri, juara 1 tengah, juara 3 kanan);
+ * juara 1 memakai cincin api.
  */
+
+/** Jumlah hari dalam rentang (inklusif) dari dua tanggal yyyy-mm-dd. */
+export function hitungHariPeriode(dari: string, sampai: string): number {
+  const awal = Date.UTC(
+    Number(dari.slice(0, 4)),
+    Number(dari.slice(5, 7)) - 1,
+    Number(dari.slice(8, 10)),
+  );
+  const akhir = Date.UTC(
+    Number(sampai.slice(0, 4)),
+    Number(sampai.slice(5, 7)) - 1,
+    Number(sampai.slice(8, 10)),
+  );
+  return Math.max(0, Math.round((akhir - awal) / 86_400_000) + 1);
+}
 
 export const BATAS_AWAL_MASUK_MENIT = 30;
 export const JUMLAH_TOP = 10;
@@ -68,6 +87,7 @@ export function hitungPeringkat(
   hari: HariTerjadwal[],
   absensi: BarisAbsensiTop[],
   pengguna: PenggunaTop[],
+  hariPeriode: number,
 ): PeringkatTop[] {
   const absensiPerKunci = new Map(
     absensi.map((a) => [`${a.userId}|${a.tanggal}`, a]),
@@ -93,12 +113,11 @@ export function hitungPeringkat(
       cabang: p.cabang,
       valid: hitung.valid,
       total: hitung.total,
-      skor: hitung.valid / hitung.total,
+      // Penyebut periode (sama untuk semua) — bukan jadwal masing-masing.
+      skor: hariPeriode > 0 ? hitung.valid / hariPeriode : 0,
     });
   }
-  hasil.sort(
-    (a, b) => b.skor - a.skor || b.valid - a.valid || a.nama.localeCompare(b.nama),
-  );
+  hasil.sort((a, b) => b.skor - a.skor || a.nama.localeCompare(b.nama));
   return hasil.slice(0, JUMLAH_TOP);
 }
 

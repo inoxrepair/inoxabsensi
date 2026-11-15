@@ -142,6 +142,15 @@ export function IkonMenu({
           <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" />
         </Bingkai>
       );
+    case "/admin/top5":
+      // Top 10: piala.
+      return (
+        <Bingkai {...props}>
+          <path d="M8 21h8M12 17v4" />
+          <path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" />
+          <path d="M7 6H4a2 2 0 0 0 2 4h1M17 6h3a2 2 0 0 1-2 4h-1" />
+        </Bingkai>
+      );
     case "/admin/pengaturan":
       // Pengaturan: roda gigi minimalis.
       return (
