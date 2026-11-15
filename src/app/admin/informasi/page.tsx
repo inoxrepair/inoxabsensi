@@ -1,4 +1,9 @@
-import { Card, PageHeader, StatCard } from "@/components/ui/primitives";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { formatTanggal } from "@/lib/format";
 import { ambilSemuaInformasi } from "@/lib/informasi-data";
 import { akhirInformasi, apakahInformasiAktif, LABEL_AKSI_CTA } from "@/lib/informasi";
@@ -24,33 +29,53 @@ export default async function AdminInformasiPage({
 
   return (
     <>
-      <PageHeader
-        title="Informasi"
-        description={
-          <>
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Informasi</h1>
+          <p className="mt-1 text-sm text-muted">
             Pesan yang muncul sebagai popup setelah karyawan absen masuk.
             Satu pesan tampil ke semua karyawan semua cabang, selama toggle
             aktif dan hari ini masih dalam masa tampilnya.
-          </>
-        }
-      />
+          </p>
+        </div>
+      </header>
 
       <div className="mb-6 grid grid-cols-2 gap-3">
-        <StatCard label="Aktif hari ini" value={String(aktifHariIni.length)} />
-        <StatCard label="Total pesan" value={String(semua.length)} />
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Aktif hari ini</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{String(aktifHariIni.length)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Total pesan</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{String(semua.length)}</p>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="space-y-6">
-        <Card title={ubah ? "Ubah pesan" : "Buat pesan baru"}>
-          <FormInformasi awal={ubah} hariIni={hariIni} />
+        <Card>
+          <CardHeader>
+            <CardTitle>{ubah ? "Ubah pesan" : "Buat pesan baru"}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FormInformasi awal={ubah} hariIni={hariIni} />
+          </CardContent>
         </Card>
 
         {semua.length === 0 ? (
-          <Card title="Daftar pesan">
-            <p className="text-sm text-muted">
-              Belum ada pesan informasi. Buat pesan pertama di atas — pesan
-              baru tampil di popup karyawan mulai tanggal yang kamu tentukan.
-            </p>
+          <Card>
+            <CardHeader>
+              <CardTitle>Daftar pesan</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted">
+                Belum ada pesan informasi. Buat pesan pertama di atas — pesan
+                baru tampil di popup karyawan mulai tanggal yang kamu tentukan.
+              </p>
+            </CardContent>
           </Card>
         ) : (
           <div className="space-y-3">
@@ -58,6 +83,7 @@ export default async function AdminInformasiPage({
               const tampil = apakahInformasiAktif(p, hariIni);
               return (
                 <Card key={p.id}>
+                  <CardContent>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-medium">{p.judul}</p>
@@ -110,6 +136,7 @@ export default async function AdminInformasiPage({
                   </dl>
 
                   <TombolInformasi id={p.id} aktif={p.aktif} item={p} />
+                  </CardContent>
                 </Card>
               );
             })}

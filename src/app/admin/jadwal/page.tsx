@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/ui/primitives";
 import { db } from "@/lib/db";
 import { roleTerbatasCabang } from "@/lib/domain";
 import { formatTanggal } from "@/lib/format";
@@ -131,20 +130,22 @@ export default async function AdminJadwalPage({
 
   return (
     <>
-      <PageHeader
-        title="Jadwal Shift"
-        description={`${karyawan.length} karyawan · ${terjadwal} hari kerja terjadwal · ${labelTanggal}.`}
-        action={
-          admin.role === "headstore" ? (
-            <Link
-              href="/karyawan"
-              className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-4 py-2.5 text-sm font-medium"
-            >
-              ← Kembali ke Absensi
-            </Link>
-          ) : undefined
-        }
-      />
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Jadwal Shift</h1>
+          <p className="mt-1 text-sm text-muted">
+            {`${karyawan.length} karyawan · ${terjadwal} hari kerja terjadwal · ${labelTanggal}.`}
+          </p>
+        </div>
+        {admin.role === "headstore" ? (
+          <Link
+            href="/karyawan"
+            className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-4 py-2.5 text-sm font-medium"
+          >
+            ← Kembali ke Absensi
+          </Link>
+        ) : undefined}
+      </header>
 
       <PanelJadwal
         minggu={tanggalTampil}

@@ -2,6 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { AnimasiCheck } from "@/components/ui/animasi-check";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { absenKeluar, absenMasuk, type HasilAbsen } from "./actions";
 import {
@@ -169,11 +178,11 @@ export function TombolAbsen({
         cornerRadius={24}
         className="mt-5"
       >
-        <button
+        <Button
           type="button"
           onClick={bukaKonfirmasi}
           disabled={sibuk}
-          className="w-full bg-transparent px-6 py-6 text-lg font-semibold text-white disabled:opacity-40"
+          className="h-auto w-full bg-transparent px-6 py-6 text-lg font-semibold text-white hover:bg-transparent"
         >
           {mengambilLokasi
             ? "Mendeteksi lokasi…"
@@ -182,27 +191,29 @@ export function TombolAbsen({
               : mode === "masuk"
                 ? cycleKe > 1 ? `Absen Masuk Cycle ${cycleKe}` : "Absen Masuk"
                 : "Absen Keluar"}
-        </button>
+        </Button>
       </LiquidGlass>
       {konfirmasi ? (
-        <div className="fixed inset-0 z-20 grid place-items-center bg-ink/40 p-4" role="dialog" aria-modal="true" aria-labelledby="konfirmasi-absen">
-          <div className="w-full max-w-sm rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-5 shadow-xl">
-            <h2 id="konfirmasi-absen" className="font-semibold">
-              {mode === "keluar" ? `Akhiri Cycle ${cycleKe - 1}?` : `Mulai Cycle ${cycleKe} dari maksimal ${maksimalCycle}?`}
-            </h2>
-            <p className="mt-2 text-sm text-muted">
-              {mode === "keluar" && mulaiMenit != null
-                ? `Cycle dimulai pukul ${String(Math.floor(mulaiMenit / 60)).padStart(2, "0")}.${String(mulaiMenit % 60).padStart(2, "0")}. Waktu keluar menggunakan waktu server.`
-                : "Lokasi akan diverifikasi dan waktu absensi menggunakan waktu server."}
-            </p>
-            <div className="mt-4 flex gap-2">
-              <button type="button" onClick={() => setKonfirmasi(false)} className="flex-1 rounded-lg border border-line px-3 py-2 text-sm font-medium">Batal</button>
-              <button type="button" onClick={() => { setKonfirmasi(false); jalankan(); }} className="flex-1 rounded-lg bg-ink px-3 py-2 text-sm font-medium text-paper">
+        <Dialog open={konfirmasi} onOpenChange={setKonfirmasi}>
+          <DialogContent className="max-w-sm p-5">
+            <DialogHeader>
+              <DialogTitle>
+                {mode === "keluar" ? `Akhiri Cycle ${cycleKe - 1}?` : `Mulai Cycle ${cycleKe} dari maksimal ${maksimalCycle}?`}
+              </DialogTitle>
+              <DialogDescription>
+                {mode === "keluar" && mulaiMenit != null
+                  ? `Cycle dimulai pukul ${String(Math.floor(mulaiMenit / 60)).padStart(2, "0")}.${String(mulaiMenit % 60).padStart(2, "0")}. Waktu keluar menggunakan waktu server.`
+                  : "Lokasi akan diverifikasi dan waktu absensi menggunakan waktu server."}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex-row">
+              <Button type="button" variant="outline" onClick={() => setKonfirmasi(false)} className="flex-1">Batal</Button>
+              <Button type="button" onClick={() => { setKonfirmasi(false); jalankan(); }} className="flex-1">
                 {mode === "keluar" ? "Ya, Absen Keluar" : "Ya, Absen Masuk"}
-              </button>
-            </div>
-          </div>
-        </div>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       ) : null}
       {animasi ? <AnimasiCheck judul={animasi.judul} /> : null}
       <Pesan hasil={hasil} />

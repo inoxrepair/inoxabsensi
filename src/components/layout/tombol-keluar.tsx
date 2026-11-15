@@ -2,6 +2,7 @@
 
 import { useFormStatus } from "react-dom";
 import { keluar } from "@/app/login/actions";
+import { Button } from "@/components/ui/button";
 
 /** Tombol keluar; dipakai di header admin dan profil karyawan. */
 export function TombolKeluar({
@@ -21,12 +22,13 @@ export function TombolKeluar({
 function Tombol({ className, label }: { className: string; label: string }) {
   const { pending } = useFormStatus();
   return (
-    <button
+    <Button
       type="submit"
       disabled={pending}
-      className={`${className} disabled:opacity-40`}
+      variant="outline"
+      className={`h-auto ${className}`}
     >
       {pending ? "Keluar…" : label}
-    </button>
+    </Button>
   );
 }

@@ -1,6 +1,21 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Card, PageHeader, StatCard } from "@/components/ui/primitives";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { db } from "@/lib/db";
 import { bacaStatusAbsensi, roleTerbatasCabang } from "@/lib/domain";
 import { menuDiizinkan, wajibAkses } from "@/lib/session";
@@ -112,92 +127,88 @@ export default async function AdminDashboardPage() {
 
   return (
     <>
-      <PageHeader
-        title="Dashboard"
-        description={`${namaHari(tanggal)}, ${formatTanggal(tanggal)}`}
-        action={
-          admin.role === "headstore" ? (
-            <Link href="/karyawan" className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-4 py-2.5 text-sm font-medium">
-              Buka absensi saya
-            </Link>
-          ) : undefined
-        }
-      />
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="mt-1 text-sm text-muted">
+            {`${namaHari(tanggal)}, ${formatTanggal(tanggal)}`}
+          </p>
+        </div>
+        {admin.role === "headstore" ? (
+          <Link href="/karyawan" className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-4 py-2.5 text-sm font-medium">
+            Buka absensi saya
+          </Link>
+        ) : undefined}
+      </header>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard
-          label="Karyawan aktif"
-          value={karyawanAktif}
-          hint={`${jumlahCabang} cabang`}
-        />
-        <StatCard
-          label="Terjadwal hari ini"
-          value={baris.length}
-          hint={`${karyawanAktif - baris.length} libur`}
-        />
-        <StatCard
-          label="Sudah absen"
-          value={`${sudahAbsen}/${baris.length}`}
-          hint={`${sedangBekerja} sedang bekerja`}
-        />
-        <StatCard
-          label="Telat hari ini"
-          value={telat}
-          hint={telat === 0 ? "Semua tepat waktu" : "Melewati toleransi shift"}
-        />
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Karyawan aktif</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{karyawanAktif}</p>
+            <p className="mt-1 text-xs text-muted">{`${jumlahCabang} cabang`}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Terjadwal hari ini</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{baris.length}</p>
+            <p className="mt-1 text-xs text-muted">{`${karyawanAktif - baris.length} libur`}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Sudah absen</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{`${sudahAbsen}/${baris.length}`}</p>
+            <p className="mt-1 text-xs text-muted">{`${sedangBekerja} sedang bekerja`}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Telat hari ini</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{telat}</p>
+            <p className="mt-1 text-xs text-muted">{telat === 0 ? "Semua tepat waktu" : "Melewati toleransi shift"}</p>
+          </CardContent>
+        </Card>
         {punyaMenuIzin ? (
-          <StatCard
-            label="Izin menunggu"
-            value={izinPending}
-            hint={izinPending === 0 ? "Tidak ada pengajuan pending" : "Buka menu Izin untuk memproses"}
-          />
+          <Card>
+            <CardContent>
+              <p className="text-sm text-muted">Izin menunggu</p>
+              <p className="mt-1 text-2xl font-semibold tracking-tight">{izinPending}</p>
+              <p className="mt-1 text-xs text-muted">{izinPending === 0 ? "Tidak ada pengajuan pending" : "Buka menu Izin untuk memproses"}</p>
+            </CardContent>
+          </Card>
         ) : null}
       </div>
 
       <div className="mt-6">
-        <Card
-          title="Absensi hari ini"
-          footer={
-            baris.length === 0
-              ? "Tidak ada karyawan terjadwal hari ini."
-              : "Hanya karyawan yang punya jadwal shift hari ini yang ditampilkan."
-          }
-        >
-          {baris.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted">
-              Belum ada jadwal untuk tanggal ini. Susun di menu Jadwal Shift.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <caption className="sr-only">
+        <Card>
+          <CardHeader>
+            <CardTitle>Absensi hari ini</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {baris.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted">
+                Belum ada jadwal untuk tanggal ini. Susun di menu Jadwal Shift.
+              </p>
+            ) : (
+              <Table>
+                <TableCaption>
                   Daftar absensi karyawan hari ini
-                </caption>
-                <thead>
-                  <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                    <th scope="col" className="py-2 pr-4 font-medium">
-                      Nama
-                    </th>
-                    <th scope="col" className="py-2 pr-4 font-medium">
-                      Cabang
-                    </th>
-                    <th scope="col" className="py-2 pr-4 font-medium">
-                      Shift
-                    </th>
-                    <th scope="col" className="py-2 pr-4 font-medium">
-                      Masuk
-                    </th>
-                    <th scope="col" className="py-2 pr-4 font-medium">
-                      Keluar
-                    </th>
-                    <th scope="col" className="py-2 font-medium">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+                </TableCaption>
+                <TableHeader>
+                  <TableRow className="border-b border-line">
+                    <TableHead scope="col">Nama</TableHead>
+                    <TableHead scope="col">Cabang</TableHead>
+                    <TableHead scope="col">Shift</TableHead>
+                    <TableHead scope="col">Masuk</TableHead>
+                    <TableHead scope="col">Keluar</TableHead>
+                    <TableHead scope="col">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {baris.map((row) => (
-                    <tr key={row.userId} className="border-b border-line/70">
+                    <TableRow key={row.userId}>
                       <th
                         scope="row"
                         className="py-2.5 pr-4 text-left font-medium"
@@ -220,27 +231,32 @@ export default async function AdminDashboardPage() {
                           {row.nama}
                         </span>
                       </th>
-                      <td className="py-2.5 pr-4 text-muted">{row.cabang}</td>
-                      <td className="py-2.5 pr-4 text-muted">{row.shift}</td>
-                      <td className="py-2.5 pr-4 tabular-nums">
+                      <TableCell className="text-muted">{row.cabang}</TableCell>
+                      <TableCell className="text-muted">{row.shift}</TableCell>
+                      <TableCell className="tabular-nums">
                         {row.masuk !== null ? `${keJam(row.masuk)}${row.jumlahCycle > 1 ? ` (${row.jumlahCycle} cycle)` : ""}` : "—"}
-                      </td>
-                      <td className="py-2.5 pr-4 tabular-nums">
+                      </TableCell>
+                      <TableCell className="tabular-nums">
                         {row.keluar !== null ? keJam(row.keluar) : "—"}
-                      </td>
-                      <td className="py-2.5">
+                      </TableCell>
+                      <TableCell>
                         {row.status ? (
                           <StatusBadge status={row.status} />
                         ) : (
                           <span className="text-xs text-muted">Belum absen</span>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+          <CardFooter>
+            {baris.length === 0
+              ? "Tidak ada karyawan terjadwal hari ini."
+              : "Hanya karyawan yang punya jadwal shift hari ini yang ditampilkan."}
+          </CardFooter>
         </Card>
       </div>
     </>

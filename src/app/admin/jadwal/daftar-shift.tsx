@@ -1,6 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CYCLE_MAKS, TOLERANSI_MAKS } from "@/lib/jadwal";
 import { hapusShift, simpanShift, type Hasil } from "./actions";
 
@@ -67,13 +77,14 @@ export function DaftarShift({
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col gap-1">
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => setDibuka(s.id)}
-                    className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium"
                   >
                     Ubah
-                  </button>
+                  </Button>
                   <TombolHapus id={s.id} onPesan={onPesan} />
                 </div>
               </div>
@@ -92,13 +103,14 @@ export function DaftarShift({
           onBatal={() => setDibuka(null)}
         />
       ) : (
-        <button
+        <Button
           type="button"
+          variant="glass"
           onClick={() => setDibuka("baru")}
-          className="w-full rounded-xl border border-dashed border-white/70 dark:border-white/15 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-4 py-2.5 text-sm font-medium"
+          className="h-auto w-full rounded-xl border-dashed px-4 py-2.5"
         >
           + Tambah shift
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -114,14 +126,16 @@ function TombolHapus({
   const [menunggu, mulai] = useTransition();
 
   return (
-    <button
+    <Button
       type="button"
+      variant="outline"
+      size="sm"
       disabled={menunggu}
       onClick={() => mulai(async () => onPesan(await hapusShift(id)))}
-      className="rounded-lg border border-line px-2.5 py-1 text-xs text-muted disabled:opacity-40"
+      className="text-muted"
     >
       {menunggu ? "…" : "Hapus"}
-    </button>
+    </Button>
   );
 }
 
@@ -161,9 +175,9 @@ function FormShift({
 
       <div className="mt-3 grid gap-3 sm:grid-cols-4">
           <div>
-          <label htmlFor="nama" className="text-xs text-muted">
+          <Label htmlFor="nama" className="text-xs font-normal text-muted">
             Nama shift
-          </label>
+          </Label>
           <input
             ref={namaRef}
             id="nama"
@@ -175,61 +189,71 @@ function FormShift({
           />
         </div>
         <div>
-          <label htmlFor="maksimalCycle" className="text-xs text-muted">
+          <Label htmlFor="maksimalCycle" className="text-xs font-normal text-muted">
             Maksimal cycle absensi
-          </label>
-          <select id="maksimalCycle" name="maksimalCycle" defaultValue={s?.maksimalCycle ?? (s?.mode === "fleksibel" ? 3 : 1)} className={`${KELAS_INPUT} tabular-nums`}>
-            {Array.from({ length: CYCLE_MAKS }, (_, i) => i + 1).map((jumlah) => (
-              <option key={jumlah} value={jumlah}>{jumlah} cycle</option>
-            ))}
-          </select>
+          </Label>
+          <Select name="maksimalCycle" defaultValue={String(s?.maksimalCycle ?? (s?.mode === "fleksibel" ? 3 : 1))}>
+            <SelectTrigger id="maksimalCycle" className="mt-1.5 tabular-nums">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: CYCLE_MAKS }, (_, i) => i + 1).map((jumlah) => (
+                <SelectItem key={jumlah} value={String(jumlah)}>{jumlah} cycle</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div>
-          <label htmlFor="mode" className="text-xs text-muted">
+          <Label htmlFor="mode" className="text-xs font-normal text-muted">
             Mode shift
-          </label>
-          <select id="mode" name="mode" defaultValue={s?.mode ?? "terjadwal"} className={KELAS_INPUT}>
-            <option value="terjadwal">Terjadwal (hitung telat)</option>
-            <option value="fleksibel">Fleksibel (tanpa telat)</option>
-          </select>
+          </Label>
+          <Select name="mode" defaultValue={s?.mode ?? "terjadwal"}>
+            <SelectTrigger id="mode" className="mt-1.5">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="terjadwal">Terjadwal (hitung telat)</SelectItem>
+              <SelectItem value="fleksibel">Fleksibel (tanpa telat)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div>
-          <label htmlFor="minimumKerjaJam" className="text-xs text-muted">
+          <Label htmlFor="minimumKerjaJam" className="text-xs font-normal text-muted">
             Minimum kerja (jam, opsional)
-          </label>
-          <input id="minimumKerjaJam" name="minimumKerjaJam" type="number" min={0} max={24} step="0.5" defaultValue={s?.minimumKerjaMenit != null ? s.minimumKerjaMenit / 60 : ""} placeholder="Kosong = tanpa minimum" className={`${KELAS_INPUT} tabular-nums`} />
+          </Label>
+          <Input id="minimumKerjaJam" name="minimumKerjaJam" type="number" min={0} max={24} step="0.5" defaultValue={s?.minimumKerjaMenit != null ? s.minimumKerjaMenit / 60 : ""} placeholder="Kosong = tanpa minimum" className="mt-1.5 tabular-nums" />
         </div>
         <div>
-          <label htmlFor="jamMulai" className="text-xs text-muted">
+          <Label htmlFor="jamMulai" className="text-xs font-normal text-muted">
             Jam mulai
-          </label>
-          <input
+          </Label>
+          <Input
             id="jamMulai"
             name="jamMulai"
             defaultValue={s?.mulai ?? "09.00"}
             required
             placeholder="09.00"
-            className={`${KELAS_INPUT} tabular-nums`}
+            className="mt-1.5 tabular-nums"
           />
         </div>
         <div>
-          <label htmlFor="jamSelesai" className="text-xs text-muted">
+          <Label htmlFor="jamSelesai" className="text-xs font-normal text-muted">
             Jam selesai
-          </label>
-          <input
+          </Label>
+          <Input
             id="jamSelesai"
             name="jamSelesai"
             defaultValue={s?.selesai ?? "17.00"}
             required
             placeholder="17.00"
-            className={`${KELAS_INPUT} tabular-nums`}
+            className="mt-1.5 tabular-nums"
           />
         </div>
         <div>
-          <label htmlFor="toleransiMenit" className="text-xs text-muted">
+          <Label htmlFor="toleransiMenit" className="text-xs font-normal text-muted">
             Toleransi (menit)
-          </label>
-          <input
+          </Label>
+          <Input
             id="toleransiMenit"
             name="toleransiMenit"
             type="number"
@@ -239,7 +263,7 @@ function FormShift({
             defaultValue={s?.toleransiMenit ?? 10}
             required
             inputMode="numeric"
-            className={`${KELAS_INPUT} tabular-nums`}
+            className="mt-1.5 tabular-nums"
           />
         </div>
       </div>
@@ -259,20 +283,19 @@ function FormShift({
       ) : null}
 
       <div className="mt-4 flex gap-2">
-        <button
+        <Button
           type="submit"
           disabled={mengirim}
-          className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper disabled:opacity-40"
         >
           {mengirim ? "Menyimpan…" : "Simpan"}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="outline"
           onClick={onBatal}
-          className="rounded-lg border border-line px-4 py-2 text-sm font-medium"
         >
           Batal
-        </button>
+        </Button>
       </div>
     </form>
   );

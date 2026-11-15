@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { batalkanPengajuanIzin } from "@/app/admin/izin/actions";
+import { Button } from "@/components/ui/button";
 
 export function BatalkanIzinButton({ id }: { id: string }) {
   const [sedang, mulai] = useTransition();
@@ -15,13 +16,15 @@ export function BatalkanIzinButton({ id }: { id: string }) {
       }}
     >
       <input type="hidden" name="id" value={id} />
-      <button
+      <Button
         type="submit"
+        variant="outline"
+        size="sm"
         disabled={sedang}
-        className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium text-status-alpa disabled:opacity-40"
+        className="h-6 px-2.5 text-status-alpa"
       >
         Batalkan
-      </button>
+      </Button>
     </form>
   );
 }

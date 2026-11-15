@@ -1,4 +1,4 @@
-import { PageHeader, StatCard } from "@/components/ui/primitives";
+import { Card, CardContent } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { formatRupiah, formatTanggal } from "@/lib/format";
 import {
@@ -60,40 +60,63 @@ export default async function AdminPayrollPage({
 
   return (
     <>
-      <PageHeader
-        title="Payroll"
-        description={`Komponen gaji periode ${labelPeriode(periode)} (${formatTanggal(rentang.dari)}–${formatTanggal(rentang.sampai)}). Gaji pokok, tunjangan, dan kasbon dapat diubah super admin; tunjangan makan, potongan telat, dan insentif dihitung otomatis.${jendela.kustom ? ` Hitungan hadir/telat dibatasi ${formatTanggal(jendela.dari)}–${formatTanggal(jendela.sampai)}.` : ""}`}
-        action={
-          superAdmin && (
-            <a
-              href={`/admin/payroll/ekspor?${eksporParams.toString()}`}
-              className="rounded-lg border border-line px-4 py-2 text-sm font-medium"
-              title="Unduh laporan payroll periode ini (PDF)"
-            >
-              Ekspor PDF
-            </a>
-          )
-        }
-      />
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Payroll</h1>
+          <p className="mt-1 text-sm text-muted">
+            {`Komponen gaji periode ${labelPeriode(periode)} (${formatTanggal(rentang.dari)}–${formatTanggal(rentang.sampai)}). Gaji pokok, tunjangan, dan kasbon dapat diubah super admin; tunjangan makan, potongan telat, dan insentif dihitung otomatis.${jendela.kustom ? ` Hitungan hadir/telat dibatasi ${formatTanggal(jendela.dari)}–${formatTanggal(jendela.sampai)}.` : ""}`}
+          </p>
+        </div>
+        {superAdmin && (
+          <a
+            href={`/admin/payroll/ekspor?${eksporParams.toString()}`}
+            className="rounded-lg border border-line px-4 py-2 text-sm font-medium"
+            title="Unduh laporan payroll periode ini (PDF)"
+          >
+            Ekspor PDF
+          </a>
+        )}
+      </header>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard
-          label="Total dibayarkan"
-          value={formatRupiah(total.diterima)}
-          hint="Setelah potongan & kasbon"
-        />
-        <StatCard label="Gaji pokok" value={formatRupiah(total.gajiPokok)} />
-        <StatCard label="Tunjangan" value={formatRupiah(total.tunjangan)} />
-        <StatCard
-          label="Tunjangan makan"
-          value={formatRupiah(total.tunjanganMakan)}
-          hint={`${formatRupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)} / hari hadir`}
-        />
-        <StatCard
-          label="Potongan / Kasbon"
-          value={formatRupiah(total.potonganTelat + total.kasbon)}
-        />
-        <StatCard label="Insentif" value={formatRupiah(total.insentif)} />
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Total dibayarkan</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{formatRupiah(total.diterima)}</p>
+            <p className="mt-1 text-xs text-muted">Setelah potongan &amp; kasbon</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Gaji pokok</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{formatRupiah(total.gajiPokok)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Tunjangan</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{formatRupiah(total.tunjangan)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Tunjangan makan</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{formatRupiah(total.tunjanganMakan)}</p>
+            <p className="mt-1 text-xs text-muted">{`${formatRupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)} / hari hadir`}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Potongan / Kasbon</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{formatRupiah(total.potonganTelat + total.kasbon)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Insentif</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{formatRupiah(total.insentif)}</p>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="mt-6">

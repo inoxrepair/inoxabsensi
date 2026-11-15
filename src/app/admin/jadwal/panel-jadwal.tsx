@@ -4,7 +4,21 @@ import Link from "next/link";
 import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { Card } from "@/components/ui/primitives";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   kosongkanMinggu,
   previewKosongkanMinggu,
@@ -172,19 +186,25 @@ export function PanelJadwal({
     <>
       <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-3">
         {bolehPilihCabang ? (
-          <select
-            aria-label="Pilih cabang jadwal"
-            value={cabangTerpilih}
-            onChange={(e) => pilihCabang(e.target.value)}
-            className="rounded-lg border border-line px-2.5 py-1.5 text-sm"
+          <Select
+            value={cabangTerpilih || "semua"}
+            onValueChange={(v) => pilihCabang(v === "semua" ? "" : v)}
           >
-            <option value="">Semua cabang</option>
-            {cabang.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nama}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger
+              aria-label="Pilih cabang jadwal"
+              className="h-auto w-auto px-2.5 py-1.5"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="semua">Semua cabang</SelectItem>
+              {cabang.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nama}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         ) : null}
 
         {!navigasi.rentangAktif ? (
@@ -212,31 +232,35 @@ export function PanelJadwal({
         ) : null}
 
         <span className="ml-auto flex flex-wrap gap-2">
-          <button
+          <Button
             type="button"
+            size="sm"
             onClick={() => setFormRentang((v) => !v)}
-            className="rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-paper"
+            className="px-3 text-sm"
           >
             Terapkan shift massal
-          </button>
+          </Button>
           {!navigasi.rentangAktif ? (
             <>
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 disabled={menunggu}
                 onClick={() => mintaKonfirmasi("salin")}
-                className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium disabled:opacity-40"
               >
                 Salin dari minggu lalu
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 disabled={menunggu || !adaJadwal}
                 onClick={() => mintaKonfirmasi("kosongkan")}
-                className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted disabled:opacity-40"
+                className="text-muted"
               >
                 Kosongkan
-              </button>
+              </Button>
             </>
           ) : null}
         </span>
@@ -282,27 +306,30 @@ export function PanelJadwal({
       />
 
       <div className="mt-6">
-        <Card
-          title="Definisi shift"
-          footer={
-            bolehUbahShift
+        <Card>
+          <CardHeader>
+            <CardTitle>Definisi shift</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {bolehUbahShift ? (
+              <DaftarShift shift={shiftLengkap} onPesan={setPesan} />
+            ) : (
+              <ul className="grid gap-3 sm:grid-cols-3">
+                {shiftLengkap.map((s) => (
+                  <li key={s.id} className="rounded-xl border border-line bg-surface/60 p-3">
+                    <p className="text-sm font-medium">{s.nama}</p>
+                    <p className="mt-0.5 text-sm tabular-nums text-muted">{s.mulai}–{s.selesai}</p>
+                    <p className="mt-1 text-xs text-muted">Toleransi {s.toleransiMenit} menit</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+          <CardFooter>
+            {bolehUbahShift
               ? "Perubahan jam shift berlaku untuk semua cabang dan langsung memengaruhi perhitungan telat."
-              : "Hanya super admin yang dapat mengubah definisi shift."
-          }
-        >
-          {bolehUbahShift ? (
-            <DaftarShift shift={shiftLengkap} onPesan={setPesan} />
-          ) : (
-            <ul className="grid gap-3 sm:grid-cols-3">
-              {shiftLengkap.map((s) => (
-                <li key={s.id} className="rounded-xl border border-line bg-surface/60 p-3">
-                  <p className="text-sm font-medium">{s.nama}</p>
-                  <p className="mt-0.5 text-sm tabular-nums text-muted">{s.mulai}–{s.selesai}</p>
-                  <p className="mt-1 text-xs text-muted">Toleransi {s.toleransiMenit} menit</p>
-                </li>
-              ))}
-            </ul>
-          )}
+              : "Hanya super admin yang dapat mengubah definisi shift."}
+          </CardFooter>
         </Card>
       </div>
 

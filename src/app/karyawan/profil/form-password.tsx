@@ -2,6 +2,9 @@
 
 import { useActionState } from "react";
 import { gantiPassword, type HasilPassword } from "./actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export function FormPassword() {
   const [hasil, kirim, pending] = useActionState<HasilPassword, FormData>(
@@ -24,18 +27,18 @@ export function FormPassword() {
         </p>
       ) : null}
 
-      <button type="submit" disabled={pending} className="mt-4 w-full rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-paper disabled:opacity-40">
+      <Button type="submit" disabled={pending} className="mt-4 w-full">
         {pending ? "Menyimpan…" : "Ubah password"}
-      </button>
+      </Button>
     </form>
   );
 }
 
 function PasswordField({ name, label, autoComplete, minLength }: { name: string; label: string; autoComplete: string; minLength?: number }) {
   return (
-    <label className="block text-xs text-muted">
+    <Label className="block text-xs font-normal text-muted">
       {label}
-      <input name={name} type="password" required minLength={minLength} autoComplete={autoComplete} className="mt-1.5 w-full rounded-lg border border-line px-3 py-2 text-base" />
-    </label>
+      <Input name={name} type="password" required minLength={minLength} autoComplete={autoComplete} className="mt-1.5 w-full text-base" />
+    </Label>
   );
 }

@@ -2,6 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { InformasiItem } from "@/lib/informasi";
 
 /**
@@ -53,42 +61,28 @@ export function PopupInformasi({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-30 grid place-items-center bg-ink/40 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="popup-informasi-judul"
+    <Dialog
+      open
+      onOpenChange={(buka) => {
+        if (!buka) lanjut();
+      }}
     >
-      <div className="w-full max-w-sm rounded-2xl border border-white/60 bg-white/60 p-5 shadow-lg shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/60 dark:shadow-black/50">
-        <div className="flex items-start justify-between gap-3">
-          <h2 id="popup-informasi-judul" className="font-semibold">
-            {pesan.judul}
-          </h2>
-          <button
-            type="button"
-            onClick={lanjut}
-            aria-label="Tutup informasi"
-            className="shrink-0 rounded-full px-2 text-lg leading-none text-muted"
-          >
-            ×
-          </button>
-        </div>
-        <p className="mt-2 whitespace-pre-wrap text-sm text-muted">
-          {pesan.isi}
-        </p>
-        <button
-          type="button"
-          onClick={klikCta}
-          className="mt-4 w-full rounded-lg bg-ink px-3 py-2.5 text-sm font-medium text-paper"
-        >
+      <DialogContent className="max-w-sm p-5">
+        <DialogHeader>
+          <DialogTitle>{pesan.judul}</DialogTitle>
+          <DialogDescription className="whitespace-pre-wrap">
+            {pesan.isi}
+          </DialogDescription>
+        </DialogHeader>
+        <Button size="lg" type="button" onClick={klikCta} className="w-full">
           {pesan.ctaLabel}
-        </button>
+        </Button>
         {daftar.length > 1 ? (
-          <p className="mt-2 text-center text-xs text-muted">
+          <p className="text-center text-xs text-muted">
             Pesan {indeks + 1} dari {daftar.length}
           </p>
         ) : null}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

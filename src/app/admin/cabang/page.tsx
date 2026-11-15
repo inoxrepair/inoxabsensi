@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/ui/primitives";
 import { db } from "@/lib/db";
 import { wajibAkses } from "@/lib/session";
 import { DaftarCabang, type Cabang } from "./daftar-cabang";
@@ -27,10 +26,14 @@ export default async function AdminCabangPage() {
 
   return (
     <>
-      <PageHeader
-        title="Cabang"
-        description="Titik koordinat dan radius yang dipakai memvalidasi absensi karyawan."
-      />
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Cabang</h1>
+          <p className="mt-1 text-sm text-muted">
+            Titik koordinat dan radius yang dipakai memvalidasi absensi karyawan.
+          </p>
+        </div>
+      </header>
 
       <DaftarCabang cabang={cabang} />
 

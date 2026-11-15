@@ -4,6 +4,8 @@ import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { rentangPeriodeGajian } from "@/lib/rekap";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { InputTanggal } from "@/components/ui/input-tanggal";
 
 /**
@@ -58,24 +60,21 @@ export function FilterInsentif({
       onSubmit={terapkan}
       className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-3"
     >
-      <label className="text-xs text-muted">
+      <Label className="text-xs font-normal text-muted">
         Periode
         <InputTanggal mode="bulan" value={bulan} onChange={gantiBulan} required className="mt-1 block" />
-      </label>
-      <label className="text-xs text-muted">
+      </Label>
+      <Label className="text-xs font-normal text-muted">
         Dari
         <InputTanggal value={dariState} onChange={setDari} required className="mt-1 block" />
-      </label>
-      <label className="text-xs text-muted">
+      </Label>
+      <Label className="text-xs font-normal text-muted">
         Sampai
         <InputTanggal value={sampaiState} onChange={setSampai} required className="mt-1 block" />
-      </label>
-      <button
-        type="submit"
-        className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper"
-      >
+      </Label>
+      <Button type="submit">
         Tampilkan
-      </button>
+      </Button>
     </form>
   );
 }

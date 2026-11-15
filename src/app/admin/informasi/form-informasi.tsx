@@ -3,6 +3,18 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { InputTanggal } from "@/components/ui/input-tanggal";
 import { formatTanggal } from "@/lib/format";
 import {
@@ -13,10 +25,6 @@ import {
   type InformasiItem,
 } from "@/lib/informasi";
 import { simpanInformasi, type HasilInformasi } from "./actions";
-
-const KELAS_INPUT =
-  "w-full rounded-lg border border-line bg-white/60 px-3 py-2.5 text-sm dark:bg-zinc-900/60";
-const KELAS_LABEL = "mb-1.5 block text-sm font-medium";
 
 /**
  * Form buat/ubah pesan informasi. Judul, isi, dan tombol CTA bisa diedit;
@@ -83,111 +91,107 @@ export function FormInformasi({
     <div>
       <div className="space-y-4">
         <div>
-          <label htmlFor="info-judul" className={KELAS_LABEL}>
+          <Label htmlFor="info-judul" className="mb-1.5 block">
             Judul
-          </label>
-          <input
+          </Label>
+          <Input
             id="info-judul"
             type="text"
             value={judul}
             onChange={(e) => setJudul(e.target.value)}
             maxLength={100}
             placeholder="Contoh: Libur Hari Raya"
-            className={KELAS_INPUT}
           />
         </div>
 
         <div>
-          <label htmlFor="info-isi" className={KELAS_LABEL}>
+          <Label htmlFor="info-isi" className="mb-1.5 block">
             Isi informasi
-          </label>
-          <textarea
+          </Label>
+          <Textarea
             id="info-isi"
             value={isi}
             onChange={(e) => setIsi(e.target.value)}
             maxLength={1000}
             rows={4}
             placeholder="Tulis pesan yang tampil di popup karyawan…"
-            className={KELAS_INPUT}
           />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="info-cta-label" className={KELAS_LABEL}>
+            <Label htmlFor="info-cta-label" className="mb-1.5 block">
               Label tombol CTA
-            </label>
-            <input
+            </Label>
+            <Input
               id="info-cta-label"
               type="text"
               value={ctaLabel}
               onChange={(e) => setCtaLabel(e.target.value)}
               maxLength={30}
               placeholder="Mengerti"
-              className={KELAS_INPUT}
             />
           </div>
           <div>
-            <label htmlFor="info-cta-aksi" className={KELAS_LABEL}>
+            <Label htmlFor="info-cta-aksi" className="mb-1.5 block">
               Aksi tombol CTA
-            </label>
-            <select
-              id="info-cta-aksi"
-              value={ctaAksi}
-              onChange={(e) => setCtaAksi(e.target.value as AksiCta)}
-              className={KELAS_INPUT}
-            >
-              {(Object.keys(LABEL_AKSI_CTA) as AksiCta[]).map((a) => (
-                <option key={a} value={a}>
-                  {LABEL_AKSI_CTA[a]}
-                </option>
-              ))}
-            </select>
+            </Label>
+            <Select value={ctaAksi} onValueChange={(v) => setCtaAksi(v as AksiCta)}>
+              <SelectTrigger id="info-cta-aksi">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(LABEL_AKSI_CTA) as AksiCta[]).map((a) => (
+                  <SelectItem key={a} value={a}>
+                    {LABEL_AKSI_CTA[a]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
         {ctaAksi === "tautan" ? (
           <div>
-            <label htmlFor="info-cta-tautan" className={KELAS_LABEL}>
+            <Label htmlFor="info-cta-tautan" className="mb-1.5 block">
               Tautan tujuan
-            </label>
-            <input
+            </Label>
+            <Input
               id="info-cta-tautan"
               type="url"
               value={ctaTautan}
               onChange={(e) => setCtaTautan(e.target.value)}
               maxLength={500}
               placeholder="https://…"
-              className={KELAS_INPUT}
             />
           </div>
         ) : null}
 
         {ctaAksi === "halaman" ? (
           <div>
-            <label htmlFor="info-cta-halaman" className={KELAS_LABEL}>
+            <Label htmlFor="info-cta-halaman" className="mb-1.5 block">
               Halaman tujuan
-            </label>
-            <select
-              id="info-cta-halaman"
-              value={ctaHalaman}
-              onChange={(e) => setCtaHalaman(e.target.value)}
-              className={KELAS_INPUT}
-            >
-              {HALAMAN_KARYAWAN.map((h) => (
-                <option key={h.nilai} value={h.nilai}>
-                  {h.label}
-                </option>
-              ))}
-            </select>
+            </Label>
+            <Select value={ctaHalaman} onValueChange={setCtaHalaman}>
+              <SelectTrigger id="info-cta-halaman">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {HALAMAN_KARYAWAN.map((h) => (
+                  <SelectItem key={h.nilai} value={h.nilai}>
+                    {h.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="info-mulai" className={KELAS_LABEL}>
+            <Label htmlFor="info-mulai" className="mb-1.5 block">
               Mulai tampil
-            </label>
+            </Label>
             <InputTanggal
               id="info-mulai"
               value={mulai}
@@ -196,10 +200,10 @@ export function FormInformasi({
             />
           </div>
           <div>
-            <label htmlFor="info-durasi" className={KELAS_LABEL}>
+            <Label htmlFor="info-durasi" className="mb-1.5 block">
               Durasi (hari)
-            </label>
-            <input
+            </Label>
+            <Input
               id="info-durasi"
               type="number"
               value={durasi}
@@ -207,7 +211,6 @@ export function FormInformasi({
               min={1}
               max={365}
               inputMode="numeric"
-              className={KELAS_INPUT}
             />
             {sampai ? (
               <p className="mt-1.5 text-xs text-muted">
@@ -217,15 +220,14 @@ export function FormInformasi({
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+        <Label htmlFor="info-aktif" className="flex items-center gap-2 text-sm font-normal">
+          <Checkbox
+            id="info-aktif"
             checked={aktif}
-            onChange={(e) => setAktif(e.target.checked)}
-            className="size-4 accent-ink"
+            onCheckedChange={(v) => setAktif(v === true)}
           />
           Aktif (pesan boleh tampil selama masa tampilnya)
-        </label>
+        </Label>
       </div>
 
       {hasil ? (
@@ -238,14 +240,14 @@ export function FormInformasi({
       ) : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <button
+        <Button
           type="button"
+          size="lg"
           onClick={() => void simpan()}
           disabled={pending}
-          className="rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-paper disabled:opacity-40"
         >
           {pending ? "Menyimpan…" : awal ? "Simpan perubahan" : "Buat pesan"}
-        </button>
+        </Button>
         {awal ? (
           <Link
             href="/admin/informasi"

@@ -1,6 +1,9 @@
 "use client";
 
 import { useActionState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { masuk, masukGoogle, type StatusLogin } from "./actions";
 
@@ -22,10 +25,10 @@ export function FormLogin({
         {next ? <input type="hidden" name="next" value={next} /> : null}
 
         <div>
-          <label htmlFor="identifier" className="sr-only">
+          <Label htmlFor="identifier" className="sr-only">
             Username atau email
-          </label>
-          <input
+          </Label>
+          <Input
             id="identifier"
             name="identifier"
             type="text"
@@ -34,15 +37,15 @@ export function FormLogin({
             placeholder="username atau email"
             aria-invalid={status ? true : undefined}
             aria-describedby={status ? "galat-login" : undefined}
-            className="w-full rounded-xl border border-white/70 dark:border-white/15 bg-white/65 dark:bg-zinc-900/60 px-3.5 py-3 text-base backdrop-blur-md placeholder:text-muted/70"
+            className="h-auto w-full rounded-xl border border-white/70 dark:border-white/15 bg-white/65 dark:bg-zinc-900/60 px-3.5 py-3 text-base backdrop-blur-md placeholder:text-muted/70"
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="sr-only">
+          <Label htmlFor="password" className="sr-only">
             Password
-          </label>
-          <input
+          </Label>
+          <Input
             id="password"
             name="password"
             type="password"
@@ -51,7 +54,7 @@ export function FormLogin({
             placeholder="Password"
             aria-invalid={status ? true : undefined}
             aria-describedby={status ? "galat-login" : undefined}
-            className="w-full rounded-xl border border-white/70 dark:border-white/15 bg-white/65 dark:bg-zinc-900/60 px-3.5 py-3 text-base backdrop-blur-md placeholder:text-muted/70"
+            className="h-auto w-full rounded-xl border border-white/70 dark:border-white/15 bg-white/65 dark:bg-zinc-900/60 px-3.5 py-3 text-base backdrop-blur-md placeholder:text-muted/70"
           />
         </div>
 
@@ -71,13 +74,13 @@ export function FormLogin({
           tint="rgba(17, 17, 17, 0.85)"
           cornerRadius={16}
         >
-          <button
+          <Button
             type="submit"
             disabled={sedangKirim}
-            className="w-full bg-transparent px-4 py-3 text-sm font-medium text-white disabled:opacity-40"
+            className="h-auto w-full bg-transparent px-4 py-3 text-sm font-medium text-white"
           >
             {sedangKirim ? "Memproses…" : "Masuk"}
-          </button>
+          </Button>
         </LiquidGlass>
       </form>
 
@@ -96,9 +99,9 @@ export function FormLogin({
               tint="rgba(255, 255, 255, 0.55)"
               cornerRadius={16}
             >
-              <button
+              <Button
                 type="submit"
-                className="flex w-full items-center justify-center gap-2.5 bg-transparent px-4 py-3 text-sm font-medium"
+                className="h-auto w-full gap-2.5 bg-transparent px-4 py-3 text-sm font-medium text-ink [&_svg]:size-[18px]"
               >
               <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
                 <path
@@ -119,7 +122,7 @@ export function FormLogin({
                 />
               </svg>
               Masuk dengan Google
-              </button>
+              </Button>
             </LiquidGlass>
           </form>
         </>

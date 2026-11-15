@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { prosesPengajuanIzin } from "./actions";
 
 export function ProsesIzinButtons({ id }: { id: string }) {
@@ -21,37 +23,40 @@ export function ProsesIzinButtons({ id }: { id: string }) {
 
   return (
     <div className="space-y-2">
-      <input
+      <Input
         type="text"
         value={catatan}
         onChange={(e) => setCatatan(e.target.value)}
         maxLength={300}
         placeholder="Catatan admin (opsional)"
-        className="w-full rounded-lg border border-line px-2 py-1 text-xs"
+        className="h-auto px-2 py-1 text-xs"
       />
       <div className="flex flex-wrap gap-2">
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           disabled={sedang}
           onClick={() => {
             if (!confirm("Setujui pengajuan ini? Hari dengan jadwal akan ditandai izin; hari tanpa jadwal dilewati.")) return;
             kirim("disetujui");
           }}
-          className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium disabled:opacity-40"
         >
           Setujui
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           disabled={sedang}
           onClick={() => {
             if (!confirm("Tolak pengajuan ini?")) return;
             kirim("ditolak");
           }}
-          className="rounded-lg border border-line px-2.5 py-1 text-xs text-muted disabled:opacity-40"
+          className="text-muted"
         >
           Tolak
-        </button>
+        </Button>
       </div>
       {pesan ? <p className="text-xs text-muted">{pesan}</p> : null}
     </div>

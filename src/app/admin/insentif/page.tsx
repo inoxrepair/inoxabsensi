@@ -1,4 +1,5 @@
-import { PageHeader, StatCard } from "@/components/ui/primitives";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { formatRupiah, formatTanggal } from "@/lib/format";
 import { bacaRentangGajian, labelPeriode, periodeValid } from "@/lib/rekap";
 import { wajibAkses } from "@/lib/session";
@@ -59,28 +60,41 @@ export default async function AdminInsentifPage({
 
   return (
     <>
-      <PageHeader
-        title="Insentif"
-        description={deskripsi}
-        action={superAdmin && <TombolSinkron periode={periode} dari={rentang.dari} sampai={rentang.sampai} pengguna={pengguna} />}
-      />
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Insentif</h1>
+          <p className="mt-1 text-sm text-muted">{deskripsi}</p>
+        </div>
+        {superAdmin && <TombolSinkron periode={periode} dari={rentang.dari} sampai={rentang.sampai} pengguna={pengguna} />}
+      </header>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Total insentif" value={formatRupiah(totalInsentif)} />
-        <StatCard
-          label="Total transaksi"
-          value={totalTransaksi}
-          hint="Baris laporan inox.my.id"
-        />
-        <StatCard
-          label="Karyawan tercatat"
-          value={data.length}
-        />
-        <StatCard
-          label="Periode"
-          value={labelPeriode(periode)}
-          hint={`${formatTanggal(rentang.dari)} – ${formatTanggal(rentang.sampai)}`}
-        />
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Total insentif</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{formatRupiah(totalInsentif)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Total transaksi</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{totalTransaksi}</p>
+            <p className="mt-1 text-xs text-muted">Baris laporan inox.my.id</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Karyawan tercatat</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{data.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Periode</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{labelPeriode(periode)}</p>
+            <p className="mt-1 text-xs text-muted">{`${formatTanggal(rentang.dari)} – ${formatTanggal(rentang.sampai)}`}</p>
+          </CardContent>
+        </Card>
       </div>
 
       <FilterInsentif periode={periode} dari={rentang.dari} sampai={rentang.sampai} />
@@ -257,12 +271,14 @@ export default async function AdminInsentifPage({
                     <td className="p-2 text-sm text-right">
                       <form action={hapusPemetaanInsentif}>
                         <input type="hidden" name="id" value={p.id} />
-                        <button
+                        <Button
                           type="submit"
-                          className="rounded border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-xl px-2 py-1 text-sm hover:bg-muted transition"
+                          variant="glass"
+                          size="sm"
+                          className="h-auto px-2 py-1 text-sm"
                         >
                           Hapus
-                        </button>
+                        </Button>
                       </form>
                     </td>
                   </tr>

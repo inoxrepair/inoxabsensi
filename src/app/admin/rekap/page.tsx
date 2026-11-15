@@ -1,5 +1,9 @@
 import { DataTable, type Kolom } from "@/components/ui/data-table";
-import { Card, PageHeader, StatCard } from "@/components/ui/primitives";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { roleTerbatasCabang } from "@/lib/domain";
 import { wajibAkses } from "@/lib/session";
@@ -214,50 +218,71 @@ export default async function AdminRekapPage({
 
   return (
     <>
-      <PageHeader
-        title="Rekap Absensi"
-        description={`${labelRentang(lingkup)} · ${jumlahHari} hari`}
-      />
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Rekap Absensi</h1>
+          <p className="mt-1 text-sm text-muted">
+            {`${labelRentang(lingkup)} · ${jumlahHari} hari`}
+          </p>
+        </div>
+      </header>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard
-          label="Hadir"
-          value={total.hadir}
-          hint={total.telat > 0 ? `${total.telat} di antaranya telat` : "tanpa keterlambatan"}
-        />
-        <StatCard
-          label="Akumulasi telat"
-          value={total.menitTelat > 0 ? formatDurasi(total.menitTelat) : "0j"}
-          hint={`${total.menitTelat} menit setelah toleransi`}
-        />
-        <StatCard
-          label="Dalam toleransi"
-          value={
-            total.menitToleransi > 0
-              ? formatDurasi(total.menitToleransi)
-              : "0j"
-          }
-          hint={`${total.menitToleransi} menit diampuni`}
-        />
-        <StatCard
-          label="Total telat"
-          value={
-            total.menitKotor > 0 ? formatDurasi(total.menitKotor) : "0j"
-          }
-          hint={`${total.menitKotor} menit kotor`}
-        />
-        <StatCard label="Izin / Alpa" value={`${total.izin} / ${total.alpa}`} />
-        <StatCard
-          label="Kehadiran"
-          value={`${persen}%`}
-          hint={`Total ${formatDurasi(total.menitKerja)}`}
-        />
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Hadir</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{total.hadir}</p>
+            <p className="mt-1 text-xs text-muted">{total.telat > 0 ? `${total.telat} di antaranya telat` : "tanpa keterlambatan"}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Akumulasi telat</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{total.menitTelat > 0 ? formatDurasi(total.menitTelat) : "0j"}</p>
+            <p className="mt-1 text-xs text-muted">{`${total.menitTelat} menit setelah toleransi`}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Dalam toleransi</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">
+              {total.menitToleransi > 0
+                ? formatDurasi(total.menitToleransi)
+                : "0j"}
+            </p>
+            <p className="mt-1 text-xs text-muted">{`${total.menitToleransi} menit diampuni`}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Total telat</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">
+              {total.menitKotor > 0 ? formatDurasi(total.menitKotor) : "0j"}
+            </p>
+            <p className="mt-1 text-xs text-muted">{`${total.menitKotor} menit kotor`}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Izin / Alpa</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{`${total.izin} / ${total.alpa}`}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Kehadiran</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{`${persen}%`}</p>
+            <p className="mt-1 text-xs text-muted">{`Total ${formatDurasi(total.menitKerja)}`}</p>
+          </CardContent>
+        </Card>
         {total.kekuranganMenit > 0 ? (
-          <StatCard
-            label="Kekurangan jam"
-            value={formatDurasi(total.kekuranganMenit)}
-            hint="Hanya shift fleksibel dengan target minimum"
-          />
+          <Card>
+            <CardContent>
+              <p className="text-sm text-muted">Kekurangan jam</p>
+              <p className="mt-1 text-2xl font-semibold tracking-tight">{formatDurasi(total.kekuranganMenit)}</p>
+              <p className="mt-1 text-xs text-muted">Hanya shift fleksibel dengan target minimum</p>
+            </CardContent>
+          </Card>
         ) : null}
       </div>
 
@@ -274,19 +299,20 @@ export default async function AdminRekapPage({
 
         <LegendStatus />
 
-        <Card
-          footer={
-            adaData
+        <Card>
+          <CardContent>
+            <DataTable
+              caption={`Rekap absensi ${labelRentang(lingkup)}`}
+              columns={kolom}
+              rows={baris}
+              rowKey={(r) => r.userId}
+            />
+          </CardContent>
+          <CardFooter>
+            {adaData
               ? "Kolom Telat adalah akumulasi keterlambatan setelah dikurangi toleransi shift. Kolom Toleransi adalah akumulasi menit dalam toleransi (diampuni). Kolom Total telat adalah akumulasi keterlambatan kotor dari jam mulai shift tanpa potongan. Jam kerja hanya dari hari yang sudah absen keluar. Kolom tanggal memakai simbol H/T/I/A/L; titik berarti belum ada catatan."
-              : "Belum ada catatan absensi pada rentang ini."
-          }
-        >
-          <DataTable
-            caption={`Rekap absensi ${labelRentang(lingkup)}`}
-            columns={kolom}
-            rows={baris}
-            rowKey={(r) => r.userId}
-          />
+              : "Belum ada catatan absensi pada rentang ini."}
+          </CardFooter>
         </Card>
       </div>
     </>

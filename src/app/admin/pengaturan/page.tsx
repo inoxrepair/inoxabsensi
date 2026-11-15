@@ -1,4 +1,19 @@
-import { Card, PageHeader } from "@/components/ui/primitives";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ADMIN_NAV } from "@/lib/nav";
 import { LABEL_ROLE, ROLE, bacaRole } from "@/lib/domain";
 import { db } from "@/lib/db";
@@ -39,112 +54,137 @@ export default async function AdminPengaturanPage() {
 
   return (
     <>
-      <PageHeader
-        title="Pengaturan"
-        description="Role, hak akses menu, dan aturan absensi global."
-      />
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Pengaturan</h1>
+          <p className="mt-1 text-sm text-muted">
+            Role, hak akses menu, dan aturan absensi global.
+          </p>
+        </div>
+      </header>
 
-      <Card
-        title="Hak akses menu"
-        footer={`${izin.length} baris izin aktif di tabel RolePermission. Ubah di database, tampilan langsung ikut.`}
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <caption className="sr-only">
+      <Card>
+        <CardHeader>
+          <CardTitle>Hak akses menu</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableCaption>
               Matriks hak akses menu per role
-            </caption>
-            <thead>
-              <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                <th scope="col" className="py-2 pr-4 font-medium">
-                  Menu
-                </th>
+            </TableCaption>
+            <TableHeader>
+              <TableRow className="border-b border-line">
+                <TableHead scope="col">Menu</TableHead>
                 {ROLE.map((r) => (
-                  <th
-                    key={r}
-                    scope="col"
-                    className="py-2 pr-4 font-medium last:pr-0"
-                  >
+                  <TableHead key={r} scope="col">
                     {LABEL_ROLE[r]}
-                  </th>
+                  </TableHead>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {ADMIN_NAV.map((item) => (
-                <tr key={item.menu} className="border-b border-line/70">
+                <TableRow key={item.menu}>
                   <th scope="row" className="py-2.5 pr-4 text-left font-medium">
                     {item.label}
                   </th>
                   {ROLE.map((r) => {
                     const boleh = akses.has(`${r}:${item.menu}`);
                     return (
-                      <td key={r} className="py-2.5 pr-4 last:pr-0">
+                      <TableCell key={r}>
                         <span className="sr-only">
                           {boleh ? "Diizinkan" : "Tidak diizinkan"}
                         </span>
                         <span aria-hidden="true" className="text-muted">
                           {boleh ? "Ya" : "—"}
                         </span>
-                      </td>
+                      </TableCell>
                     );
                   })}
-                </tr>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </CardContent>
+        <CardFooter>
+          {`${izin.length} baris izin aktif di tabel RolePermission. Ubah di database, tampilan langsung ikut.`}
+        </CardFooter>
       </Card>
 
       <div className="mt-6">
-        <Card
-          title="Logo aplikasi"
-          footer="Logo disimpan di database, jadi ikut backup dan tidak hilang saat container di-rebuild. Ikon aplikasi di home screen HP tidak ikut berubah dari sini."
-        >
-          <FormLogo adaLogoKustom={logo !== null} versiLogo={versiLogo} />
+        <Card>
+          <CardHeader>
+            <CardTitle>Logo aplikasi</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FormLogo adaLogoKustom={logo !== null} versiLogo={versiLogo} />
+          </CardContent>
+          <CardFooter>
+            Logo disimpan di database, jadi ikut backup dan tidak hilang saat container di-rebuild. Ikon aplikasi di home screen HP tidak ikut berubah dari sini.
+          </CardFooter>
         </Card>
       </div>
 
       <div className="mt-6">
-        <Card
-          title="Nama perusahaan"
-          footer="Nama ini dipakai di slip gaji karyawan. Dikosongkan lalu disimpan akan kembali ke nama bawaan."
-        >
-          <FormNamaPerusahaan nilaiSaatIni={namaPerusahaan} />
+        <Card>
+          <CardHeader>
+            <CardTitle>Nama perusahaan</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FormNamaPerusahaan nilaiSaatIni={namaPerusahaan} />
+          </CardContent>
+          <CardFooter>
+            Nama ini dipakai di slip gaji karyawan. Dikosongkan lalu disimpan akan kembali ke nama bawaan.
+          </CardFooter>
         </Card>
       </div>
 
       <div className="mt-6">
-        <Card
-          title="Jenis Seragam"
-          footer="Seragam yang sudah pernah dipakai jadwal tidak dapat dihapus. Nonaktifkan agar tidak muncul untuk jadwal baru."
-        >
-          <DaftarSeragam
-            rows={seragam.map((s) => ({
-              id: s.id,
-              kode: s.kode,
-              nama: s.nama,
-              deskripsi: s.deskripsi,
-              aktif: s.aktif,
-              dipakai: s._count.jadwal,
-            }))}
-          />
+        <Card>
+          <CardHeader>
+            <CardTitle>Jenis Seragam</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DaftarSeragam
+              rows={seragam.map((s) => ({
+                id: s.id,
+                kode: s.kode,
+                nama: s.nama,
+                deskripsi: s.deskripsi,
+                aktif: s.aktif,
+                dipakai: s._count.jadwal,
+              }))}
+            />
+          </CardContent>
+          <CardFooter>
+            Seragam yang sudah pernah dipakai jadwal tidak dapat dihapus. Nonaktifkan agar tidak muncul untuk jadwal baru.
+          </CardFooter>
         </Card>
       </div>
 
       <div className="mt-6">
-        <Card
-          title="Backup Jadwal"
-          footer="Backup berupa file JSON portable dan tidak disimpan di database. Simpan file ini di tempat aman."
-        >
-          <BackupJadwalPanel
-            defaultDari={tanggalLokal()}
-            defaultSampai={tanggalLokal()}
-          />
+        <Card>
+          <CardHeader>
+            <CardTitle>Backup Jadwal</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BackupJadwalPanel
+              defaultDari={tanggalLokal()}
+              defaultSampai={tanggalLokal()}
+            />
+          </CardContent>
+          <CardFooter>
+            Backup berupa file JSON portable dan tidak disimpan di database. Simpan file ini di tempat aman.
+          </CardFooter>
         </Card>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <Card title="Aturan absensi">
+        <Card>
+          <CardHeader>
+            <CardTitle>Aturan absensi</CardTitle>
+          </CardHeader>
+          <CardContent>
           <dl className="divide-y divide-line text-sm">
             {[
               ["Validasi lokasi", "Wajib dalam radius cabang"],
@@ -166,9 +206,14 @@ export default async function AdminPengaturanPage() {
               </div>
             ))}
           </dl>
+          </CardContent>
         </Card>
 
-        <Card title="Jam shift">
+        <Card>
+          <CardHeader>
+            <CardTitle>Jam shift</CardTitle>
+          </CardHeader>
+          <CardContent>
           <ul className="space-y-2.5 text-sm">
             {shift.map((s) => (
               <li key={s.id} className="flex items-center justify-between gap-4">
@@ -179,6 +224,7 @@ export default async function AdminPengaturanPage() {
               </li>
             ))}
           </ul>
+          </CardContent>
         </Card>
       </div>
     </>

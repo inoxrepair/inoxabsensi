@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { Logo } from "@/components/brand/logo";
+import { Button } from "@/components/ui/button";
 import { LatarLiquid } from "@/components/ui/latar-liquid";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 
@@ -43,12 +44,12 @@ export default async function HomePage() {
           cornerRadius={20}
           className="mt-8"
         >
-          <Link
-            href="/login"
-            className="block px-4 py-3 text-center text-sm font-medium text-white"
+          <Button
+            asChild
+            className="block h-auto bg-transparent px-4 py-3 text-center text-sm font-medium text-white"
           >
-            Masuk
-          </Link>
+            <Link href="/login">Masuk</Link>
+          </Button>
         </LiquidGlass>
       </LiquidGlass>
       </main>

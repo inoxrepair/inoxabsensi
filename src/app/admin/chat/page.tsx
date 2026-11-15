@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/ui/primitives";
 import { ambilPesanChat, ambilYangMengetik, tandaiChatDibaca } from "@/lib/chat-data";
 import { ambilTop5 } from "@/lib/top5-data";
 import { wajibAkses } from "@/lib/session";
@@ -19,10 +18,14 @@ export default async function ChatAdminPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <PageHeader
-        title="Chat Karyawan"
-        description="Satu ruang untuk semua karyawan. Pesan terhapus otomatis setelah 24 jam."
-      />
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Chat Karyawan</h1>
+          <p className="mt-1 text-sm text-muted">
+            Satu ruang untuk semua karyawan. Pesan terhapus otomatis setelah 24 jam.
+          </p>
+        </div>
+      </header>
       <DaftarChat
         pesan={pesan}
         sayaId={sesi.id}

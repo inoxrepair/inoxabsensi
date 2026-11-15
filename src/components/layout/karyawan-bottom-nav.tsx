@@ -3,6 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { LencanaJumlah } from "@/components/ui/lencana-jumlah";
 import { KARYAWAN_NAV } from "@/lib/nav";
 
@@ -125,68 +131,58 @@ export function KaryawanBottomNav({
             );
           })}
           <li className="flex-1">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => setBuka(true)}
               aria-expanded={buka}
               aria-label="Menu lainnya"
-              className={`flex min-h-14 w-full flex-col items-center justify-center gap-1 py-2 text-[11px] ${
-                aktifLainnya ? "font-medium text-ink" : "text-muted"
+              className={`min-h-14 w-full flex-col gap-1 py-2 text-[11px] [&_svg]:size-[22px] ${
+                aktifLainnya ? "font-medium text-ink" : "font-normal text-muted"
               }`}
             >
               {ikon("lainnya", aktifLainnya)}
               Lainnya
-            </button>
+            </Button>
           </li>
         </ul>
       </nav>
 
-      {buka ? (
-        <div
-          className="fixed inset-0 z-50"
-          role="dialog"
-          aria-label="Menu lainnya"
-        >
-          <button
+      <Dialog open={buka} onOpenChange={setBuka}>
+        <DialogContent className="bottom-3 left-3 right-3 top-auto w-auto max-w-none translate-x-0 translate-y-0 gap-2 rounded-3xl p-2 pb-[env(safe-area-inset-bottom)]">
+          <DialogTitle className="sr-only">Menu lainnya</DialogTitle>
+          <ul>
+            {lainnya.map((item) => {
+              const active =
+                item.href === "/karyawan"
+                  ? pathname === "/karyawan"
+                  : pathname.startsWith(item.href);
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={() => setBuka(false)}
+                    aria-current={active ? "page" : undefined}
+                    className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm ${
+                      active ? "font-medium text-ink bg-surface" : ""
+                    }`}
+                  >
+                    {ikon(item.menu, active)}
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+          <Button
             type="button"
-            aria-label="Tutup menu lainnya"
             onClick={() => setBuka(false)}
-            className="absolute inset-0 bg-black/40"
-          />
-          <div className="absolute inset-x-3 bottom-3 rounded-3xl border border-white/60 dark:border-white/10 bg-white/90 dark:bg-zinc-900/90 shadow-xl backdrop-blur-xl p-2 pb-[env(safe-area-inset-bottom)]">
-            <ul>
-              {lainnya.map((item) => {
-                const active =
-                  item.href === "/karyawan"
-                    ? pathname === "/karyawan"
-                    : pathname.startsWith(item.href);
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={() => setBuka(false)}
-                      aria-current={active ? "page" : undefined}
-                      className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm ${
-                        active ? "font-medium text-ink bg-surface" : ""
-                      }`}
-                    >
-                      {ikon(item.menu, active)}
-                      {item.label}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-            <button
-              type="button"
-              onClick={() => setBuka(false)}
-              className="mt-1 w-full rounded-2xl bg-ink py-3 text-sm font-medium text-paper"
-            >
-              Tutup
-            </button>
-          </div>
-        </div>
-      ) : null}
+            className="mt-1 h-auto w-full rounded-2xl py-3"
+          >
+            Tutup
+          </Button>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

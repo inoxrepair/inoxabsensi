@@ -1,6 +1,16 @@
 "use client";
 
 import { useActionState } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { buatIzinAdmin, type HasilIzin } from "./actions";
 import { InputTanggal } from "@/components/ui/input-tanggal";
 
@@ -17,33 +27,42 @@ export function BuatIzinAdminForm({
   return (
     <form action={kirim} className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-xs text-muted">
+        <Label className="text-xs font-normal text-muted">
           Karyawan
-          <select name="userId" required className="mt-1.5 w-full rounded-lg border border-line px-3 py-2 text-sm">
-            <option value="">Pilih karyawan…</option>
-            {karyawan.map((k) => (
-              <option key={k.id} value={k.id}>
-                {k.name} · {k.cabang}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-xs text-muted">
+          <Select name="userId" required>
+            <SelectTrigger className="mt-1.5">
+              <SelectValue placeholder="Pilih karyawan…" />
+            </SelectTrigger>
+            <SelectContent>
+              {karyawan.map((k) => (
+                <SelectItem key={k.id} value={k.id}>
+                  {k.name} · {k.cabang}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Label>
+        <Label className="text-xs font-normal text-muted">
           Tanggal
           <InputTanggal name="tanggal" required className="mt-1.5 w-full" />
-        </label>
+        </Label>
       </div>
-      <label className="mt-3 block text-xs text-muted">
+      <Label className="mt-3 block text-xs font-normal text-muted">
         Jenis
-        <select name="jenis" required className="mt-1.5 w-full rounded-lg border border-line px-3 py-2 text-sm">
-          <option value="izin">Izin</option>
-          <option value="sakit">Sakit</option>
-        </select>
-      </label>
-      <label className="mt-3 block text-xs text-muted">
+        <Select name="jenis" required defaultValue="izin">
+          <SelectTrigger className="mt-1.5">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="izin">Izin</SelectItem>
+            <SelectItem value="sakit">Sakit</SelectItem>
+          </SelectContent>
+        </Select>
+      </Label>
+      <Label className="mt-3 block text-xs font-normal text-muted">
         Alasan (wajib)
-        <textarea name="alasan" rows={2} maxLength={500} required className="mt-1.5 w-full rounded-lg border border-line px-3 py-2 text-sm" />
-      </label>
+        <Textarea name="alasan" rows={2} maxLength={500} required className="mt-1.5 min-h-0" />
+      </Label>
       <p className="mt-3 text-xs text-muted">
         Hanya untuk tanggal yang ada jadwal shift. Hari tanpa jadwal tidak
         dibuat izin, dan hari yang sudah hadir/telat tidak ditimpa.
@@ -53,9 +72,9 @@ export function BuatIzinAdminForm({
           {status.pesan}
         </p>
       ) : null}
-      <button type="submit" disabled={sedangProses} className="mt-4 w-full rounded-xl bg-ink px-4 py-2.5 text-sm font-medium text-paper disabled:opacity-40">
+      <Button type="submit" size="lg" disabled={sedangProses} className="mt-4 w-full rounded-xl">
         {sedangProses ? "Menyimpan…" : "Buat izin"}
-      </button>
+      </Button>
     </form>
   );
 }

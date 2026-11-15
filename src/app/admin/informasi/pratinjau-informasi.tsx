@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import type { InformasiItem } from "@/lib/informasi";
 import { PopupInformasi } from "@/app/karyawan/popup-informasi";
 
@@ -16,13 +17,14 @@ export function PratinjauInformasi({ pesan }: { pesan: InformasiItem }) {
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="sm"
         onClick={() => setBuka(true)}
-        className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium"
       >
         Pratinjau
-      </button>
+      </Button>
       {buka ? (
         <PopupInformasi
           daftar={[pesan]}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Button } from "@/components/ui/button";
 import { sinkronInsentifForm, type HasilSinkronInsentif } from "./actions";
 import { FormPemetaan } from "./form-pemetaan";
 
@@ -38,13 +39,9 @@ export function TombolSinkron({
         <input type="hidden" name="periode" defaultValue={periode} />
         <input type="hidden" name="dari" defaultValue={dari} />
         <input type="hidden" name="sampai" defaultValue={sampai} />
-        <button
-          type="submit"
-          disabled={sedangProses}
-          className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-ink/90 transition disabled:opacity-40"
-        >
+        <Button type="submit" disabled={sedangProses}>
           {sedangProses ? "Menyinkron…" : "Sinkron Insentif dari inox.my.id"}
-        </button>
+        </Button>
       </form>
       {hasil?.pesan ? (
         <p

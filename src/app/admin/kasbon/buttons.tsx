@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { catatBayarKasbon, prosesKasbon } from "./actions";
 
 export function ProsesKasbonButtons({
@@ -27,12 +29,12 @@ export function ProsesKasbonButtons({
     return (
       <form action={kirim} className="flex flex-wrap gap-2">
         <input type="hidden" name="id" value={id} />
-        <button type="submit" name="status" value="disetujui" disabled={sedang} className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium disabled:opacity-40">
+        <Button type="submit" name="status" value="disetujui" variant="outline" size="sm" disabled={sedang}>
           Setujui
-        </button>
-        <button type="submit" name="status" value="ditolak" disabled={sedang} className="rounded-lg border border-line px-2.5 py-1 text-xs text-muted disabled:opacity-40">
+        </Button>
+        <Button type="submit" name="status" value="ditolak" variant="outline" size="sm" disabled={sedang} className="text-muted">
           Tolak
-        </button>
+        </Button>
       </form>
     );
   }
@@ -50,7 +52,7 @@ export function ProsesKasbonButtons({
           className="flex flex-wrap items-center gap-2"
         >
           <input type="hidden" name="id" value={id} />
-          <input
+          <Input
             name="jumlahBayar"
             type="number"
             min={1}
@@ -58,17 +60,17 @@ export function ProsesKasbonButtons({
             step={1}
             required
             placeholder="Jumlah bayar"
-            className="w-28 rounded-lg border border-line px-2 py-1 text-xs tabular-nums"
+            className="h-auto w-28 px-2 py-1 text-xs tabular-nums"
           />
-          <button type="submit" disabled={sedang || sisa === 0} className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium disabled:opacity-40">
+          <Button type="submit" variant="outline" size="sm" disabled={sedang || sisa === 0}>
             Catat bayar
-          </button>
+          </Button>
         </form>
         <form action={kirim}>
           <input type="hidden" name="id" value={id} />
-          <button type="submit" name="status" value="lunas" disabled={sedang} className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium disabled:opacity-40">
+          <Button type="submit" name="status" value="lunas" variant="outline" size="sm" disabled={sedang}>
             Tandai lunas
-          </button>
+          </Button>
         </form>
         {pesan ? <p className="text-xs text-muted">{pesan}</p> : null}
       </div>

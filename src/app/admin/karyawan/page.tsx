@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/ui/primitives";
 import { db } from "@/lib/db";
 import { bacaRole } from "@/lib/domain";
 import { wajibAkses } from "@/lib/session";
@@ -67,10 +66,14 @@ export default async function AdminKaryawanPage() {
 
   return (
     <>
-      <PageHeader
-        title="Karyawan"
-        description={`${rows.length} akun terdaftar · ${aktif} aktif. Kelola profil, role, cabang, dan password.`}
-      />
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Karyawan</h1>
+          <p className="mt-1 text-sm text-muted">
+            {`${rows.length} akun terdaftar · ${aktif} aktif. Kelola profil, role, cabang, dan password.`}
+          </p>
+        </div>
+      </header>
 
       <DaftarKaryawan
         rows={rows}

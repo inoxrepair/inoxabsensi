@@ -1,4 +1,4 @@
-import { Pill } from "@/components/ui/primitives";
+import { Badge } from "@/components/ui/badge";
 import { db } from "@/lib/db";
 import { LABEL_KASBON, bacaStatusKasbon } from "@/lib/domain";
 import { formatRupiah } from "@/lib/format";
@@ -58,9 +58,9 @@ export default async function KaryawanKasbonPage() {
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted">
                   <span>{formatTanggal(c.createdAt.toISOString().slice(0, 10))}</span>
-                  <Pill tone={c.status === "ditolak" ? "redup" : "netral"}>
+                  <Badge variant={c.status === "ditolak" ? "outline" : "default"}>
                     {LABEL_KASBON[bacaStatusKasbon(c.status)]}
-                  </Pill>
+                  </Badge>
                   {c.status === "pending" ? (
                     <BatalkanKasbonButton id={c.id} />
                   ) : null}

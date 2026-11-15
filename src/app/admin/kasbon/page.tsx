@@ -1,5 +1,9 @@
 import { DataTable, type Kolom } from "@/components/ui/data-table";
-import { Card, PageHeader, StatCard } from "@/components/ui/primitives";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { LABEL_KASBON } from "@/lib/domain";
 import { sisaKasbon } from "@/lib/kasbon";
@@ -68,19 +72,51 @@ export default async function AdminKasbonPage() {
 
   return (
     <>
-      <PageHeader
-        title="Kasbon"
-        description="Daftar pengajuan kasbon dari karyawan beserta statusnya."
-      />
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Kasbon</h1>
+          <p className="mt-1 text-sm text-muted">
+            Daftar pengajuan kasbon dari karyawan beserta statusnya.
+          </p>
+        </div>
+      </header>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Pending" value={pending} hint="Menunggu approval" />
-        <StatCard label="Disetujui" value={disetujui} hint="Sisa akan dipotong payroll" />
-        <StatCard label="Lunas" value={lunas} />
-        <StatCard label="Total kasbon aktif" value={formatRupiah(total)} hint="Hanya sisa kasbon disetujui" />
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Pending</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{pending}</p>
+            <p className="mt-1 text-xs text-muted">Menunggu approval</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Disetujui</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{disetujui}</p>
+            <p className="mt-1 text-xs text-muted">Sisa akan dipotong payroll</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Lunas</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{lunas}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Total kasbon aktif</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{formatRupiah(total)}</p>
+            <p className="mt-1 text-xs text-muted">Hanya sisa kasbon disetujui</p>
+          </CardContent>
+        </Card>
       </div>
       <div className="mt-6">
-        <Card footer="Admin cabang hanya melihat pengajuan dari cabangnya.">
-          <DataTable caption="Daftar kasbon" columns={kolom} rows={baris} rowKey={(r) => r.id} />
+        <Card>
+          <CardContent>
+            <DataTable caption="Daftar kasbon" columns={kolom} rows={baris} rowKey={(r) => r.id} />
+          </CardContent>
+          <CardFooter>
+            Admin cabang hanya melihat pengajuan dari cabangnya.
+          </CardFooter>
         </Card>
       </div>
     </>

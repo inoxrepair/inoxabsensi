@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import type { InformasiItem } from "@/lib/informasi";
 import {
   hapusInformasi,
@@ -43,26 +44,29 @@ export function TombolInformasi({
         >
           Ubah
         </Link>
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           disabled={pending}
           onClick={() => jalankan(() => ubahAktifInformasi(id, !aktif))}
-          className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium disabled:opacity-40"
         >
           {aktif ? "Nonaktifkan" : "Aktifkan"}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           disabled={pending}
           onClick={() => {
             if (!confirm("Hapus pesan ini? Pesan tidak bisa dikembalikan."))
               return;
             jalankan(() => hapusInformasi(id));
           }}
-          className="rounded-lg border border-line px-3 py-1.5 text-xs text-status-alpa disabled:opacity-40"
+          className="text-status-alpa"
         >
           Hapus
-        </button>
+        </Button>
       </div>
       {pesan ? (
         <p

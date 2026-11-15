@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { formatTanggal } from "@/lib/format";
 import { labelPeriode } from "@/lib/rekap";
+import { Input } from "./input";
 
 /**
  * Kolom pilih tanggal/bulan yang SAMA di semua menu.
@@ -117,7 +118,7 @@ export function InputTanggal({
           <path d="M16 2v4M8 2v4M3 10h18" />
         </svg>
       </div>
-      <input
+      <Input
         type={mode === "bulan" ? "month" : "date"}
         id={idInput}
         name={name}
@@ -134,7 +135,7 @@ export function InputTanggal({
         aria-label={
           placeholder ?? (mode === "bulan" ? "Pilih bulan" : "Pilih tanggal")
         }
-        className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+        className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed disabled:opacity-0"
       />
     </div>
   );

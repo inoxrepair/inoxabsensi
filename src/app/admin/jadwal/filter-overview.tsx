@@ -3,6 +3,8 @@
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { InputTanggal } from "@/components/ui/input-tanggal";
 
 /** Mengubah rentang kolom tabel saja; tidak menulis data jadwal. */
@@ -45,20 +47,17 @@ export function FilterOverview({
             Hanya mengubah tanggal pada tabel, tidak menerapkan shift.
           </p>
         </div>
-        <label className="text-xs text-muted">
+        <Label className="text-xs font-normal text-muted">
           Dari
           <InputTanggal value={dari} onChange={setDari} required className="mt-1 block" />
-        </label>
-        <label className="text-xs text-muted">
+        </Label>
+        <Label className="text-xs font-normal text-muted">
           Sampai
           <InputTanggal value={sampai} onChange={setSampai} required className="mt-1 block" />
-        </label>
-        <button
-          type="submit"
-          className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper"
-        >
+        </Label>
+        <Button type="submit">
           Lihat overview
-        </button>
+        </Button>
       </div>
       {galat ? (
         <p role="alert" className="mt-2 text-sm text-status-alpa">

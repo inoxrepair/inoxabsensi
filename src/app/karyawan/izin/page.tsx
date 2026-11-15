@@ -1,4 +1,4 @@
-import { Pill } from "@/components/ui/primitives";
+import { Badge } from "@/components/ui/badge";
 import { db } from "@/lib/db";
 import { formatTanggal } from "@/lib/format";
 import {
@@ -54,9 +54,9 @@ export default async function KaryawanIzinPage() {
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted">
                   <span>{formatTanggal(p.createdAt.toISOString().slice(0, 10))}</span>
-                  <Pill tone={p.status === "ditolak" ? "redup" : "netral"}>
+                  <Badge variant={p.status === "ditolak" ? "outline" : "default"}>
                     {LABEL_STATUS_PENGAJUAN_IZIN[bacaStatusPengajuanIzin(p.status)]}
-                  </Pill>
+                  </Badge>
                   {p.status === "pending" ? (
                     <BatalkanIzinButton id={p.id} />
                   ) : null}

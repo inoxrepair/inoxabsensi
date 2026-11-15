@@ -1,6 +1,14 @@
 "use client";
 
 import { formatTanggal } from "@/lib/format";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export type RingkasanMassal = {
   judul: string;
@@ -32,17 +40,12 @@ export function DialogKonfirmasiMassal({
   onKonfirmasi: () => void;
 }) {
   return (
-    <div
-      className="fixed inset-0 z-20 grid place-items-center bg-ink/40 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="konfirmasi-massal"
-    >
-      <div className="w-full max-w-md rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-5 shadow-xl">
-        <h2 id="konfirmasi-massal" className="font-semibold">
-          {ringkasan.judul}
-        </h2>
-        <dl className="mt-3 space-y-1 text-sm">
+    <Dialog open onOpenChange={(buka) => { if (!buka) onBatal(); }}>
+      <DialogContent className="p-5">
+        <DialogHeader>
+          <DialogTitle id="konfirmasi-massal">{ringkasan.judul}</DialogTitle>
+        </DialogHeader>
+        <dl className="space-y-1 text-sm">
           <div className="flex justify-between gap-3">
             <dt className="text-muted">Karyawan</dt>
             <dd className="tabular-nums font-medium">{ringkasan.karyawan}</dd>
@@ -67,31 +70,32 @@ export function DialogKonfirmasiMassal({
           </div>
         </dl>
         {ringkasan.catatan ? (
-          <p className="mt-3 text-sm text-muted">{ringkasan.catatan}</p>
+          <p className="text-sm text-muted">{ringkasan.catatan}</p>
         ) : null}
-        <p className="mt-3 rounded-lg bg-status-alpa/10 px-3 py-2 text-sm text-status-alpa">
+        <p className="rounded-lg bg-status-alpa/10 px-3 py-2 text-sm text-status-alpa">
           Perhatian: aksi ini menggantikan data, bukan menggabung, dan tidak
           ada undo di aplikasi kecuali backup JSON yang sudah Anda unduh.
         </p>
-        <div className="mt-4 flex gap-2">
-          <button
+        <DialogFooter className="flex-row">
+          <Button
             type="button"
+            variant="outline"
             onClick={onBatal}
             disabled={sedang}
-            className="flex-1 rounded-lg border border-line px-3 py-2 text-sm font-medium disabled:opacity-40"
+            className="flex-1"
           >
             Batal
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={onKonfirmasi}
             disabled={sedang}
-            className="flex-1 rounded-lg bg-ink px-3 py-2 text-sm font-medium text-paper disabled:opacity-40"
+            className="flex-1"
           >
             {sedang ? "Menjalankan…" : "Ya, jalankan"}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

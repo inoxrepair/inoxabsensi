@@ -1,5 +1,10 @@
 import { DataTable, type Kolom } from "@/components/ui/data-table";
-import { Card, PageHeader, StatCard } from "@/components/ui/primitives";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { db } from "@/lib/db";
 import { formatTanggal } from "@/lib/format";
 import {
@@ -119,9 +124,7 @@ export default async function AdminLogLoginPage({
         if (!alasan) return <span className="text-muted">—</span>;
         return (
           <span className="inline-flex flex-col items-start gap-0.5">
-            <span className="inline-flex items-center rounded-full bg-status-izin/10 px-2.5 py-0.5 text-xs font-medium text-status-izin ring-1 ring-inset ring-status-izin/25">
-              Perlu diperiksa
-            </span>
+            <Badge variant="izin">Perlu diperiksa</Badge>
             <span className="text-xs text-muted">{alasan}</span>
           </span>
         );
@@ -131,15 +134,39 @@ export default async function AdminLogLoginPage({
 
   return (
     <>
-      <PageHeader
-        title="Log Login"
-        description={`${labelRentang(rentang)} · ${tampil.length} baris`}
-      />
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Log Login</h1>
+          <p className="mt-1 text-sm text-muted">
+            {`${labelRentang(rentang)} · ${tampil.length} baris`}
+          </p>
+        </div>
+      </header>
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Baris" value={tampil.length} />
-        <StatCard label="Masuk" value={jumlahMasuk} />
-        <StatCard label="Keluar" value={jumlahKeluar} />
-        <StatCard label="Perlu diperiksa" value={jumlahMencurigakan} />
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Baris</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{tampil.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Masuk</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{jumlahMasuk}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Keluar</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{jumlahKeluar}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Perlu diperiksa</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{jumlahMencurigakan}</p>
+          </CardContent>
+        </Card>
       </div>
 
       <FilterLogLogin
@@ -152,27 +179,32 @@ export default async function AdminLogLoginPage({
         jenisTerpilih={jenisTerpilih}
       />
 
-      <Card footer="Logout hanya tercatat saat karyawan menekan tombol Keluar; sesi yang habis sendiri tidak menghasilkan baris keluar. IP adalah alamat publik yang terlihat server — satu WiFi kantor berbagi satu IP, jadi perangkat (kolom Perangkat) yang membedakan tiap HP. ID perangkat adalah kode acak yang disimpan di browser HP karyawan — tiap HP punya kode sendiri, sehingga dua iPhone yang User-Agent-nya sama tetap bisa dibedakan; baris lama (sebelum fitur ini) tidak punya ID. Tanda “Perlu diperiksa” berarti pola loginnya janggal dan layak ditanyakan ke karyawan, bukan bukti titip absen.">
-        <div className="overflow-x-auto">
-          {tampil.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted">
-              Belum ada login/logout dalam rentang ini.
+      <Card>
+        <CardContent>
+          <div className="overflow-x-auto">
+            {tampil.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted">
+                Belum ada login/logout dalam rentang ini.
+              </p>
+            ) : (
+              <DataTable
+                caption="Log login"
+                columns={kolom}
+                rows={tampil}
+                rowKey={(r) => r.id}
+              />
+            )}
+          </div>
+          {semua.length >= BATAS_BARIS ? (
+            <p className="mt-3 text-sm text-muted">
+              Batas {BATAS_BARIS} baris tercapai — persempit rentang tanggal
+              untuk melihat sisanya.
             </p>
-          ) : (
-            <DataTable
-              caption="Log login"
-              columns={kolom}
-              rows={tampil}
-              rowKey={(r) => r.id}
-            />
-          )}
-        </div>
-        {semua.length >= BATAS_BARIS ? (
-          <p className="mt-3 text-sm text-muted">
-            Batas {BATAS_BARIS} baris tercapai — persempit rentang tanggal
-            untuk melihat sisanya.
-          </p>
-        ) : null}
+          ) : null}
+        </CardContent>
+        <CardFooter>
+          Logout hanya tercatat saat karyawan menekan tombol Keluar; sesi yang habis sendiri tidak menghasilkan baris keluar. IP adalah alamat publik yang terlihat server — satu WiFi kantor berbagi satu IP, jadi perangkat (kolom Perangkat) yang membedakan tiap HP. ID perangkat adalah kode acak yang disimpan di browser HP karyawan — tiap HP punya kode sendiri, sehingga dua iPhone yang User-Agent-nya sama tetap bisa dibedakan; baris lama (sebelum fitur ini) tidak punya ID. Tanda “Perlu diperiksa” berarti pola loginnya janggal dan layak ditanyakan ke karyawan, bukan bukti titip absen.
+        </CardFooter>
       </Card>
     </>
   );

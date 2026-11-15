@@ -2,6 +2,15 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { labelPeriode } from "@/lib/rekap";
 import { InputTanggal } from "@/components/ui/input-tanggal";
 
@@ -71,48 +80,57 @@ export function FilterPayroll({
   return (
     <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-3">
       <span className="inline-flex items-center gap-2">
-        <label htmlFor="periode-payroll" className="text-xs text-muted">
+        <Label htmlFor="periode-payroll" className="text-xs font-normal text-muted">
           Periode
-        </label>
-        <select
-          id="periode-payroll"
-          value={periode}
-          onChange={(e) => ubah("periode", e.target.value)}
-          className="rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-sm"
-        >
-          {daftarPeriode.map((p) => (
-            <option key={p} value={p}>
-              {labelPeriode(p)}
-            </option>
-          ))}
-        </select>
+        </Label>
+        <Select value={periode} onValueChange={(v) => ubah("periode", v)}>
+          <SelectTrigger
+            id="periode-payroll"
+            className="h-auto w-auto px-2.5 py-1.5"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {daftarPeriode.map((p) => (
+              <SelectItem key={p} value={p}>
+                {labelPeriode(p)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </span>
 
       {cabang.length > 1 ? (
         <span className="inline-flex items-center gap-2">
-          <label htmlFor="cabang-payroll" className="text-xs text-muted">
+          <Label htmlFor="cabang-payroll" className="text-xs font-normal text-muted">
             Cabang
-          </label>
-          <select
-            id="cabang-payroll"
-            value={cabangId}
-            onChange={(e) => ubah("cabang", e.target.value)}
-            className="rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-sm"
+          </Label>
+          <Select
+            value={cabangId || "semua"}
+            onValueChange={(v) => ubah("cabang", v === "semua" ? "" : v)}
           >
-            <option value="">Semua cabang</option>
-            {cabang.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nama}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger
+              id="cabang-payroll"
+              className="h-auto w-auto px-2.5 py-1.5"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="semua">Semua cabang</SelectItem>
+              {cabang.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nama}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </span>
       ) : null}
 
       <span className="inline-flex flex-wrap items-center gap-2">
-        <label htmlFor="dari-payroll" className="text-xs text-muted">
+        <Label htmlFor="dari-payroll" className="text-xs font-normal text-muted">
           Dari
-        </label>
+        </Label>
         <InputTanggal
           id="dari-payroll"
           value={dari}
@@ -123,9 +141,9 @@ export function FilterPayroll({
           padat
           className="w-36"
         />
-        <label htmlFor="sampai-payroll" className="text-xs text-muted">
+        <Label htmlFor="sampai-payroll" className="text-xs font-normal text-muted">
           Sampai
-        </label>
+        </Label>
         <InputTanggal
           id="sampai-payroll"
           value={sampai}
@@ -136,22 +154,24 @@ export function FilterPayroll({
           padat
           className="w-36"
         />
-        <button
+        <Button
           type="button"
+          size="sm"
           onClick={terapkanRentang}
           disabled={!dari || !sampai}
-          className="rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-paper disabled:opacity-40"
+          className="px-3 text-sm"
         >
           Terapkan
-        </button>
+        </Button>
         {jendela.kustom ? (
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={resetRentang}
-            className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium"
           >
             Reset rentang
-          </button>
+          </Button>
         ) : null}
       </span>
     </div>

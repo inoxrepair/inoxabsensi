@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import {
   hapusLogoAplikasi,
   simpanLogoAplikasi,
@@ -138,22 +139,24 @@ export function FormLogo({
       ) : null}
 
       <div className="mt-4 flex gap-2">
-        <button
+        <Button
           type="button"
+          size="lg"
           onClick={() => void simpan()}
           disabled={pending || !berkas}
-          className="flex-1 rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-paper disabled:opacity-40"
+          className="flex-1"
         >
           {pending ? "Menyimpan…" : "Simpan logo"}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="outline"
+          size="lg"
           onClick={() => void hapus()}
           disabled={pending}
-          className="rounded-lg border border-line px-4 py-2.5 text-sm font-medium disabled:opacity-40"
         >
           Kembalikan bawaan
-        </button>
+        </Button>
       </div>
     </div>
   );

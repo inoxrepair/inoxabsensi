@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
+import { Button } from "@/components/ui/button";
 
 export default function Forbidden() {
   return (
@@ -14,12 +15,13 @@ export default function Forbidden() {
         Role Anda tidak memiliki izin untuk membuka halaman ini. Hubungi
         administrator bila ini seharusnya bisa diakses.
       </p>
-      <Link
-        href="/"
-        className="mt-6 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 px-4 py-3 text-sm font-medium shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl"
+      <Button
+        asChild
+        variant="glass"
+        className="mt-6 h-auto rounded-2xl px-4 py-3 shadow-lg"
       >
-        Kembali
-      </Link>
+        <Link href="/">Kembali</Link>
+      </Button>
     </main>
   );
 }

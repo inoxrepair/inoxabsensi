@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/ui/primitives";
 import { AvatarApi } from "@/components/ui/avatar-api";
 import { formatTanggal } from "@/lib/format";
 import { bagiPodium } from "@/lib/top5";
@@ -34,10 +33,12 @@ export default async function Top5Page() {
 
   return (
     <>
-      <PageHeader
-        title="Top 10 Absensi"
-        description={`Peringkat kedisiplinan absen, ${periode} (${formatTanggal(dari)}–${formatTanggal(sampai)}).`}
-      />
+      <header className="mb-6">
+        <h1 className="text-xl font-semibold tracking-tight">Top 10 Absensi</h1>
+        <p className="mt-1 text-sm text-muted">
+          Peringkat kedisiplinan absen, {periode} ({formatTanggal(dari)}–{formatTanggal(sampai)}).
+        </p>
+      </header>
 
       {peringkat.length === 0 ? (
         <div className="mt-4 rounded-xl border border-dashed border-white/70 dark:border-white/15 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-8 text-center">

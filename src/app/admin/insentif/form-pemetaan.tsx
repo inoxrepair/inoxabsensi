@@ -1,6 +1,14 @@
 "use client";
 
 import { useActionState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   simpanPemetaanInsentifForm,
   type HasilPemetaan,
@@ -29,29 +37,29 @@ export function FormPemetaan({
         <input type="hidden" name="namaInox" value={namaInox} />
         <span className="text-sm font-medium">{namaInox}</span>
         <span className="text-sm text-muted">→</span>
-        <select
-          name="userId"
-          required
-          defaultValue=""
-          className="rounded border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-xl px-2 py-1 text-sm"
-          aria-label={`Akun untuk ${namaInox}`}
-        >
-          <option value="" disabled>
-            Pilih karyawan…
-          </option>
-          {pengguna.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-        <button
+        <Select name="userId" required>
+          <SelectTrigger
+            aria-label={`Akun untuk ${namaInox}`}
+            className="h-auto w-auto px-2 py-1 text-sm"
+          >
+            <SelectValue placeholder="Pilih karyawan…" />
+          </SelectTrigger>
+          <SelectContent>
+            {pengguna.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
           type="submit"
+          size="sm"
           disabled={sedangProses}
-          className="rounded-lg bg-ink px-3 py-1 text-sm font-medium text-paper hover:bg-ink/90 transition disabled:opacity-40"
+          className="px-3 text-sm"
         >
           {sedangProses ? "Menyimpan…" : "Hubungkan"}
-        </button>
+        </Button>
       </form>
       {hasil?.pesan ? (
         <p

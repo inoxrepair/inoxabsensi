@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   simpanNamaPerusahaan,
   type HasilNamaPerusahaan,
@@ -34,14 +36,14 @@ export function FormNamaPerusahaan({ nilaiSaatIni }: { nilaiSaatIni: string }) {
         &ldquo;iNox Absensi&rdquo;.
       </p>
 
-      <input
+      <Input
         type="text"
         value={nama}
         onChange={(e) => setNama(e.target.value)}
         maxLength={100}
         placeholder="iNOX Repair"
         aria-label="Nama perusahaan"
-        className="mt-3 w-full rounded-lg border border-line bg-white/60 px-3 py-2.5 text-sm dark:bg-zinc-900/60"
+        className="mt-3"
       />
 
       {hasil ? (
@@ -54,14 +56,14 @@ export function FormNamaPerusahaan({ nilaiSaatIni }: { nilaiSaatIni: string }) {
       ) : null}
 
       <div className="mt-4">
-        <button
+        <Button
           type="button"
+          size="lg"
           onClick={() => void simpan()}
           disabled={pending}
-          className="rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-paper disabled:opacity-40"
         >
           {pending ? "Menyimpan…" : "Simpan nama perusahaan"}
-        </button>
+        </Button>
       </div>
     </div>
   );

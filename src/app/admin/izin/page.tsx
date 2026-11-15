@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card, PageHeader, StatCard } from "@/components/ui/primitives";
+import { Card, CardContent } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { roleTerbatasCabang } from "@/lib/domain";
 import { formatTanggal } from "@/lib/format";
@@ -84,16 +84,42 @@ export default async function AdminIzinPage({
 
   return (
     <>
-      <PageHeader
-        title="Izin"
-        description="Pengajuan izin dan sakit karyawan. Persetujuan menandai hari dengan jadwal menjadi izin; hari tanpa jadwal dilewati."
-      />
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Izin</h1>
+          <p className="mt-1 text-sm text-muted">
+            Pengajuan izin dan sakit karyawan. Persetujuan menandai hari dengan jadwal menjadi izin; hari tanpa jadwal dilewati.
+          </p>
+        </div>
+      </header>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Menunggu persetujuan" value={pending} />
-        <StatCard label="Hari sakit disetujui" value={hariSakit} hint="Hanya hari dengan jadwal shift" />
-        <StatCard label="Hari izin disetujui" value={hariIzin} hint="Hanya hari dengan jadwal shift" />
-        <StatCard label="Total pengajuan" value={pengajuan.length} />
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Menunggu persetujuan</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{pending}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Hari sakit disetujui</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{hariSakit}</p>
+            <p className="mt-1 text-xs text-muted">Hanya hari dengan jadwal shift</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Hari izin disetujui</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{hariIzin}</p>
+            <p className="mt-1 text-xs text-muted">Hanya hari dengan jadwal shift</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Total pengajuan</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{pengajuan.length}</p>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="mt-6 flex flex-wrap gap-2 text-sm">
@@ -116,6 +142,7 @@ export default async function AdminIzinPage({
         ) : (
           pengajuan.map((p) => (
             <Card key={p.id}>
+              <CardContent>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="font-medium">
@@ -139,6 +166,7 @@ export default async function AdminIzinPage({
                   </div>
                 ) : null}
               </div>
+              </CardContent>
             </Card>
           ))
         )}

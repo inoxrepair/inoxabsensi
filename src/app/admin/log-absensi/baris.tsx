@@ -1,6 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { hapusAbsensi, simpanEditAbsensi } from "./actions";
 import type { BarisLog } from "./filter";
 
@@ -13,11 +23,11 @@ export function AksiBaris({ row, canDelete }: { row: BarisLog; canDelete: boolea
 
   return (
     <div className="flex flex-col gap-1">
-      <button type="button" onClick={() => setEdit(true)} className="rounded-lg border border-line px-2.5 py-1 text-xs">Ubah</button>
+      <Button type="button" variant="outline" size="sm" onClick={() => setEdit(true)}>Ubah</Button>
       {canDelete ? (
-        <button type="button" disabled={pending} onClick={() => { if (confirm("Hapus catatan ini? Pengguna dapat absen lagi.")) { mulai(async () => setPesan((await hapusAbsensi(row.id)).pesan)); } }} className="rounded-lg border border-line px-2.5 py-1 text-xs text-status-alpa disabled:opacity-40">
+        <Button type="button" variant="outline" size="sm" disabled={pending} onClick={() => { if (confirm("Hapus catatan ini? Pengguna dapat absen lagi.")) { mulai(async () => setPesan((await hapusAbsensi(row.id)).pesan)); } }} className="text-status-alpa">
           Hapus
-        </button>
+        </Button>
       ) : null}
       {pesan ? <p className="text-xs">{pesan}</p> : null}
     </div>
@@ -48,32 +58,37 @@ function EditBaris({ row, onSelesai, onBatal }: { row: BarisLog; onSelesai: (pes
       ) : null}
       {row.cycles.length > 1 ? <p className="rounded bg-surface p-2 text-muted">Catatan memiliki {row.cycles.length} cycle. Jam per cycle dipertahankan; form ini hanya mengubah status dan catatan.</p> : null}
       <div className="grid grid-cols-2 gap-2">
-        <label className="block">
+        <Label className="block text-xs font-normal">
           <span className="text-muted">Masuk</span>
-          <input type="time" name="masuk" disabled={row.cycles.length > 1} defaultValue={row.masuk !== null ? menitToTime(row.masuk) : ""} className="mt-0.5 w-full rounded border px-2 py-1 disabled:bg-surface" />
-        </label>
-        <label className="block">
+          <Input type="time" name="masuk" disabled={row.cycles.length > 1} defaultValue={row.masuk !== null ? menitToTime(row.masuk) : ""} className="mt-0.5 h-auto px-2 py-1 text-xs disabled:bg-surface" />
+        </Label>
+        <Label className="block text-xs font-normal">
           <span className="text-muted">Keluar</span>
-          <input type="time" name="keluar" disabled={row.cycles.length > 1} defaultValue={row.keluar !== null ? menitToTime(row.keluar) : ""} className="mt-0.5 w-full rounded border px-2 py-1 disabled:bg-surface" />
-        </label>
+          <Input type="time" name="keluar" disabled={row.cycles.length > 1} defaultValue={row.keluar !== null ? menitToTime(row.keluar) : ""} className="mt-0.5 h-auto px-2 py-1 text-xs disabled:bg-surface" />
+        </Label>
       </div>
-      <label className="block">
+      <Label className="block text-xs font-normal">
         <span className="text-muted">Status</span>
-        <select name="status" defaultValue={row.status} className="mt-0.5 w-full rounded border px-2 py-1">
-          <option value="hadir">Hadir</option>
-          <option value="telat">Telat</option>
-          <option value="izin">Izin</option>
-          <option value="alpa">Alpa</option>
-          <option value="libur">Libur</option>
-        </select>
-      </label>
-      <label className="block">
+        <Select name="status" defaultValue={row.status}>
+          <SelectTrigger className="mt-0.5 h-auto px-2 py-1 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="hadir">Hadir</SelectItem>
+            <SelectItem value="telat">Telat</SelectItem>
+            <SelectItem value="izin">Izin</SelectItem>
+            <SelectItem value="alpa">Alpa</SelectItem>
+            <SelectItem value="libur">Libur</SelectItem>
+          </SelectContent>
+        </Select>
+      </Label>
+      <Label className="block text-xs font-normal">
         <span className="text-muted">Catatan</span>
-        <input name="catatan" defaultValue={row.catatan ?? ""} className="mt-0.5 w-full rounded border px-2 py-1" />
-      </label>
+        <Input name="catatan" defaultValue={row.catatan ?? ""} className="mt-0.5 h-auto px-2 py-1 text-xs" />
+      </Label>
       <div className="flex gap-2">
-        <button type="submit" disabled={pending} className="rounded bg-ink px-2 py-1 text-paper disabled:opacity-40">Simpan</button>
-        <button type="button" onClick={onBatal} className="rounded border px-2 py-1">Batal</button>
+        <Button type="submit" size="sm" disabled={pending} className="h-auto px-2 py-1 text-xs">Simpan</Button>
+        <Button type="button" variant="outline" size="sm" onClick={onBatal} className="h-auto px-2 py-1 text-xs">Batal</Button>
       </div>
     </form>
   );

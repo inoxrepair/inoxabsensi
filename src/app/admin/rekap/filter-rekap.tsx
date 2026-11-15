@@ -2,6 +2,16 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { labelPeriode } from "@/lib/rekap";
 import { InputTanggal } from "@/components/ui/input-tanggal";
 
@@ -77,90 +87,94 @@ export function FilterRekap({
   return (
     <div className="mb-4 space-y-3 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-3">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="inline-flex rounded-lg border border-line p-0.5">
-          <button
-            type="button"
-            onClick={keBulan}
-            aria-pressed={mode === "bulan"}
-            className={`rounded-md px-3 py-1 text-sm ${
-              mode === "bulan" ? "bg-ink font-medium text-paper" : "text-muted"
-            }`}
-          >
-            Per bulan
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("kustom")}
-            aria-pressed={mode === "kustom"}
-            className={`rounded-md px-3 py-1 text-sm ${
-              mode === "kustom" ? "bg-ink font-medium text-paper" : "text-muted"
-            }`}
-          >
-            Rentang tanggal
-          </button>
-        </span>
+        <Tabs
+          value={mode}
+          onValueChange={(v) => {
+            if (v === "bulan") keBulan();
+            else setMode("kustom");
+          }}
+        >
+          <TabsList className="gap-0 border-line bg-transparent p-0.5 shadow-none">
+            <TabsTrigger value="bulan" className="py-1">
+              Per bulan
+            </TabsTrigger>
+            <TabsTrigger value="kustom" className="py-1">
+              Rentang tanggal
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {mode === "bulan" ? (
           <span className="inline-flex items-center gap-2">
-            <label htmlFor="periode" className="text-xs text-muted">
+            <Label htmlFor="periode" className="text-xs font-normal text-muted">
               Periode
-            </label>
-            <select
-              id="periode"
-              value={periode}
-              onChange={(e) => pilihBulan(e.target.value)}
-              className="rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-sm"
-            >
-              {daftarPeriode.map((p) => (
-                <option key={p} value={p}>
-                  {labelPeriode(p)}
-                </option>
-              ))}
-            </select>
+            </Label>
+            <Select value={periode} onValueChange={pilihBulan}>
+              <SelectTrigger
+                id="periode"
+                className="h-auto w-auto px-2.5 py-1.5"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {daftarPeriode.map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {labelPeriode(p)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </span>
         ) : (
           <span className="inline-flex flex-wrap items-center gap-2">
-            <label htmlFor="dari" className="text-xs text-muted">
+            <Label htmlFor="dari" className="text-xs font-normal text-muted">
               Dari
-            </label>
+            </Label>
             <InputTanggal id="dari" value={dari} max={sampai || undefined} onChange={setDari} varian="kaca" padat />
-            <label htmlFor="sampai" className="text-xs text-muted">
+            <Label htmlFor="sampai" className="text-xs font-normal text-muted">
               Sampai
-            </label>
+            </Label>
             <InputTanggal id="sampai" value={sampai} min={dari || undefined} onChange={setSampai} varian="kaca" padat />
-            <button
+            <Button
               type="button"
+              size="sm"
               onClick={terapkanKustom}
-              className="rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-paper"
+              className="px-3 text-sm"
             >
               Terapkan
-            </button>
+            </Button>
           </span>
         )}
 
         {daftarCabang.length > 1 ? (
           <span className="inline-flex items-center gap-2">
-            <label htmlFor="cabang" className="text-xs text-muted">
+            <Label htmlFor="cabang" className="text-xs font-normal text-muted">
               Cabang
-            </label>
-            <select
-              id="cabang"
-              value={cabangId}
-              onChange={(e) =>
+            </Label>
+            <Select
+              value={cabangId || "semua"}
+              onValueChange={(v) =>
                 navigasi((q) => {
-                  if (e.target.value) q.set("cabang", e.target.value);
+                  if (v !== "semua") q.set("cabang", v);
                   else q.delete("cabang");
                 })
               }
-              className="rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-sm"
             >
-              <option value="">Semua cabang</option>
-              {daftarCabang.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nama}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger
+                id="cabang"
+                className="h-auto w-auto px-2.5 py-1.5"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="semua">Semua cabang</SelectItem>
+                {daftarCabang.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.nama}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </span>
         ) : null}
 

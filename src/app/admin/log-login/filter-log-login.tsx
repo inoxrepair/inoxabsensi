@@ -3,6 +3,15 @@
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { InputTanggal } from "@/components/ui/input-tanggal";
 
 export function FilterLogLogin({
@@ -61,7 +70,7 @@ export function FilterLogLogin({
       onSubmit={terapkan}
       className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-3"
     >
-      <label className="text-xs text-muted">
+      <Label className="text-xs font-normal text-muted">
         Dari
         <InputTanggal
           value={dari}
@@ -69,8 +78,8 @@ export function FilterLogLogin({
           required
           className="mt-1 block"
         />
-      </label>
-      <label className="text-xs text-muted">
+      </Label>
+      <Label className="text-xs font-normal text-muted">
         Sampai
         <InputTanggal
           value={sampai}
@@ -78,55 +87,64 @@ export function FilterLogLogin({
           required
           className="mt-1 block"
         />
-      </label>
-      <label className="text-xs text-muted">
+      </Label>
+      <Label className="text-xs font-normal text-muted">
         Cabang
-        <select
-          value={cabangTerpilih}
-          onChange={(e) => dorong({ cabang: e.target.value, karyawan: "" })}
-          className="mt-1 block rounded-lg border border-line px-3 py-2 text-sm"
+        <Select
+          value={cabangTerpilih || "semua"}
+          onValueChange={(v) => dorong({ cabang: v === "semua" ? "" : v, karyawan: "" })}
         >
-          <option value="">Semua</option>
-          {cabang.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nama}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="text-xs text-muted">
+          <SelectTrigger className="mt-1 block">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="semua">Semua</SelectItem>
+            {cabang.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.nama}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Label>
+      <Label className="text-xs font-normal text-muted">
         Karyawan
-        <select
-          value={karyawanTerpilih}
-          onChange={(e) => dorong({ karyawan: e.target.value })}
-          className="mt-1 block rounded-lg border border-line px-3 py-2 text-sm"
+        <Select
+          value={karyawanTerpilih || "semua"}
+          onValueChange={(v) => dorong({ karyawan: v === "semua" ? "" : v })}
         >
-          <option value="">Semua</option>
-          {karyawanTampil.map((k) => (
-            <option key={k.id} value={k.id}>
-              {k.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="text-xs text-muted">
+          <SelectTrigger className="mt-1 block">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="semua">Semua</SelectItem>
+            {karyawanTampil.map((k) => (
+              <SelectItem key={k.id} value={k.id}>
+                {k.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Label>
+      <Label className="text-xs font-normal text-muted">
         Jenis
-        <select
-          value={jenisTerpilih}
-          onChange={(e) => dorong({ jenis: e.target.value })}
-          className="mt-1 block rounded-lg border border-line px-3 py-2 text-sm"
+        <Select
+          value={jenisTerpilih || "semua"}
+          onValueChange={(v) => dorong({ jenis: v === "semua" ? "" : v })}
         >
-          <option value="">Semua</option>
-          <option value="masuk">Masuk</option>
-          <option value="keluar">Keluar</option>
-        </select>
-      </label>
-      <button
-        type="submit"
-        className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper"
-      >
+          <SelectTrigger className="mt-1 block">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="semua">Semua</SelectItem>
+            <SelectItem value="masuk">Masuk</SelectItem>
+            <SelectItem value="keluar">Keluar</SelectItem>
+          </SelectContent>
+        </Select>
+      </Label>
+      <Button type="submit">
         Tampilkan
-      </button>
+      </Button>
     </form>
   );
 }

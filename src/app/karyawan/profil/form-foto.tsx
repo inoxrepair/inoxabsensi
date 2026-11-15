@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { kompresFoto } from "@/lib/kompres-foto";
 import {
   hapusFotoProfil,
@@ -93,22 +94,22 @@ export function FormFoto() {
       ) : null}
 
       <div className="mt-4 flex gap-2">
-        <button
+        <Button
           type="button"
           onClick={() => void simpan()}
           disabled={pending || !berkas}
-          className="flex-1 rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-paper disabled:opacity-40"
+          className="flex-1"
         >
           {pending ? "Menyimpan…" : "Simpan foto"}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="outline"
           onClick={() => void hapus()}
           disabled={pending}
-          className="rounded-lg border border-line px-4 py-2.5 text-sm font-medium disabled:opacity-40"
         >
           Hapus foto
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { formatRupiah } from "@/lib/format";
 import {
   melebihiPendapatan,
@@ -200,10 +203,10 @@ function Baris({
       </th>
       {KOMPONEN.map(([key, label]) => (
         <td key={key} className="p-2 text-right">
-          <label className="sr-only" htmlFor={`${key}-${awal.userId}`}>
+          <Label className="sr-only" htmlFor={`${key}-${awal.userId}`}>
             {label} {awal.nama}
-          </label>
-          <input
+          </Label>
+          <Input
             id={`${key}-${awal.userId}`}
             name={key}
             type="number"
@@ -212,7 +215,7 @@ function Baris({
             inputMode="numeric"
             value={nilai[key]}
             onChange={(e) => setNilai((n) => ({ ...n, [key]: e.target.value }))}
-            className="w-32 rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-right tabular-nums"
+            className="h-auto w-32 px-2.5 py-1.5 text-right tabular-nums"
           />
           {key === "gajiPokok" ? (
             <>
@@ -268,14 +271,15 @@ function Baris({
       </td>
       <td className="p-3">
         <div className="flex flex-col gap-2">
-          <button
+          <Button
             type="button"
+            size="sm"
             disabled={menunggu}
             onClick={simpan}
-            className="rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-paper disabled:opacity-40"
+            className="px-3 text-sm"
           >
             {menunggu ? "Menyimpan…" : "Simpan"}
-          </button>
+          </Button>
           <a
             href={`/admin/payroll/ekspor?${slipParams.toString()}`}
             className="rounded-lg border border-line px-3 py-1.5 text-center text-xs font-medium"
@@ -283,17 +287,18 @@ function Baris({
           >
             Slip PDF
           </a>
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             disabled={menunggu}
             title="Isi kolom kasbon dari sisa kasbon disetujui; belum tersimpan sampai Simpan ditekan"
             onClick={() =>
               setNilai((n) => ({ ...n, kasbon: String(awal.kasbonDisetujuiSisa) }))
             }
-            className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium disabled:opacity-40"
           >
             Isi kasbon dari pengajuan
-          </button>
+          </Button>
         </div>
       </td>
     </tr>

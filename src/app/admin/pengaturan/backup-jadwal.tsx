@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   importBackupJadwal,
   previewRestoreBackup,
@@ -68,8 +70,8 @@ export function BackupJadwalPanel({ defaultDari, defaultSampai }: { defaultDari:
         <p className="text-sm font-semibold">Download backup jadwal</p>
         <p className="mt-1 text-xs text-muted">File disimpan di perangkat, bukan database. Pilih rentang yang ingin diamankan.</p>
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <label className="text-xs text-muted">Dari<InputTanggal value={dari} onChange={setDari} className="mt-1 w-full" /></label>
-          <label className="text-xs text-muted">Sampai<InputTanggal value={sampai} onChange={setSampai} className="mt-1 w-full" /></label>
+          <Label className="text-xs font-normal text-muted">Dari<InputTanggal value={dari} onChange={setDari} className="mt-1 w-full" /></Label>
+          <Label className="text-xs font-normal text-muted">Sampai<InputTanggal value={sampai} onChange={setSampai} className="mt-1 w-full" /></Label>
         </div>
         <a href={url} className="mt-4 block rounded-lg bg-ink px-4 py-2.5 text-center text-sm font-medium text-paper">Download Backup JSON</a>
       </section>
@@ -78,7 +80,7 @@ export function BackupJadwalPanel({ defaultDari, defaultSampai }: { defaultDari:
         <p className="text-sm font-semibold">Import / restore backup</p>
         <p className="mt-1 text-xs text-muted">Restore mengganti jadwal akun/tanggal yang terdapat dalam file. Maksimal 10 MB.</p>
         <input name="file" type="file" accept=".json,application/json" required className="mt-3 block w-full text-sm" />
-        <button type="submit" disabled={pending} className="mt-4 w-full rounded-lg border border-line px-4 py-2.5 text-sm font-medium disabled:opacity-40">{pending ? "Memeriksa…" : "Lihat dampak & import backup"}</button>
+        <Button type="submit" variant="outline" size="lg" disabled={pending} className="mt-4 w-full">{pending ? "Memeriksa…" : "Lihat dampak & import backup"}</Button>
         {hasil ? <p role="status" className={`mt-3 text-sm ${hasil.ok ? "text-status-hadir" : "text-status-alpa"}`}>{hasil.pesan}</p> : null}
       </form>
     </div>

@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { RADIUS_MAKS, RADIUS_MIN } from "@/lib/cabang";
 import { simpanCabang, ubahStatusCabang, type HasilSimpan } from "./actions";
 
@@ -39,16 +43,17 @@ export function DaftarCabang({ cabang }: { cabang: Cabang[] }) {
           onBatal={() => setDibuka(null)}
         />
       ) : (
-        <button
+        <Button
           type="button"
+          variant="glass"
           onClick={() => {
             setPesan(null);
             setDibuka("baru");
           }}
-          className="w-full rounded-xl border border-dashed border-white/70 dark:border-white/15 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-4 py-3 text-sm font-medium"
+          className="h-auto w-full rounded-xl border-dashed px-4 py-3"
         >
           + Tambah cabang
-        </button>
+        </Button>
       )}
 
       <ul className="space-y-3">
@@ -109,23 +114,21 @@ function BarisCabang({
         </div>
 
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onUbah}
-            className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium"
-          >
+          <Button type="button" variant="outline" size="sm" onClick={onUbah}>
             Ubah
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             disabled={menunggu}
             onClick={() =>
               mulai(async () => onStatus(await ubahStatusCabang(c.id, !c.aktif)))
             }
-            className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted disabled:opacity-40"
+            className="text-muted"
           >
             {menunggu ? "…" : c.aktif ? "Nonaktifkan" : "Aktifkan"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -207,9 +210,9 @@ function FormCabang({
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <div>
-          <label htmlFor="nama" className="text-xs text-muted">
+          <Label htmlFor="nama" className="text-xs font-normal text-muted">
             Nama cabang
-          </label>
+          </Label>
           <input
             ref={namaRef}
             id="nama"
@@ -221,22 +224,22 @@ function FormCabang({
           />
         </div>
         <div>
-          <label htmlFor="kota" className="text-xs text-muted">
+          <Label htmlFor="kota" className="text-xs font-normal text-muted">
             Kota
-          </label>
-          <input
+          </Label>
+          <Input
             id="kota"
             name="kota"
             defaultValue={c?.kota}
             required
             maxLength={40}
-            className={KELAS_INPUT}
+            className="mt-1.5"
           />
         </div>
         <div>
-          <label htmlFor="lat" className="text-xs text-muted">
+          <Label htmlFor="lat" className="text-xs font-normal text-muted">
             Latitude
-          </label>
+          </Label>
           <input
             ref={latRef}
             id="lat"
@@ -252,9 +255,9 @@ function FormCabang({
           />
         </div>
         <div>
-          <label htmlFor="lng" className="text-xs text-muted">
+          <Label htmlFor="lng" className="text-xs font-normal text-muted">
             Longitude
-          </label>
+          </Label>
           <input
             ref={lngRef}
             id="lng"
@@ -270,10 +273,10 @@ function FormCabang({
           />
         </div>
         <div>
-          <label htmlFor="radiusMeter" className="text-xs text-muted">
+          <Label htmlFor="radiusMeter" className="text-xs font-normal text-muted">
             Radius absensi (meter)
-          </label>
-          <input
+          </Label>
+          <Input
             id="radiusMeter"
             name="radiusMeter"
             type="number"
@@ -283,30 +286,31 @@ function FormCabang({
             defaultValue={c?.radiusMeter ?? 100}
             required
             inputMode="numeric"
-            className={`${KELAS_INPUT} tabular-nums`}
+            className="mt-1.5 tabular-nums"
           />
         </div>
         <div className="flex items-end">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+          <Label htmlFor="aktif" className="flex items-center gap-2 text-sm font-normal">
+            <Checkbox
+              id="aktif"
               name="aktif"
               defaultChecked={c?.aktif ?? true}
-              className="size-4 accent-ink"
             />
             Cabang aktif
-          </label>
+          </Label>
         </div>
       </div>
 
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="sm"
         onClick={ambilLokasi}
         disabled={lokasiSibuk}
-        className="mt-3 rounded-lg border border-line px-3 py-1.5 text-xs font-medium disabled:opacity-40"
+        className="mt-3 px-3"
       >
         {lokasiSibuk ? "Mendeteksi…" : "Pakai lokasi saya sekarang"}
-      </button>
+      </Button>
 
       {galat ? (
         <p
@@ -318,20 +322,12 @@ function FormCabang({
       ) : null}
 
       <div className="mt-4 flex gap-2">
-        <button
-          type="submit"
-          disabled={mengirim}
-          className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper disabled:opacity-40"
-        >
+        <Button type="submit" disabled={mengirim}>
           {mengirim ? "Menyimpan…" : "Simpan"}
-        </button>
-        <button
-          type="button"
-          onClick={onBatal}
-          className="rounded-lg border border-line px-4 py-2 text-sm font-medium"
-        >
+        </Button>
+        <Button type="button" variant="outline" onClick={onBatal}>
           Batal
-        </button>
+        </Button>
       </div>
     </form>
   );

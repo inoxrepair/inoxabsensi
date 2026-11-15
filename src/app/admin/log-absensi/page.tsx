@@ -1,5 +1,11 @@
 import { DataTable, type Kolom } from "@/components/ui/data-table";
-import { Card, PageHeader, StatCard } from "@/components/ui/primitives";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { bacaStatusAbsensi, roleTerbatasCabang } from "@/lib/domain";
 import type { StatusAbsensi } from "@/lib/domain";
@@ -119,37 +125,74 @@ export default async function AdminLogAbsensiPage({
 
   return (
     <>
-      <PageHeader title="Log Absensi" description={`${labelRentang(rentang)} · ${jumlahHari} hari`} />
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Log Absensi</h1>
+          <p className="mt-1 text-sm text-muted">
+            {`${labelRentang(rentang)} · ${jumlahHari} hari`}
+          </p>
+        </div>
+      </header>
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Catatan" value={rows.length} />
-        <StatCard label="Total jam kerja" value={formatDurasi(totalJam)} />
-        <StatCard label="Pengguna" value={new Set(terlihat.map((a) => a.userId)).size} />
-        <StatCard label="Hari" value={jumlahHari} />
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Catatan</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{rows.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Total jam kerja</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{formatDurasi(totalJam)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Pengguna</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{new Set(terlihat.map((a) => a.userId)).size}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Hari</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{jumlahHari}</p>
+          </CardContent>
+        </Card>
       </div>
 
       <FilterLog awal={rentang.dari} akhir={rentang.sampai} cabang={cabang} cabangTerpilih={cabangTerpilih} role={admin.role} />
 
-      <Card footer="Edit jam tersedia untuk admin cabang. Hapus baris hanya tersedia untuk Super Admin; baris yang dihapus membuat pengguna dapat absen lagi, dan ringkasannya tersimpan di audit di bawah.">
-        <div className="overflow-x-auto">
-          <DataTable caption="Log absensi" columns={kolom} rows={rows} rowKey={(r) => r.id} />
-        </div>
+      <Card>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <DataTable caption="Log absensi" columns={kolom} rows={rows} rowKey={(r) => r.id} />
+          </div>
+        </CardContent>
+        <CardFooter>
+          Edit jam tersedia untuk admin cabang. Hapus baris hanya tersedia untuk Super Admin; baris yang dihapus membuat pengguna dapat absen lagi, dan ringkasannya tersimpan di audit di bawah.
+        </CardFooter>
       </Card>
 
-      <Card title="Audit penghapusan (20 terbaru)">
-        {auditHapus.length === 0 ? (
-          <p className="text-sm text-muted">Belum ada catatan absensi yang dihapus.</p>
-        ) : (
-          <ul className="space-y-2 text-sm">
-            {auditHapus.map((a) => (
-              <li key={a.id} className="border-b border-line/70 pb-2 last:border-0">
-                <span className="tabular-nums text-muted">
-                  {formatTanggal(a.dibuatPada.toISOString().slice(0, 10))} ·{" "}
-                </span>
-                {a.ringkasan}
-              </li>
-            ))}
-          </ul>
-        )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Audit penghapusan (20 terbaru)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {auditHapus.length === 0 ? (
+            <p className="text-sm text-muted">Belum ada catatan absensi yang dihapus.</p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {auditHapus.map((a) => (
+                <li key={a.id} className="border-b border-line/70 pb-2 last:border-0">
+                  <span className="tabular-nums text-muted">
+                    {formatTanggal(a.dibuatPada.toISOString().slice(0, 10))} ·{" "}
+                  </span>
+                  {a.ringkasan}
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
       </Card>
     </>
   );

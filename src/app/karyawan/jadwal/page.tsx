@@ -1,4 +1,4 @@
-import { Pill } from "@/components/ui/primitives";
+import { Badge } from "@/components/ui/badge";
 import { db } from "@/lib/db";
 import { wajibLogin } from "@/lib/session";
 import {
@@ -78,9 +78,9 @@ export default async function KaryawanJadwalPage() {
                 </p>
               </div>
               {j?.shift ? (
-                <Pill>{j.shift.nama}</Pill>
+                <Badge>{j.shift.nama}</Badge>
               ) : (
-                <Pill tone="redup">Libur</Pill>
+                <Badge variant="outline">Libur</Badge>
               )}
             </li>
           );

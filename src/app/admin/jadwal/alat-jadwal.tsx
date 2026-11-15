@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { InputTanggal } from "@/components/ui/input-tanggal";
 import {
   generateJadwalBulanan,
@@ -131,14 +132,14 @@ export function AlatJadwal({
         <p className="text-sm font-semibold">Import dari Excel/CSV</p>
         <p className="mt-1 text-xs text-muted">Gunakan file hasil export, lalu ubah kode P/S/F/O di Excel.</p>
         <input name="file" type="file" accept=".csv,text/csv" required className="mt-3 block w-full text-sm" />
-        <button type="submit" disabled={pending} className="mt-3 w-full rounded-lg border border-line px-3 py-2 text-sm font-medium disabled:opacity-40">Lihat dampak &amp; import CSV</button>
+        <Button type="submit" variant="outline" disabled={pending} className="mt-3 w-full">Lihat dampak &amp; import CSV</Button>
       </form>
 
       <div className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
         <p className="text-sm font-semibold">Buat jadwal otomatis bulanan</p>
         <p className="mt-1 text-xs text-muted">Mengulang pola 7 hari mulai {polaMulai} ke seluruh bulan. Hasil tetap bisa diedit.</p>
         <InputTanggal mode="bulan" value={bulan} onChange={setBulan} className="mt-3 w-full" />
-        <button type="button" onClick={generate} disabled={pending} className="mt-3 w-full rounded-lg bg-ink px-3 py-2 text-sm font-medium text-paper disabled:opacity-40">Lihat dampak &amp; generate</button>
+        <Button type="button" onClick={generate} disabled={pending} className="mt-3 w-full">Lihat dampak &amp; generate</Button>
       </div>
     </section>
     {konfirmasi ? (

@@ -1,3 +1,12 @@
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { db } from "@/lib/db";
 import { bacaStatusAbsensi } from "@/lib/domain";
@@ -53,27 +62,24 @@ export default async function KaryawanRiwayatPage({
         Periode {labelPeriode(periode)} · {formatDurasi(totalJam)} tercatat
       </p>
       <form method="get" className="mt-4 flex items-center gap-2">
-        <label htmlFor="periode-riwayat" className="text-xs text-muted">
+        <Label htmlFor="periode-riwayat" className="text-xs font-normal text-muted">
           Bulan
-        </label>
-        <select
-          id="periode-riwayat"
-          name="periode"
-          defaultValue={periode}
-          className="rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2.5 py-1.5 text-sm"
-        >
-          {daftarPeriode.map((p) => (
-            <option key={p} value={p}>
-              {labelPeriode(p)}
-            </option>
-          ))}
-        </select>
-        <button
-          type="submit"
-          className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium"
-        >
+        </Label>
+        <Select name="periode" defaultValue={periode}>
+          <SelectTrigger id="periode-riwayat" className="h-8 w-auto">
+            <SelectValue placeholder="Pilih bulan" />
+          </SelectTrigger>
+          <SelectContent>
+            {daftarPeriode.map((p) => (
+              <SelectItem key={p} value={p}>
+                {labelPeriode(p)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button type="submit" variant="outline" size="sm" className="px-3 text-sm">
           Tampilkan
-        </button>
+        </Button>
       </form>
 
       <div className="mt-5 grid grid-cols-4 gap-2 text-center">

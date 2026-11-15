@@ -1,6 +1,13 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { namaHari } from "@/lib/waktu";
 import { formatTanggal } from "@/lib/format";
 import { setJadwal, type Hasil } from "./actions";
@@ -27,8 +34,10 @@ export type BarisJadwal = {
 };
 
 /**
- * Matriks jadwal: satu <select> per sel. Perubahan langsung dikirim ke
+ * Matriks jadwal: satu Select per sel. Perubahan langsung dikirim ke
  * server action, jadi tidak ada tombol simpan global yang bisa terlupa.
+ * Nilai "Off"/"Tanpa seragam" memakai sentinel "off"/"tanpa" karena
+ * Radix Select tidak mengizinkan SelectItem dengan value "".
  */
 export function MatriksJadwal({
   minggu,
@@ -186,39 +195,51 @@ function SelShift({
 
   return (
     <div className="space-y-1.5">
-      <select
-      aria-label={`Shift ${nama} hari ${hari} tanggal ${tanggal}`}
-      value={pilihan}
-      disabled={menunggu}
-      onChange={(e) => ubah(e.target.value)}
-      className={`w-full rounded-lg border px-2 py-1.5 text-sm disabled:opacity-50 ${
-        pilihan
-          ? "border-line bg-surface font-medium"
-          : "border-status-alpa/30 bg-status-alpa/10 text-status-alpa"
-      }`}
+      <Select
+        value={pilihan || "off"}
+        disabled={menunggu}
+        onValueChange={(v) => ubah(v === "off" ? "" : v)}
       >
-        <option value="">Off</option>
-        {shift.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.nama}
-          </option>
-        ))}
-      </select>
-      {pilihan ? (
-        <select
-          aria-label={`Seragam ${nama} hari ${hari} tanggal ${tanggal}`}
-          value={pilihanSeragamId}
-          disabled={menunggu}
-          onChange={(e) => ubahSeragam(e.target.value)}
-          className="w-full rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-2 py-1.5 text-xs text-muted disabled:opacity-50"
+        <SelectTrigger
+          aria-label={`Shift ${nama} hari ${hari} tanggal ${tanggal}`}
+          className={`h-auto px-2 py-1.5 ${
+            pilihan
+              ? "border-line bg-surface font-medium"
+              : "border-status-alpa/30 bg-status-alpa/10 text-status-alpa"
+          }`}
         >
-          <option value="">Tanpa seragam</option>
-          {pilihanSeragam.map((s) => (
-            <option key={s.id} value={s.id} disabled={!s.aktif && s.id !== pilihanSeragamId}>
-              {s.nama}{!s.aktif ? " (nonaktif)" : ""}
-            </option>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="off">Off</SelectItem>
+          {shift.map((s) => (
+            <SelectItem key={s.id} value={s.id}>
+              {s.nama}
+            </SelectItem>
           ))}
-        </select>
+        </SelectContent>
+      </Select>
+      {pilihan ? (
+        <Select
+          value={pilihanSeragamId || "tanpa"}
+          disabled={menunggu}
+          onValueChange={(v) => ubahSeragam(v === "tanpa" ? "" : v)}
+        >
+          <SelectTrigger
+            aria-label={`Seragam ${nama} hari ${hari} tanggal ${tanggal}`}
+            className="h-auto border-white/60 bg-white/60 px-2 py-1.5 text-xs text-muted shadow-md shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/60 dark:shadow-black/50"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="tanpa">Tanpa seragam</SelectItem>
+            {pilihanSeragam.map((s) => (
+              <SelectItem key={s.id} value={s.id} disabled={!s.aktif && s.id !== pilihanSeragamId}>
+                {s.nama}{!s.aktif ? " (nonaktif)" : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       ) : null}
     </div>
   );

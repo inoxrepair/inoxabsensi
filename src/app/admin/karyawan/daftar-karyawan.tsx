@@ -1,6 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { RoleKaryawan } from "@/lib/domain";
 import { LABEL_ROLE } from "@/lib/domain";
 import { formatTanggal } from "@/lib/format";
@@ -35,9 +46,6 @@ function inisial(nama: string) {
     .map((k) => k[0]?.toUpperCase() ?? "")
     .join("");
 }
-
-const INPUT =
-  "mt-1.5 w-full rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-3 py-2 text-sm";
 
 export function DaftarKaryawan({
   rows,
@@ -75,53 +83,71 @@ export function DaftarKaryawan({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-3">
-        <input
+        <Input
           type="search"
           value={cari}
           onChange={(e) => setCari(e.target.value)}
           placeholder="Cari nama, username, email, jabatan…"
-          className="min-w-52 flex-1 rounded-lg border border-line px-3 py-1.5 text-sm"
+          className="h-auto min-w-52 flex-1 px-3 py-1.5"
         />
         {adminRole === "super_admin" ? (
           <>
-            <select
-              aria-label="Filter cabang"
-              value={filterCabang}
-              onChange={(e) => setFilterCabang(e.target.value)}
-              className="rounded-lg border border-line px-2.5 py-1.5 text-sm"
+            <Select
+              value={filterCabang || "semua"}
+              onValueChange={(v) => setFilterCabang(v === "semua" ? "" : v)}
             >
-              <option value="">Semua cabang</option>
-              {cabang.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nama}
-                </option>
-              ))}
-            </select>
-            <select
-              aria-label="Filter role"
-              value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value)}
-              className="rounded-lg border border-line px-2.5 py-1.5 text-sm"
+              <SelectTrigger
+                aria-label="Filter cabang"
+                className="h-auto w-auto px-2.5 py-1.5"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="semua">Semua cabang</SelectItem>
+                {cabang.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.nama}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={filterRole || "semua"}
+              onValueChange={(v) => setFilterRole(v === "semua" ? "" : v)}
             >
-              <option value="">Semua role</option>
-              {Object.entries(LABEL_ROLE).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger
+                aria-label="Filter role"
+                className="h-auto w-auto px-2.5 py-1.5"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="semua">Semua role</SelectItem>
+                {Object.entries(LABEL_ROLE).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </>
         ) : null}
-        <select
-          aria-label="Filter status"
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="rounded-lg border border-line px-2.5 py-1.5 text-sm"
+        <Select
+          value={filterStatus || "semua"}
+          onValueChange={(v) => setFilterStatus(v === "semua" ? "" : v)}
         >
-          <option value="">Semua status</option>
-          <option value="true">Aktif</option>
-          <option value="false">Nonaktif</option>
-        </select>
+          <SelectTrigger
+            aria-label="Filter status"
+            className="h-auto w-auto px-2.5 py-1.5"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="semua">Semua status</SelectItem>
+            <SelectItem value="true">Aktif</SelectItem>
+            <SelectItem value="false">Nonaktif</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {pesan ? (
@@ -146,16 +172,17 @@ export function DaftarKaryawan({
           onBatal={() => setDibuka(null)}
         />
       ) : (
-        <button
+        <Button
           type="button"
+          variant="glass"
           onClick={() => {
             setPesan(null);
             setDibuka("baru");
           }}
-          className="w-full rounded-xl border border-dashed border-white/70 dark:border-white/15 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-4 py-3 text-sm font-medium"
+          className="h-auto w-full rounded-xl border-dashed px-4 py-3"
         >
           + Tambah karyawan
-        </button>
+        </Button>
       )}
 
       <p className="text-xs text-muted">
@@ -230,23 +257,21 @@ function Kartu({
           </div>
         </div>
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onUbah}
-            className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium"
-          >
+          <Button type="button" variant="outline" size="sm" onClick={onUbah}>
             Ubah
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             disabled={menunggu}
             onClick={() =>
               mulai(async () => onPesan(await ubahStatusKaryawan(r.id, !r.aktif)))
             }
-            className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted disabled:opacity-40"
+            className="text-muted"
           >
             {menunggu ? "…" : r.aktif ? "Nonaktifkan" : "Aktifkan"}
-          </button>
+          </Button>
         </div>
       </div>
       <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-line pt-3 text-sm md:grid-cols-4">
@@ -321,7 +346,7 @@ function FormKaryawan({
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Field label="Username">
-          <input
+          <Input
             name="username"
             defaultValue={awal?.username}
             required
@@ -331,58 +356,61 @@ function FormKaryawan({
             autoCorrect="off"
             spellCheck={false}
             placeholder="contoh: budi.01"
-            className={INPUT}
+            className="mt-1.5"
           />
         </Field>
         <Field label="Nama">
-          <input ref={namaRef} name="name" defaultValue={awal?.nama} required className={INPUT} />
+          <input ref={namaRef} name="name" defaultValue={awal?.nama} required className="mt-1.5 w-full rounded-lg border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl px-3 py-2 text-sm" />
         </Field>
         <Field label="Email">
-          <input name="email" type="email" defaultValue={awal?.email} required className={INPUT} />
+          <Input name="email" type="email" defaultValue={awal?.email} required className="mt-1.5" />
         </Field>
         <Field label="Jabatan">
-          <input name="jabatan" defaultValue={awal?.jabatan} required className={INPUT} />
+          <Input name="jabatan" defaultValue={awal?.jabatan} required className="mt-1.5" />
         </Field>
         <Field label="Tanggal masuk">
           <InputTanggal name="tanggalMasuk" defaultValue={awal?.tanggalMasuk} required varian="kaca" className="mt-1.5 w-full" />
         </Field>
         <Field label="Role">
-          <select
-            name="role"
-            value={role}
-            onChange={(e) => setRole(e.target.value as RoleKaryawan)}
-            className={INPUT}
-          >
-            {adminRole === "super_admin" ? (
-              Object.entries(LABEL_ROLE).map(([v, l]) => (
-                <option key={v} value={v}>
-                  {l}
-                </option>
-              ))
-            ) : (
-              <option value="karyawan">Karyawan</option>
-            )}
-          </select>
+          <Select name="role" value={role} onValueChange={(v) => setRole(v as RoleKaryawan)}>
+            <SelectTrigger className="mt-1.5">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {adminRole === "super_admin" ? (
+                Object.entries(LABEL_ROLE).map(([v, l]) => (
+                  <SelectItem key={v} value={v}>
+                    {l}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="karyawan">Karyawan</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
         </Field>
         <Field label="Cabang">
-          <select
+          <Select
             name="cabangId"
             defaultValue={awal?.cabangId ?? adminCabangId ?? ""}
             disabled={role === "super_admin"}
             required={role !== "super_admin"}
-            className={`${INPUT} disabled:bg-surface disabled:text-muted`}
           >
-            <option value="">Pilih cabang</option>
-            {cabangTerlihat.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nama}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="mt-1.5 disabled:bg-surface disabled:text-muted">
+              <SelectValue placeholder="Pilih cabang" />
+            </SelectTrigger>
+            <SelectContent>
+              {cabangTerlihat.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nama}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {role === "super_admin" ? <input type="hidden" name="cabangId" value="" /> : null}
         </Field>
         <Field label={awal ? "Reset password" : "Password"}>
-          <input
+          <Input
             name="password"
             type="password"
             value={password}
@@ -392,29 +420,28 @@ function FormKaryawan({
             disabled={Boolean(awal) && !resetPassword}
             autoComplete="new-password"
             placeholder={awal ? "Mati bila tidak direset" : undefined}
-            className={`${INPUT} disabled:bg-surface disabled:text-muted`}
+            className="mt-1.5 disabled:bg-surface disabled:text-muted"
           />
           {awal ? (
             <span className="mt-1.5 flex items-center gap-2 text-sm text-ink">
-              <input
-                type="checkbox"
+              <Checkbox
                 name="resetPassword"
                 checked={resetPassword}
-                onChange={(e) => {
-                  setResetPassword(e.target.checked);
-                  if (!e.target.checked) setPassword("");
+                onCheckedChange={(v) => {
+                  const dicentang = v === true;
+                  setResetPassword(dicentang);
+                  if (!dicentang) setPassword("");
                 }}
-                className="size-4 accent-ink"
               />
               Reset password karyawan ini
             </span>
           ) : null}
         </Field>
         <div className="flex items-end pb-2">
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="aktif" defaultChecked={awal?.aktif ?? true} className="size-4 accent-ink" />
+          <Label htmlFor="aktif" className="flex items-center gap-2 text-sm font-normal">
+            <Checkbox id="aktif" name="aktif" defaultChecked={awal?.aktif ?? true} />
             Akun aktif
-          </label>
+          </Label>
         </div>
       </div>
 
@@ -424,12 +451,12 @@ function FormKaryawan({
         </p>
       ) : null}
       <div className="mt-4 flex gap-2">
-        <button type="submit" disabled={mengirim} className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper disabled:opacity-40">
+        <Button type="submit" disabled={mengirim}>
           {mengirim ? "Menyimpan…" : "Simpan"}
-        </button>
-        <button type="button" onClick={onBatal} className="rounded-lg border border-line px-4 py-2 text-sm font-medium">
+        </Button>
+        <Button type="button" variant="outline" onClick={onBatal}>
           Batal
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -437,9 +464,9 @@ function FormKaryawan({
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="text-xs text-muted">
+    <Label className="text-xs font-normal text-muted">
       {label}
       {children}
-    </label>
+    </Label>
   );
 }

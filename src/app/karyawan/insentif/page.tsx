@@ -1,4 +1,4 @@
-import { PageHeader, StatCard } from "@/components/ui/primitives";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatRupiah, formatTanggal } from "@/lib/format";
 import { ambilInsentifTransaksiRentang } from "@/lib/insentif";
 import { bacaRentangGajian, labelPeriode, periodeValid } from "@/lib/rekap";
@@ -36,19 +36,33 @@ export default async function KaryawanInsentifPage({
 
   return (
     <>
-      <PageHeader
-        title="Insentif Saya"
-        description={`Insentif Anda dari laporan inox.my.id, ${labelPeriode(periode)} (${formatTanggal(rentang.dari)}–${formatTanggal(rentang.sampai)}).`}
-      />
+      <header className="mb-6">
+        <h1 className="text-xl font-semibold tracking-tight">Insentif Saya</h1>
+        <p className="mt-1 text-sm text-muted">
+          Insentif Anda dari laporan inox.my.id, {labelPeriode(periode)} ({formatTanggal(rentang.dari)}–{formatTanggal(rentang.sampai)}).
+        </p>
+      </header>
 
       <div className="grid grid-cols-2 gap-3">
-        <StatCard label="Total insentif" value={formatRupiah(totalInsentif)} />
-        <StatCard label="Jumlah transaksi" value={baris.length} />
-        <StatCard
-          label="Periode"
-          value={labelPeriode(periode)}
-          hint={`${formatTanggal(rentang.dari)} – ${formatTanggal(rentang.sampai)}`}
-        />
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Total insentif</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{formatRupiah(totalInsentif)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Jumlah transaksi</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{baris.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted">Periode</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{labelPeriode(periode)}</p>
+            <p className="mt-1 text-xs text-muted">{formatTanggal(rentang.dari)} – {formatTanggal(rentang.sampai)}</p>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="mt-4">

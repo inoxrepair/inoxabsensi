@@ -3,6 +3,16 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { aturRentang, previewRentang, type Hasil } from "./actions";
 import {
   DialogKonfirmasiMassal,
@@ -69,10 +79,12 @@ export function FormRentang({
     for (const id of dipilih) form.append("userId", id);
 
     // Ambil nilai shift dari select langsung karena tidak ada state terpisah.
+    // Nilai sentinel "off"/"tanpa" dipetakan kembali ke "" (Radix Select
+    // tidak mengizinkan SelectItem dengan value "").
     const selectEl = e.currentTarget.elements.namedItem("shiftId") as HTMLSelectElement | null;
-    if (selectEl) form.set("shiftId", selectEl.value);
+    if (selectEl) form.set("shiftId", selectEl.value === "off" ? "" : selectEl.value);
     const seragamEl = e.currentTarget.elements.namedItem("seragamId") as HTMLSelectElement | null;
-    if (seragamEl) form.set("seragamId", seragamEl.value);
+    if (seragamEl) form.set("seragamId", seragamEl.value === "tanpa" ? "" : seragamEl.value);
 
     // Langkah 1: preview tanpa menulis. Langkah 2: dialog konfirmasi.
     mulai(async () => {
@@ -121,34 +133,44 @@ export function FormRentang({
         Aksi ini mengubah jadwal karyawan terpilih pada seluruh tanggal.
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-4">
-        <label className="text-xs text-muted">
+        <Label className="text-xs font-normal text-muted">
           Dari
           <InputTanggal name="dari" value={dari} onChange={setDari} required className="mt-1.5 w-full" />
-        </label>
-        <label className="text-xs text-muted">
+        </Label>
+        <Label className="text-xs font-normal text-muted">
           Seragam
-          <select name="seragamId" className="mt-1.5 w-full rounded-lg border border-line px-3 py-2 text-sm">
-            <option value="">Tanpa seragam</option>
-            {seragam.filter((s) => s.aktif).map((s) => (
-              <option key={s.id} value={s.id}>{s.nama}</option>
-            ))}
-          </select>
-        </label>
-        <label className="text-xs text-muted">
+          <Select name="seragamId" defaultValue="tanpa">
+            <SelectTrigger className="mt-1.5">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="tanpa">Tanpa seragam</SelectItem>
+              {seragam.filter((s) => s.aktif).map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.nama}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Label>
+        <Label className="text-xs font-normal text-muted">
           Sampai
           <InputTanggal name="sampai" value={sampai} onChange={setSampai} required className="mt-1.5 w-full" />
-        </label>
-        <label className="text-xs text-muted">
+        </Label>
+        <Label className="text-xs font-normal text-muted">
           Shift
-          <select name="shiftId" className="mt-1.5 w-full rounded-lg border border-line px-3 py-2 text-sm">
-            <option value="">Off (hapus jadwal)</option>
-            {shift.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.nama} ({s.mulai}–{s.selesai})
-              </option>
-            ))}
-          </select>
-        </label>
+          <Select name="shiftId" defaultValue="off">
+            <SelectTrigger className="mt-1.5">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="off">Off (hapus jadwal)</SelectItem>
+              {shift.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.nama} ({s.mulai}–{s.selesai})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Label>
       </div>
       <input type="hidden" name="cabangId" value={cabangId} />
 
@@ -156,15 +178,14 @@ export function FormRentang({
         <legend className="text-xs text-muted">Karyawan yang diterapkan</legend>
         <div className="mt-2 max-h-60 overflow-y-auto grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {karyawan.map((k) => (
-            <label key={k.id} className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm">
-              <input
-                type="checkbox"
+            <Label key={k.id} htmlFor={`rentang-${k.id}`} className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm font-normal">
+              <Checkbox
+                id={`rentang-${k.id}`}
                 checked={dipilih.has(k.id)}
-                onChange={() => toggle(k.id)}
-                className="size-4 accent-ink"
+                onCheckedChange={() => toggle(k.id)}
               />
               <span className="truncate">{k.nama}</span>
-            </label>
+            </Label>
           ))}
         </div>
       </fieldset>
@@ -176,12 +197,12 @@ export function FormRentang({
       ) : null}
 
       <div className="mt-4 flex gap-2">
-        <button type="submit" disabled={menunggu || dipilih.size === 0} className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper disabled:opacity-40">
+        <Button type="submit" disabled={menunggu || dipilih.size === 0}>
           {menunggu ? "Menerapkan…" : "Lihat dampak & terapkan"}
-        </button>
-        <button type="button" onClick={onBatal} className="rounded-lg border border-line px-4 py-2 text-sm font-medium">
+        </Button>
+        <Button type="button" variant="outline" onClick={onBatal}>
           Batal
-        </button>
+        </Button>
       </div>
     </form>
     {konfirmasi ? (

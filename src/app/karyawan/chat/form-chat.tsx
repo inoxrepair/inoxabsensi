@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { kompresFoto } from "@/lib/kompres-foto";
 import {
   KUALITAS_FOTO_CHAT,
@@ -211,28 +213,28 @@ export function FormChat() {
             alt="Pratinjau foto"
             className="max-h-32 rounded-xl"
           />
-          <button
+          <Button
             type="button"
             onClick={batalFoto}
             aria-label="Batalkan foto"
-            className="absolute -right-2 -top-2 flex size-6 items-center justify-center rounded-full bg-ink text-sm text-paper"
+            className="absolute -right-2 -top-2 size-6 rounded-full px-0 text-sm"
           >
             ×
-          </button>
+          </Button>
         </div>
       ) : null}
 
       {pratinjauSuara ? (
         <div className="mb-2 flex items-center gap-2">
           <audio controls preload="metadata" src={pratinjauSuara} className="min-w-0 flex-1" />
-          <button
+          <Button
             type="button"
             onClick={batalSuara}
             aria-label="Batalkan voice note"
-            className="flex size-6 shrink-0 items-center justify-center rounded-full bg-ink text-sm text-paper"
+            className="size-6 shrink-0 rounded-full px-0 text-sm"
           >
             ×
-          </button>
+          </Button>
         </div>
       ) : null}
 
@@ -245,29 +247,32 @@ export function FormChat() {
           <span className="text-sm font-medium tabular-nums">
             Merekam {formatDetik(detik)} / {formatDetik(MAKS_SUARA_CHAT_DETIK)}
           </span>
-          <button
+          <Button
             type="button"
             onClick={berhentiRekam}
-            className="ml-auto shrink-0 rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper"
+            className="ml-auto shrink-0 rounded-full"
           >
             Berhenti
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="outline"
             onClick={batalRekam}
-            className="shrink-0 rounded-full border border-line px-3 py-2 text-sm font-medium"
+            className="shrink-0 rounded-full"
           >
             Batal
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="flex items-center gap-2">
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="icon"
             onClick={() => void mulaiRekam()}
             disabled={pending}
             aria-label="Rekam voice note"
-            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-line disabled:opacity-40"
+            className="size-10 shrink-0 rounded-full [&_svg]:size-5"
           >
             <svg
               width="20"
@@ -285,53 +290,57 @@ export function FormChat() {
               <path d="M12 19v3" />
               <path d="M8 23h8" />
             </svg>
-          </button>
+          </Button>
 
-          <label
-            aria-label="Pilih foto dari galeri"
-            className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-line"
+          <Button
+            asChild
+            variant="outline"
+            size="icon"
+            className="size-10 shrink-0 cursor-pointer rounded-full [&_svg]:size-5"
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <rect x="3" y="4" width="18" height="16" rx="2" />
-              <circle cx="9" cy="10" r="1.8" />
-              <path d="M4.5 18l4.5-4.5 3 3L16.5 12l3 3" />
-            </svg>
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/*"
-              aria-label="Pilih foto"
-              onChange={(e) => void pilihFoto(e.target.files?.[0])}
-              className="hidden"
-            />
-          </label>
+            <label aria-label="Pilih foto dari galeri">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <circle cx="9" cy="10" r="1.8" />
+                <path d="M4.5 18l4.5-4.5 3 3L16.5 12l3 3" />
+              </svg>
+              <input
+                ref={inputRef}
+                type="file"
+                accept="image/*"
+                aria-label="Pilih foto"
+                onChange={(e) => void pilihFoto(e.target.files?.[0])}
+                className="hidden"
+              />
+            </label>
+          </Button>
 
-          <input
+          <Input
             value={isi}
             onChange={(e) => ketik(e.target.value)}
             maxLength={1000}
             placeholder="Tulis pesan…"
             aria-label="Tulis pesan"
-            className="min-w-0 flex-1 rounded-full border border-line bg-paper px-3.5 py-2.5 text-sm outline-none placeholder:text-muted/70"
+            className="min-w-0 flex-1 rounded-full bg-paper px-3.5 py-2.5"
           />
 
-          <button
+          <Button
             type="submit"
             disabled={pending || (!isi.trim() && !foto && !suara)}
-            className="shrink-0 rounded-full bg-ink px-4 py-2.5 text-sm font-medium text-paper disabled:opacity-40"
+            className="shrink-0 rounded-full"
           >
             {pending ? "…" : "Kirim"}
-          </button>
+          </Button>
         </div>
       )}
 
