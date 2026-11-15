@@ -2,42 +2,12 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { kompresFoto } from "@/lib/kompres-foto";
 import {
   hapusFotoProfil,
   simpanFotoProfil,
   type HasilFoto,
 } from "./actions";
-
-/**
- * Upload foto profil dari HP. Foto dikompresi di browser dulu (maks. 512 px,
- * JPEG) supaya foto dari kamera HP yang aslinya bermega-mega tidak membebani
- * database dan lolos batas 2 MB di server.
- */
-async function kompresFoto(file: File): Promise<Blob> {
-  const url = URL.createObjectURL(file);
-  try {
-    const gambar = new Image();
-    await new Promise<void>((selesai, gagal) => {
-      gambar.onload = () => selesai();
-      gambar.onerror = () => gagal(new Error("gagal memuat gambar"));
-      gambar.src = url;
-    });
-    const sisi = Math.max(gambar.width, gambar.height);
-    const skala = sisi > 512 ? 512 / sisi : 1;
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(gambar.width * skala);
-    canvas.height = Math.round(gambar.height * skala);
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return file;
-    ctx.drawImage(gambar, 0, 0, canvas.width, canvas.height);
-    const hasil = await new Promise<Blob | null>((selesai) =>
-      canvas.toBlob(selesai, "image/jpeg", 0.82),
-    );
-    return hasil ?? file;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
 
 export function FormFoto() {
   const router = useRouter();

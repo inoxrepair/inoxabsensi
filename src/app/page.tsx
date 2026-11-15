@@ -16,9 +16,10 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="relative mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-12">
+    <div className="relative min-h-dvh">
       <LatarLiquid />
 
+      <main className="relative mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-12">
       <LiquidGlass
         variant="regular"
         tint="rgba(255, 255, 255, 0.6)"
@@ -50,6 +51,7 @@ export default async function HomePage() {
           </Link>
         </LiquidGlass>
       </LiquidGlass>
-    </main>
+      </main>
+    </div>
   );
 }

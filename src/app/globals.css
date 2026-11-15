@@ -141,3 +141,79 @@ textarea {
     animation-duration: 600ms;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Animasi masuk bubble chat: muncul pelan dari bawah (240 ms). Hanya jalan
+   saat bubble baru dipasang ke DOM; bubble lama tidak beranimasi ulang
+   saat daftar di-refresh. Nonaktif bila pengguna memilih mengurangi gerak.
+   -------------------------------------------------------------------------- */
+
+@keyframes inox-pesan-masuk {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.inox-pesan-masuk {
+  animation: inox-pesan-masuk 240ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inox-pesan-masuk {
+    animation: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Cincin api juara 1 Top 10: gradasi api (oranye-merah-kuning) berputar
+   mengelilingi foto profil + pijar yang berdenyut di belakangnya.
+   Nonaktif bila pengguna memilih mengurangi gerak.
+   -------------------------------------------------------------------------- */
+
+@keyframes inox-putar-api {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes inox-nyala-api {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.07);
+  }
+}
+
+.inox-cincin-api {
+  background: conic-gradient(
+    from 0deg,
+    #f97316,
+    #ef4444,
+    #facc15,
+    #f97316,
+    #ef4444,
+    #facc15,
+    #f97316
+  );
+  animation: inox-putar-api 4s linear infinite;
+}
+
+.inox-nyala-api {
+  animation: inox-nyala-api 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inox-cincin-api,
+  .inox-nyala-api {
+    animation: none;
+  }
+}

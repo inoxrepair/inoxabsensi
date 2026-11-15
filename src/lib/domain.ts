@@ -75,6 +75,7 @@ export const MENU_ADMIN = [
   "insentif",
   "informasi",
   "log-login",
+  "chat",
   "pengaturan",
 ] as const;
 export type MenuAdmin = (typeof MENU_ADMIN)[number];
@@ -82,9 +83,9 @@ export type MenuAdmin = (typeof MENU_ADMIN)[number];
 /** Hak akses bawaan saat seed. Sesudah itu sumbernya tabel RolePermission. */
 export const AKSES_DEFAULT: Record<RoleKaryawan, readonly MenuAdmin[]> = {
   super_admin: MENU_ADMIN,
-  admin_cabang: ["dashboard", "karyawan", "jadwal", "rekap", "kasbon", "insentif"],
+  admin_cabang: ["dashboard", "karyawan", "jadwal", "rekap", "kasbon", "insentif", "chat"],
   // Rekap pribadi tersedia di /karyawan/riwayat; akses admin Headstore
   // hanya untuk menyusun jadwal cabangnya.
-  headstore: ["dashboard", "jadwal"],
+  headstore: ["dashboard", "jadwal", "chat"],
   karyawan: [],
 };

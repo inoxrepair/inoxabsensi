@@ -14,6 +14,13 @@ import { useEffect, useRef } from "react";
  *
  * Menghormati `prefers-reduced-motion` (hanya gambar diam, tanpa animasi)
  * dan berhenti saat tab tidak terlihat (hemat baterai HP).
+ *
+ * Ukuran canvas dibaca dari `window.visualViewport` (bila ada), BUKAN dari
+ * `window.innerWidth/innerHeight` saja. Alasannya: saat pengguna pinch-zoom
+ * di HP, `window` tidak selalu memicu `resize` ketika zoom dikembalikan
+ * (zoom-out), sehingga canvas tertinggal di ukuran saat zoom-in. Event
+ * `resize`/`scroll` pada `visualViewport` selalu menyala saat zoom berubah,
+ * jadi canvas selalu mengikuti area layar yang terlihat saat itu.
  */
 
 type Keping = {
@@ -85,8 +92,15 @@ export function EfekSalju() {
     ).matches;
 
     const ukur = () => {
-      lebar = window.innerWidth;
-      tinggi = window.innerHeight;
+      // Area layar yang terlihat saat itu (ikut berubah saat pinch-zoom).
+      const vp = window.visualViewport;
+      const lebarBaru = Math.round(vp ? vp.width : window.innerWidth);
+      const tinggiBaru = Math.round(vp ? vp.height : window.innerHeight);
+      // Bila ukuran tidak berubah (mis. hanya geser saat zoom), jangan
+      // acak ulang kepingan — cukup biarkan animasi berjalan.
+      if (lebarBaru === lebar && tinggiBaru === tinggi) return;
+      lebar = lebarBaru;
+      tinggi = tinggiBaru;
       kanvas.width = Math.round(lebar * dpr);
       kanvas.height = Math.round(tinggi * dpr);
       kanvas.style.width = `${lebar}px`;
@@ -167,10 +181,15 @@ export function EfekSalju() {
     mulai();
     window.addEventListener("resize", ukur);
     document.addEventListener("visibilitychange", saatTerlihat);
+    const vp = window.visualViewport;
+    vp?.addEventListener("resize", ukur);
+    vp?.addEventListener("scroll", ukur);
     return () => {
       berhenti();
       window.removeEventListener("resize", ukur);
       document.removeEventListener("visibilitychange", saatTerlihat);
+      vp?.removeEventListener("resize", ukur);
+      vp?.removeEventListener("scroll", ukur);
     };
   }, []);
 
