@@ -33,9 +33,15 @@ export default async function KaryawanJadwalPage() {
   const perTanggal = new Map(jadwal.map((j) => [j.tanggal, j]));
   const adaJadwal = (daftar: string[]) => daftar.some((tgl) => perTanggal.has(tgl));
 
-  function daftarMinggu(daftar: string[]) {
+  function daftarMinggu(daftar: string[], bayangan = false) {
     return (
-      <ul className="mt-3 divide-y divide-line rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
+      <ul
+        className={`mt-3 divide-y divide-line rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl ${
+          bayangan
+            ? "[mask-image:linear-gradient(to_bottom,black_0%,rgba(0,0,0,0.45)_100%)]"
+            : ""
+        }`}
+      >
         {daftar.map((tgl) => {
           const j = perTanggal.get(tgl);
           const iniHariIni = tgl === hariIni;
@@ -105,7 +111,7 @@ export default async function KaryawanJadwalPage() {
       <p className="mt-1 text-xs text-muted">
         Bayangan — jadwal ini masih bisa berubah.
       </p>
-      {daftarMinggu(mingguDepan)}
+      {daftarMinggu(mingguDepan, true)}
       {adaJadwal(mingguDepan) ? null : (
         <p className="mt-4 rounded-xl bg-surface px-3.5 py-3 text-center text-xs text-muted">
           Belum ada jadwal bayangan untuk minggu depan.
