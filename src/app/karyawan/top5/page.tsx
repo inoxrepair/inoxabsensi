@@ -39,7 +39,7 @@ const TINGGI_PODIUM: Record<number, string> = {
 /** Top 10 performa absensi untuk siklus gajian berjalan. Juara 1–3 tampil
  * sebagai podium (juara 2 kiri, juara 1 tengah dengan cincin api, juara 3
  * kanan), peringkat 4–10 sebagai daftar di bawahnya. Peringkat diurutkan
- * dari jumlah hari valid terbanyak (lihat hitungPeringkat di lib/top5).
+ * dari jumlah poin terbanyak (lihat hitungPoinHari di lib/top5).
  */
 export const dynamic = "force-dynamic";
 
@@ -78,6 +78,9 @@ export default async function Top5Page() {
                 )}
                 <p className="w-full truncate text-center text-xs font-semibold">
                   {item.nama}
+                </p>
+                <p className="text-xs font-bold tabular-nums">
+                  {item.skor} poin
                 </p>
                 <p className="text-xs text-muted tabular-nums">
                   {item.valid} hari valid
@@ -119,11 +122,12 @@ export default async function Top5Page() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{p.nama}</p>
                     <p className="truncate text-xs text-muted">
-                      {p.cabang ?? "Tanpa cabang"} · {p.total} hari terjadwal
+                      {p.cabang ?? "Tanpa cabang"} · {p.valid} dari {p.total}{" "}
+                      hari valid
                     </p>
                   </div>
                   <p className="shrink-0 text-base font-bold tabular-nums">
-                    {p.valid} hari
+                    {p.skor} poin
                   </p>
                 </li>
               ))}
@@ -133,11 +137,11 @@ export default async function Top5Page() {
       )}
 
       <p className="mt-4 text-xs text-muted">
-        Peringkat diurutkan dari jumlah hari valid terbanyak selama periode
-        ini (bukan persentase terhadap jadwal masing-masing). Hari dihitung
-        bila absen masuk maks. 30 menit sebelum jam shift (tidak telat), ada
-        absen pulang, dan log tidak diedit. Shift fleksibel tidak masuk
-        penilaian.
+        Peringkat dari jumlah poin selama periode ini. Satu hari valid = 30
+        poin + menit datang lebih awal (maks. 30 menit). Terlambat mengurangi
+        poin sebesar menit telatnya (dihitung mentah, tanpa toleransi). Hari
+        tanpa absen pulang, absen lebih dari 30 menit sebelum jam shift, atau
+        log yang diedit = 0 poin. Shift fleksibel tidak masuk penilaian.
       </p>
     </>
   );

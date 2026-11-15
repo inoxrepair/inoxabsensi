@@ -1,38 +1,25 @@
 /**
  * Top 10 performa absensi: peringkat karyawan paling disiplin absen dalam
- * satu siklus gajian. Aturan satu hari valid (ketat, sesuai permintaan
- * Ucok 2026-11-15):
- * - ada jadwal shift terjadwal pada tanggal itu;
- * - absen masuk tidak lebih awal dari 30 menit sebelum jam mulai shift
- *   dan tidak telat (masuk setelah jam mulai = tidak valid);
- * - ada absen pulang (keluarMenit terisi);
- * - log tidak pernah diedit admin (editedBy terisi atau catatan
- *   "Diedit manual." = hangus).
- * Peringkat diurutkan dari JUMLAH hari valid terbanyak selama periode
- * (bukan rasio terhadap jadwal masing-masing — itu tidak adil bagi yang
- * jadwalnya sedikit; keputusan Ucok 2026-11-15). Skor = hari valid /
- * jumlah hari periode (penyebut sama untuk semua orang, jadi urutannya
- * sama dengan urutan jumlah hari valid). Seri: nama naik. Juara 1–3
- * tampil sebagai podium (juara 2 kiri, juara 1 tengah, juara 3 kanan);
- * juara 1 memakai cincin api.
+ * satu siklus gajian. Skor per hari (poin, keputusan Ucok 2026-11-15):
+ * - hari valid = 30 poin + menit datang lebih awal (maks. 30 menit);
+ *   syarat hari valid: ada jadwal shift terjadwal, absen masuk tidak lebih
+ *   awal dari 30 menit sebelum jam mulai shift dan tidak telat, ada absen
+ *   pulang, log tidak pernah diedit admin (editedBy terisi atau catatan
+ *   "Diedit manual." = hangus);
+ * - terlambat = denda sebesar menit telat mentah (tanpa toleransi 10
+ *   menit); denda berlaku begitu ada absen masuk yang telat, walau tanpa
+ *   absen pulang; log yang diedit = 0 poin (tanpa bonus maupun denda);
+ * - tidak hadir / terlalu awal / tanpa absen pulang = 0 poin.
+ * Peringkat diurutkan dari JUMLAH poin terbanyak selama periode (bukan
+ * rasio terhadap jadwal masing-masing — itu tidak adil bagi yang jadwalnya
+ * sedikit; keputusan Ucok 2026-11-15). Seri: nama naik. Juara 1–3 tampil
+ * sebagai podium (juara 2 kiri, juara 1 tengah, juara 3 kanan); juara 1
+ * memakai cincin api.
  */
 
-/** Jumlah hari dalam rentang (inklusif) dari dua tanggal yyyy-mm-dd. */
-export function hitungHariPeriode(dari: string, sampai: string): number {
-  const awal = Date.UTC(
-    Number(dari.slice(0, 4)),
-    Number(dari.slice(5, 7)) - 1,
-    Number(dari.slice(8, 10)),
-  );
-  const akhir = Date.UTC(
-    Number(sampai.slice(0, 4)),
-    Number(sampai.slice(5, 7)) - 1,
-    Number(sampai.slice(8, 10)),
-  );
-  return Math.max(0, Math.round((akhir - awal) / 86_400_000) + 1);
-}
-
 export const BATAS_AWAL_MASUK_MENIT = 30;
+/** Poin dasar satu hari valid; satu menit awal/telat = 1 poin. */
+export const POIN_HARI_VALID = 30;
 export const JUMLAH_TOP = 10;
 
 export type HariTerjadwal = {
@@ -64,7 +51,7 @@ export type PeringkatTop = {
   cabang: string | null;
   valid: number;
   total: number;
-  /** 0..1 */
+  /** Poin total selama periode (bilangan bulat, bisa negatif). */
   skor: number;
 };
 
@@ -83,22 +70,49 @@ export function hariValid(
   return true;
 }
 
+/**
+ * Poin satu hari: 30 + menit datang lebih awal bila hari valid,
+ * -menit telat bila terlambat, 0 bila tidak hadir / terlalu awal /
+ * tanpa absen pulang / log diedit.
+ */
+export function hitungPoinHari(
+  hari: HariTerjadwal,
+  absensi: BarisAbsensiTop | undefined,
+): number {
+  if (!absensi || absensi.masukMenit == null) return 0;
+  // Log yang pernah diedit admin menghanguskan hari itu sepenuhnya.
+  if (absensi.editedBy != null) return 0;
+  if (absensi.catatan?.includes("Diedit manual.")) return 0;
+  // Terlambat: denda menit telat mentah (tanpa toleransi).
+  if (absensi.masukMenit > hari.mulaiMenit) {
+    return -(absensi.masukMenit - hari.mulaiMenit);
+  }
+  // Terlalu awal (lebih dari 30 menit sebelum shift): hari tidak valid.
+  if (absensi.masukMenit < hari.mulaiMenit - BATAS_AWAL_MASUK_MENIT) return 0;
+  // Tanpa absen pulang: hari tidak valid.
+  if (absensi.keluarMenit == null) return 0;
+  // Hari valid: 30 poin + menit datang lebih awal.
+  return POIN_HARI_VALID + (hari.mulaiMenit - absensi.masukMenit);
+}
+
 export function hitungPeringkat(
   hari: HariTerjadwal[],
   absensi: BarisAbsensiTop[],
   pengguna: PenggunaTop[],
-  hariPeriode: number,
 ): PeringkatTop[] {
   const absensiPerKunci = new Map(
     absensi.map((a) => [`${a.userId}|${a.tanggal}`, a]),
   );
-  const perPengguna = new Map<string, { valid: number; total: number }>();
+  const perPengguna = new Map<
+    string,
+    { valid: number; total: number; skor: number }
+  >();
   for (const h of hari) {
-    const hitung = perPengguna.get(h.userId) ?? { valid: 0, total: 0 };
+    const hitung = perPengguna.get(h.userId) ?? { valid: 0, total: 0, skor: 0 };
     hitung.total += 1;
-    if (hariValid(h, absensiPerKunci.get(`${h.userId}|${h.tanggal}`))) {
-      hitung.valid += 1;
-    }
+    const baris = absensiPerKunci.get(`${h.userId}|${h.tanggal}`);
+    if (hariValid(h, baris)) hitung.valid += 1;
+    hitung.skor += hitungPoinHari(h, baris);
     perPengguna.set(h.userId, hitung);
   }
   const penggunaPerId = new Map(pengguna.map((p) => [p.id, p]));
@@ -113,8 +127,7 @@ export function hitungPeringkat(
       cabang: p.cabang,
       valid: hitung.valid,
       total: hitung.total,
-      // Penyebut periode (sama untuk semua) — bukan jadwal masing-masing.
-      skor: hariPeriode > 0 ? hitung.valid / hariPeriode : 0,
+      skor: hitung.skor,
     });
   }
   hasil.sort((a, b) => b.skor - a.skor || a.nama.localeCompare(b.nama));

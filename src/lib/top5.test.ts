@@ -3,8 +3,8 @@ import {
   BATAS_AWAL_MASUK_MENIT,
   bagiPodium,
   hariValid,
-  hitungHariPeriode,
   hitungPeringkat,
+  hitungPoinHari,
   type BarisAbsensiTop,
   type HariTerjadwal,
   type PeringkatTop,
@@ -77,6 +77,62 @@ describe("hariValid", () => {
   });
 });
 
+describe("hitungPoinHari", () => {
+  it("30 menit lebih awal = 60 poin (30 dasar + 30 awal)", () => {
+    expect(
+      hitungPoinHari(hari("u1", "2026-11-10"), absen("u1", "2026-11-10", MULAI - 30)),
+    ).toBe(60);
+  });
+
+  it("tepat jam mulai = 30 poin", () => {
+    expect(
+      hitungPoinHari(hari("u1", "2026-11-10"), absen("u1", "2026-11-10", MULAI)),
+    ).toBe(30);
+  });
+
+  it("terlambat 25 menit = -25 poin (denda menit mentah)", () => {
+    expect(
+      hitungPoinHari(hari("u1", "2026-11-10"), absen("u1", "2026-11-10", MULAI + 25)),
+    ).toBe(-25);
+  });
+
+  it("terlambat tetap kena denda walau tanpa absen pulang", () => {
+    expect(
+      hitungPoinHari(
+        hari("u1", "2026-11-10"),
+        absen("u1", "2026-11-10", MULAI + 25, null),
+      ),
+    ).toBe(-25);
+  });
+
+  it("log diedit = 0 poin, tanpa bonus maupun denda", () => {
+    expect(
+      hitungPoinHari(
+        hari("u1", "2026-11-10"),
+        absen("u1", "2026-11-10", MULAI + 25, 1020, { editedBy: "admin-1" }),
+      ),
+    ).toBe(0);
+    expect(
+      hitungPoinHari(
+        hari("u1", "2026-11-10"),
+        absen("u1", "2026-11-10", MULAI - 30, 1020, { editedBy: "admin-1" }),
+      ),
+    ).toBe(0);
+  });
+
+  it("terlalu awal (31 menit) = 0 poin", () => {
+    expect(
+      hitungPoinHari(hari("u1", "2026-11-10"), absen("u1", "2026-11-10", MULAI - 31)),
+    ).toBe(0);
+  });
+
+  it("tanpa absen pulang di hari tepat waktu = 0 poin", () => {
+    expect(
+      hitungPoinHari(hari("u1", "2026-11-10"), absen("u1", "2026-11-10", MULAI, null)),
+    ).toBe(0);
+  });
+});
+
 describe("hitungPeringkat", () => {
   const pengguna = [
     { id: "u1", nama: "Fajri", foto: null, cabang: "KWSN" },
@@ -84,7 +140,7 @@ describe("hitungPeringkat", () => {
     { id: "u3", nama: "Dedi", foto: null, cabang: "MDC" },
   ];
 
-  it("urut jumlah hari valid turun (bukan rasio), lalu nama", () => {
+  it("urut poin turun, lalu nama", () => {
     const hariList = [
       hari("u1", "2026-11-10"), hari("u1", "2026-11-11"),
       hari("u2", "2026-11-10"), hari("u2", "2026-11-11"),
@@ -95,19 +151,31 @@ describe("hitungPeringkat", () => {
       absen("u2", "2026-11-10", MULAI), absen("u2", "2026-11-11", MULAI + 5),
       absen("u3", "2026-11-10", MULAI), absen("u3", "2026-11-11", MULAI),
     ];
-    // u1: 2 valid; u3: 2 valid dari 3 terjadwal; u2: 1 valid.
-    // Rasio lama menaruh u1 (2/2) di atas u3 (2/3); aturan baru (jumlah
-    // hari valid, penyebut periode sama) menaruh keduanya sejajar lalu
-    // nama naik: Dedi sebelum Fajri.
-    const hasil = hitungPeringkat(hariList, absensi, pengguna, 31);
+    // u1: 2 hari tepat waktu = 60; u3: 2 hari tepat waktu = 60 (seri, nama
+    // naik: Dedi sebelum Fajri); u2: 30 + (-5) = 25.
+    const hasil = hitungPeringkat(hariList, absensi, pengguna);
     expect(hasil.map((h) => h.userId)).toEqual(["u3", "u1", "u2"]);
-    expect(hasil[0].skor).toBeCloseTo(2 / 31);
-    expect(hasil[2].skor).toBeCloseTo(1 / 31);
+    expect(hasil[0].skor).toBe(60);
+    expect(hasil[1].skor).toBe(60);
+    expect(hasil[2].skor).toBe(25);
+  });
+
+  it("contoh Ucok: 30 menit awal lalu telat 25 menit = 35 poin", () => {
+    const hasil = hitungPeringkat(
+      [hari("u1", "2026-11-10"), hari("u1", "2026-11-11")],
+      [
+        absen("u1", "2026-11-10", MULAI - 30),
+        absen("u1", "2026-11-11", MULAI + 25),
+      ],
+      pengguna,
+    );
+    expect(hasil[0].skor).toBe(35);
+    expect(hasil[0].valid).toBe(1);
   });
 
   it("yang jadwalnya sedikit tidak terdongkrak rasionya", () => {
-    // Kasus Ucok: Irfan 7/17 (41%) vs Julianer 17/31 (55%). Dengan
-    // penyebut periode (31), Irfan 7/31 tetap di bawah Julianer 17/31.
+    // Kasus Ucok: Irfan 7/17 (41%) vs Julianer 17/31 (55%). Dengan skor
+    // poin (tepat waktu = 30/hari), Irfan 210 tetap di bawah Julianer 510.
     const penggunaKasus = [
       { id: "irfan", nama: "Irfan", foto: null, cabang: "SDNKG" },
       { id: "julianer", nama: "Julianer", foto: null, cabang: "KWSN" },
@@ -123,15 +191,12 @@ describe("hitungPeringkat", () => {
       ...tanggal.slice(0, 7).map((t) => absen("irfan", t, MULAI)),
       ...tanggal.slice(0, 17).map((t) => absen("julianer", t, MULAI)),
     ];
-    const hasil = hitungPeringkat(hariList, absensi, penggunaKasus, 31);
+    const hasil = hitungPeringkat(hariList, absensi, penggunaKasus);
     expect(hasil.map((h) => h.userId)).toEqual(["julianer", "irfan"]);
     expect(hasil[0].valid).toBe(17);
+    expect(hasil[0].skor).toBe(510);
     expect(hasil[1].valid).toBe(7);
-  });
-
-  it("hitungHariPeriode: 28/10–27/11 = 31 hari", () => {
-    expect(hitungHariPeriode("2026-10-28", "2026-11-27")).toBe(31);
-    expect(hitungHariPeriode("2026-11-10", "2026-11-10")).toBe(1);
+    expect(hasil[1].skor).toBe(210);
   });
 
   it("karyawan tanpa hari terjadwal tidak masuk peringkat", () => {
@@ -139,7 +204,6 @@ describe("hitungPeringkat", () => {
       [hari("u1", "2026-11-10")],
       [absen("u1", "2026-11-10", MULAI)],
       pengguna,
-      31,
     );
     expect(hasil.map((h) => h.userId)).toEqual(["u1"]);
   });
@@ -153,7 +217,7 @@ describe("hitungPeringkat", () => {
     }));
     const hariList = banyak.map((p) => hari(p.id, "2026-11-10"));
     const absensi = banyak.map((p) => absen(p.id, "2026-11-10", MULAI));
-    expect(hitungPeringkat(hariList, absensi, banyak, 31)).toHaveLength(10);
+    expect(hitungPeringkat(hariList, absensi, banyak)).toHaveLength(10);
   });
 });
 
@@ -166,7 +230,7 @@ describe("bagiPodium", () => {
       cabang: null,
       valid: 10 - i,
       total: 10,
-      skor: (10 - i) / 10,
+      skor: (10 - i) * 30,
     }));
 
   it("3 orang: podium 2-1-3, sisanya kosong", () => {
