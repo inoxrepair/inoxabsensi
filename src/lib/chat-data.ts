@@ -17,6 +17,13 @@ import {
  * Pesan kadaluarsa (lebih dari 24 jam) tidak pernah ditampilkan (filter
  * di query) dan dihapus permanen oleh sapuPesanKadaluarsa() tiap kali
  * chat dibaca atau dikirim.
+ *
+ * PENTING: batas waktu dikirim sebagai objek Date, BUKAN string ISO.
+ * Postgres menolak parameter teks dibanding kolom timestamp
+ * ("operator does not exist: timestamp >= text") sehingga baca chat
+ * selalu gagal diam-diam di production — sementara SQLite lokal
+ * mengonversi string bebas, jadi repro lokal lolos. Itu penyebab bubble
+ * chat tidak pernah muncul walau pesan tersimpan (ditemukan 2026-11-15).
  */
 
 type BarisPesan = {
@@ -46,7 +53,8 @@ function kePesan(b: BarisPesan): PesanChat {
 /** Hapus permanen pesan yang sudah lewat 24 jam. Tidak pernah melempar. */
 export async function sapuPesanKadaluarsa(): Promise<void> {
   try {
-    const batas = new Date(Date.now() - BATAS_CHAT_MS).toISOString();
+    // Objek Date (bukan string ISO): lihat catatan di atas file.
+    const batas = new Date(Date.now() - BATAS_CHAT_MS);
     await db.$executeRaw`DELETE FROM "ChatPesan" WHERE "dibuatPada" < ${batas}`;
   } catch (error) {
     // Pembersihan tidak boleh menggagalkan baca/kirim chat, tapi kegagalan
@@ -59,7 +67,8 @@ export async function sapuPesanKadaluarsa(): Promise<void> {
 export async function ambilPesanChat(): Promise<PesanChat[]> {
   await sapuPesanKadaluarsa();
   try {
-    const batas = new Date(Date.now() - BATAS_CHAT_MS).toISOString();
+    // Objek Date (bukan string ISO): lihat catatan di atas file.
+    const batas = new Date(Date.now() - BATAS_CHAT_MS);
     const rows = await db.$queryRaw<BarisPesan[]>`
       SELECT p."id", p."pengirimId", p."isi", p."foto", p."suara", p."dibuatPada",
         u."name" AS "nama", u."image" AS "fotoProfil"
@@ -120,7 +129,8 @@ export async function berhentiMengetik(userId: string): Promise<void> {
 /** Nama pengguna lain yang sedang mengetik (maks. 3, tanpa diri sendiri). */
 export async function ambilYangMengetik(userIdSaya: string): Promise<string[]> {
   try {
-    const batas = new Date(Date.now() - BATAS_MENGETIK_MS).toISOString();
+    // Objek Date (bukan string ISO): lihat catatan di atas file.
+    const batas = new Date(Date.now() - BATAS_MENGETIK_MS);
     await db.$executeRaw`DELETE FROM "ChatMengetik" WHERE "diperbarui" < ${batas}`;
     const rows = await db.$queryRaw<{ nama: string | null }[]>`
       SELECT u."name" AS "nama"
