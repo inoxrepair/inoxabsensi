@@ -17,9 +17,11 @@ export default async function KaryawanJadwalPage() {
   const hariIni = tanggalLokal();
   const senin = awalMinggu(hariIni);
   const minggu = Array.from({ length: 7 }, (_, i) => tanggalGeser(senin, i));
+  const seninDepan = tanggalGeser(senin, 7);
+  const mingguDepan = Array.from({ length: 7 }, (_, i) => tanggalGeser(seninDepan, i));
 
   const jadwal = await db.jadwal.findMany({
-    where: { userId: sesi.id, tanggal: { in: minggu } },
+    where: { userId: sesi.id, tanggal: { in: [...minggu, ...mingguDepan] } },
     select: {
       tanggal: true,
       seragam: true,
@@ -29,16 +31,12 @@ export default async function KaryawanJadwalPage() {
   });
 
   const perTanggal = new Map(jadwal.map((j) => [j.tanggal, j]));
+  const adaJadwal = (daftar: string[]) => daftar.some((tgl) => perTanggal.has(tgl));
 
-  return (
-    <>
-      <h1 className="text-xl font-semibold tracking-tight">Jadwal Saya</h1>
-      <p className="mt-1 text-sm text-muted">
-        Minggu {formatTanggal(senin)} – {formatTanggal(minggu[6])}
-      </p>
-
-      <ul className="mt-5 divide-y divide-line rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
-        {minggu.map((tgl) => {
+  function daftarMinggu(daftar: string[]) {
+    return (
+      <ul className="mt-3 divide-y divide-line rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
+        {daftar.map((tgl) => {
           const j = perTanggal.get(tgl);
           const iniHariIni = tgl === hariIni;
 
@@ -82,12 +80,37 @@ export default async function KaryawanJadwalPage() {
           );
         })}
       </ul>
+    );
+  }
 
-      {jadwal.length === 0 ? (
+  return (
+    <>
+      <h1 className="text-xl font-semibold tracking-tight">Jadwal Saya</h1>
+
+      <h2 className="mt-5 text-sm font-semibold">Minggu ini</h2>
+      <p className="mt-1 text-sm text-muted">
+        Minggu {formatTanggal(senin)} – {formatTanggal(minggu[6])}
+      </p>
+      {daftarMinggu(minggu)}
+      {adaJadwal(minggu) ? null : (
         <p className="mt-4 rounded-xl bg-surface px-3.5 py-3 text-center text-xs text-muted">
           Belum ada jadwal yang disusun admin untuk minggu ini.
         </p>
-      ) : null}
+      )}
+
+      <h2 className="mt-8 text-sm font-semibold">Minggu depan (bayangan)</h2>
+      <p className="mt-1 text-sm text-muted">
+        Minggu {formatTanggal(seninDepan)} – {formatTanggal(mingguDepan[6])}
+      </p>
+      <p className="mt-1 text-xs text-muted">
+        Bayangan — jadwal ini masih bisa berubah.
+      </p>
+      {daftarMinggu(mingguDepan)}
+      {adaJadwal(mingguDepan) ? null : (
+        <p className="mt-4 rounded-xl bg-surface px-3.5 py-3 text-center text-xs text-muted">
+          Belum ada jadwal bayangan untuk minggu depan.
+        </p>
+      )}
     </>
   );
 }
