@@ -205,12 +205,32 @@ textarea {
   animation: inox-putar-api 4s linear infinite;
 }
 
+/**
+ * Cincin biru untuk peringkat 2 & 3 Top 10: lebih kecil dan lebih minim
+ * animasinya daripada cincin api juara 1 — putaran lebih lambat (8 dtk)
+ * dan tanpa pijar berdenyut.
+ */
+.inox-cincin-biru {
+  background: conic-gradient(
+    from 0deg,
+    #3b82f6,
+    #60a5fa,
+    #1d4ed8,
+    #3b82f6,
+    #60a5fa,
+    #1d4ed8,
+    #3b82f6
+  );
+  animation: inox-putar-api 8s linear infinite;
+}
+
 .inox-nyala-api {
   animation: inox-nyala-api 1.6s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .inox-cincin-api,
+  .inox-cincin-biru,
   .inox-nyala-api {
     animation: none;
   }

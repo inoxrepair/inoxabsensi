@@ -146,3 +146,41 @@ export async function ambilYangMengetik(userIdSaya: string): Promise<string[]> {
     return [];
   }
 }
+
+/**
+ * Jumlah pesan 24 jam terakhir dari orang lain yang belum dibaca
+ * pengguna (dibuat setelah terakhir ia membuka chat). Tanpa baris
+ * ChatDibaca, semua pesan dihitung belum dibaca. Tidak pernah melempar —
+ * lencana cukup hilang bila tabel bermasalah (sebelum migrasi jalan).
+ */
+export async function hitungPesanBelumDibaca(userId: string): Promise<number> {
+  try {
+    // Objek Date (bukan string ISO): lihat catatan di atas file.
+    const batas = new Date(Date.now() - BATAS_CHAT_MS);
+    const rows = await db.$queryRaw<{ jumlah: bigint }[]>`
+      SELECT COUNT(*) AS "jumlah"
+      FROM "ChatPesan" p
+      LEFT JOIN "ChatDibaca" d ON d."userId" = ${userId}
+      WHERE p."dibuatPada" >= ${batas}
+        AND p."pengirimId" != ${userId}
+        AND (d."dibacaPada" IS NULL OR p."dibuatPada" > d."dibacaPada")
+    `;
+    return Number(rows[0]?.jumlah ?? 0);
+  } catch (error) {
+    console.error("[chat] hitungPesanBelumDibaca gagal:", error);
+    return 0;
+  }
+}
+
+/** Tandai semua pesan chat sudah dibaca (saat membuka halaman chat). */
+export async function tandaiChatDibaca(userId: string): Promise<void> {
+  try {
+    await db.$executeRaw`
+      INSERT INTO "ChatDibaca" ("userId", "dibacaPada")
+      VALUES (${userId}, CURRENT_TIMESTAMP)
+      ON CONFLICT ("userId") DO UPDATE SET "dibacaPada" = CURRENT_TIMESTAMP
+    `;
+  } catch (error) {
+    console.error("[chat] tandaiChatDibaca gagal:", error);
+  }
+}

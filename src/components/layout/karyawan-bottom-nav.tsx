@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { LencanaJumlah } from "@/components/ui/lencana-jumlah";
 import { KARYAWAN_NAV } from "@/lib/nav";
 
 /** Ikon minimalis (stroke only) agar konsisten dengan palet hitam-putih. */
@@ -71,7 +72,11 @@ function ikon(menu: string, aktif: boolean) {
  * + lembar "Lainnya" untuk menu sisanya (Riwayat, Kasbon, Izin, Insentif,
  * Profil). Bar tetap ringkas; semua menu tetap satu ketukan jauhnya.
  */
-export function KaryawanBottomNav() {
+export function KaryawanBottomNav({
+  jmlBelumDibacaChat = 0,
+}: {
+  jmlBelumDibacaChat?: number;
+}) {
   const pathname = usePathname();
   const [buka, setBuka] = useState(false);
 
@@ -105,7 +110,15 @@ export function KaryawanBottomNav() {
                     active ? "font-medium text-ink" : "text-muted"
                   }`}
                 >
-                  {ikon(item.menu, active)}
+                  <span className="relative">
+                    {ikon(item.menu, active)}
+                    {item.menu === "chat" ? (
+                      <LencanaJumlah
+                        jumlah={jmlBelumDibacaChat}
+                        className="absolute -top-1.5 -right-2.5"
+                      />
+                    ) : null}
+                  </span>
                   {item.label}
                 </Link>
               </li>

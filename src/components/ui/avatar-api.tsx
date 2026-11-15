@@ -1,7 +1,8 @@
 /**
- * Foto profil juara 1 Top 10 dengan cincin api: gradasi api berputar +
- * pijar berdenyut di belakangnya (lihat .inox-cincin-api di globals.css).
- * `besar` = ukuran podium (96px); kecil = ukuran avatar chat (28px).
+ * Foto profil juara Top 10 dengan cincin beranimasi (lihat globals.css).
+ * `besar` = juara 1 (96px, cincin api + pijar); `biru` = peringkat 2 & 3
+ * (72px, cincin biru lebih tipis, putaran lebih lambat, tanpa pijar);
+ * tanpa keduanya = ukuran avatar chat (28px, cincin api kecil).
  * Dipakai halaman Top 10 dan daftar chat (foto pengirim juara 1).
  */
 
@@ -16,11 +17,33 @@ export function AvatarApi({
   foto,
   nama,
   besar = false,
+  biru = false,
 }: {
   foto: string | null;
   nama: string;
   besar?: boolean;
+  biru?: boolean;
 }) {
+  if (biru) {
+    return (
+      <div className="relative size-[72px] shrink-0">
+        <div aria-hidden="true" className="inox-cincin-biru absolute inset-0 rounded-full" />
+        <div className="absolute inset-[2px] rounded-full bg-paper" />
+        {foto ? (
+          <img
+            src={foto}
+            alt={`Foto ${nama}`}
+            className="absolute inset-[4px] size-16 rounded-full object-cover"
+          />
+        ) : (
+          <span className="absolute inset-[4px] flex size-16 items-center justify-center rounded-full bg-surface text-base font-semibold">
+            {inisial(nama)}
+          </span>
+        )}
+      </div>
+    );
+  }
+
   if (!besar) {
     return (
       <span className="relative size-7 shrink-0">

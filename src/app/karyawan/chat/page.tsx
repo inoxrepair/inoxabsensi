@@ -1,4 +1,4 @@
-import { ambilPesanChat, ambilYangMengetik } from "@/lib/chat-data";
+import { ambilPesanChat, ambilYangMengetik, tandaiChatDibaca } from "@/lib/chat-data";
 import { ambilTop5 } from "@/lib/top5-data";
 import { wajibLogin } from "@/lib/session";
 import { DaftarChat } from "./daftar-chat";
@@ -13,6 +13,7 @@ export default async function ChatPage() {
     ambilPesanChat(),
     ambilYangMengetik(sesi.id),
     ambilTop5(),
+    tandaiChatDibaca(sesi.id),
   ]);
 
   return (

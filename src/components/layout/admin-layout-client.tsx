@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { TombolKeluar } from "@/components/layout/tombol-keluar";
 import { IkonMenu } from "@/components/ui/ikon-menu";
+import { LencanaJumlah } from "@/components/ui/lencana-jumlah";
 import type { NavItem } from "@/lib/nav";
 
 /**
@@ -30,12 +31,14 @@ export function AdminLayoutClient({
   nama,
   labelRole,
   versiLogo,
+  jmlBelumDibacaChat = 0,
   children,
 }: {
   menu: NavItem[];
   nama: string;
   labelRole: string;
   versiLogo: string | null;
+  jmlBelumDibacaChat?: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -104,13 +107,19 @@ export function AdminLayoutClient({
                       title={item.label}
                       aria-label={item.label}
                       aria-current={isAktif ? "page" : undefined}
-                      className={`mx-auto grid size-10 place-items-center rounded-lg transition-colors ${
+                      className={`relative mx-auto grid size-10 place-items-center rounded-lg transition-colors ${
                         isAktif
                           ? "bg-ink text-paper"
                           : "text-muted hover:bg-white/70 dark:bg-zinc-900/60 hover:text-ink"
                       }`}
                     >
                       <IkonMenu href={item.href} className="size-5" />
+                      {item.menu === "chat" ? (
+                        <LencanaJumlah
+                          jumlah={jmlBelumDibacaChat}
+                          className="absolute -top-1 -right-1"
+                        />
+                      ) : null}
                     </Link>
                   </li>
                 );
@@ -128,6 +137,12 @@ export function AdminLayoutClient({
                   >
                     <IkonMenu href={item.href} className="size-5 shrink-0" />
                     {item.label}
+                    {item.menu === "chat" ? (
+                      <LencanaJumlah
+                        jumlah={jmlBelumDibacaChat}
+                        className="ml-auto"
+                      />
+                    ) : null}
                   </Link>
                 </li>
               );
@@ -212,6 +227,12 @@ export function AdminLayoutClient({
                       >
                         <IkonMenu href={item.href} className="size-5 shrink-0" />
                         {item.label}
+                        {item.menu === "chat" ? (
+                          <LencanaJumlah
+                            jumlah={jmlBelumDibacaChat}
+                            className="ml-auto"
+                          />
+                        ) : null}
                       </Link>
                     </li>
                   );

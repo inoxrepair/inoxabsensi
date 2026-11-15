@@ -12,23 +12,6 @@ function inisial(nama: string): string {
   return huruf.join("").toUpperCase() || "?";
 }
 
-function AvatarBiasa({ foto, nama }: { foto: string | null; nama: string }) {
-  if (foto) {
-    return (
-      <img
-        src={foto}
-        alt={`Foto ${nama}`}
-        className="size-16 shrink-0 rounded-full object-cover"
-      />
-    );
-  }
-  return (
-    <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-surface text-base font-semibold">
-      {inisial(nama)}
-    </span>
-  );
-}
-
 /** Tinggi balok podium per peringkat (juara 1 paling tinggi). */
 const TINGGI_PODIUM: Record<number, string> = {
   1: "h-20",
@@ -38,8 +21,9 @@ const TINGGI_PODIUM: Record<number, string> = {
 
 /** Top 10 performa absensi untuk siklus gajian berjalan. Juara 1–3 tampil
  * sebagai podium (juara 2 kiri, juara 1 tengah dengan cincin api, juara 3
- * kanan), peringkat 4–10 sebagai daftar di bawahnya. Peringkat diurutkan
- * dari jumlah poin terbanyak (lihat hitungPoinHari di lib/top5).
+ * kanan; peringkat 2 & 3 memakai cincin biru yang lebih kecil dan lebih
+ * minim animasinya), peringkat 4–10 sebagai daftar di bawahnya. Peringkat
+ * diurutkan dari jumlah poin terbanyak (lihat hitungPoinHari di lib/top5).
  */
 export const dynamic = "force-dynamic";
 
@@ -74,7 +58,7 @@ export default async function Top5Page() {
                 {rank === 1 ? (
                   <AvatarApi foto={item.foto} nama={item.nama} besar />
                 ) : (
-                  <AvatarBiasa foto={item.foto} nama={item.nama} />
+                  <AvatarApi foto={item.foto} nama={item.nama} biru />
                 )}
                 <p className="w-full truncate text-center text-xs font-semibold">
                   {item.nama}

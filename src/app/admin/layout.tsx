@@ -1,5 +1,6 @@
 import { AdminLayoutClient } from "@/components/layout/admin-layout-client";
 import { LatarLiquid } from "@/components/ui/latar-liquid";
+import { hitungPesanBelumDibaca } from "@/lib/chat-data";
 import { LABEL_ROLE } from "@/lib/domain";
 import { menuDiizinkan, wajibLogin } from "@/lib/session";
 import { ADMIN_NAV } from "@/lib/nav";
@@ -14,6 +15,7 @@ export default async function AdminLayout({
   const izin = await menuDiizinkan(user.role);
   const menu = ADMIN_NAV.filter((n) => izin.has(n.menu));
   const versiLogo = await bacaVersiLogo();
+  const jmlBelumDibacaChat = await hitungPesanBelumDibaca(user.id);
 
   return (
     <div className="relative min-h-dvh">
@@ -23,6 +25,7 @@ export default async function AdminLayout({
         nama={user.nama}
         labelRole={LABEL_ROLE[user.role]}
         versiLogo={versiLogo}
+        jmlBelumDibacaChat={jmlBelumDibacaChat}
       >
         {children}
       </AdminLayoutClient>

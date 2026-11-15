@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/ui/primitives";
-import { ambilPesanChat, ambilYangMengetik } from "@/lib/chat-data";
+import { ambilPesanChat, ambilYangMengetik, tandaiChatDibaca } from "@/lib/chat-data";
 import { ambilTop5 } from "@/lib/top5-data";
 import { wajibAkses } from "@/lib/session";
 import { DaftarChat } from "@/app/karyawan/chat/daftar-chat";
@@ -14,6 +14,7 @@ export default async function ChatAdminPage() {
     ambilPesanChat(),
     ambilYangMengetik(sesi.id),
     ambilTop5(),
+    tandaiChatDibaca(sesi.id),
   ]);
 
   return (
