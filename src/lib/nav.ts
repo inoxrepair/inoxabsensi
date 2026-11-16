@@ -12,6 +12,10 @@ export type NavItem = {
 /** Menu admin (sidebar, desktop) */
 export const ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "Dashboard", menu: "dashboard" },
+  // Absen membuka halaman absen /karyawan yang sama (tombol + GPS + shift);
+  // server action absen tidak membatasi role, jadi admin cabang yang
+  // punya jadwal shift bisa absen seperti karyawan.
+  { href: "/karyawan", label: "Absen", menu: "absen" },
   { href: "/admin/cabang", label: "Cabang", menu: "cabang" },
   { href: "/admin/karyawan", label: "Karyawan", menu: "karyawan" },
   { href: "/admin/log-absensi", label: "Log Absensi", menu: "karyawan" },

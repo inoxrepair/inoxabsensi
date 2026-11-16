@@ -66,6 +66,7 @@ export const bacaStatusKasbon = pembaca(STATUS_KASBON, "pending");
 /** Key menu admin; dicocokkan dengan tabel RolePermission. */
 export const MENU_ADMIN = [
   "dashboard",
+  "absen",
   "cabang",
   "karyawan",
   "jadwal",
@@ -84,9 +85,12 @@ export type MenuAdmin = (typeof MENU_ADMIN)[number];
 /** Hak akses bawaan saat seed. Sesudah itu sumbernya tabel RolePermission. */
 export const AKSES_DEFAULT: Record<RoleKaryawan, readonly MenuAdmin[]> = {
   super_admin: MENU_ADMIN,
-  admin_cabang: ["dashboard", "karyawan", "jadwal", "rekap", "kasbon", "insentif", "chat", "top5"],
+  // Admin cabang bisa absen seperti karyawan (jadwal shift-nya sudah ada,
+  // server action absen memang tidak membatasi role); menunya mengarah ke
+  // halaman absen /karyawan yang sama.
+  admin_cabang: ["dashboard", "absen", "karyawan", "jadwal", "rekap", "kasbon", "insentif", "chat", "top5"],
   // Rekap pribadi tersedia di /karyawan/riwayat; akses admin Headstore
   // hanya untuk menyusun jadwal cabangnya.
-  headstore: ["dashboard", "jadwal", "chat", "top5"],
+  headstore: ["dashboard", "absen", "jadwal", "chat", "top5"],
   karyawan: [],
 };

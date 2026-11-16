@@ -39,6 +39,14 @@ export function IkonMenu({
           <rect x="13" y="13" width="7" height="7" rx="1.5" />
         </Bingkai>
       );
+    case "/karyawan":
+      // Absen: jam (menu admin menuju halaman absen).
+      return (
+        <Bingkai {...props}>
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M12 7.5V12l3 2" />
+        </Bingkai>
+      );
     case "/admin/cabang":
       // Cabang: gedung kantor.
       return (
