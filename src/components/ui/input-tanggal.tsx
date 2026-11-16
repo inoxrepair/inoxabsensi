@@ -135,6 +135,21 @@ export function InputTanggal({
         aria-label={
           placeholder ?? (mode === "bulan" ? "Pilih bulan" : "Pilih tanggal")
         }
+        // Buka pemilih tanggal secara eksplisit: di sebagian browser,
+        // klik pada input transparan ini hanya memberi fokus tanpa
+        // membuka popup kalender (dilaporkan 16 Nov 2026). showPicker()
+        // wajib dipanggil dari gestur pengguna — onClick memenuhi itu.
+        // Bila browser sudah membuka popup dari kliknya sendiri,
+        // pemanggilan kedua ini no-op; bila tidak didukung, abaikan.
+        onClick={(e) => {
+          const el = e.currentTarget;
+          if (typeof el.showPicker !== "function") return;
+          try {
+            el.showPicker();
+          } catch {
+            // Abaikan: picker sudah terbuka atau browser menolak.
+          }
+        }}
         className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed disabled:opacity-0"
       />
     </div>
