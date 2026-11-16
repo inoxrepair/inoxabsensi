@@ -121,13 +121,22 @@ export default async function Top5Page() {
         </>
       )}
 
-      <p className="mt-4 text-xs text-muted">
-        Peringkat dari jumlah poin selama periode ini. Satu hari valid = 30
-        poin + menit datang lebih awal (maks. 30 menit). Terlambat mengurangi
-        poin sebesar menit telatnya (dihitung mentah, tanpa toleransi). Hari
-        tanpa absen pulang, absen lebih dari 30 menit sebelum jam shift, atau
-        log yang diedit = 0 poin. Shift fleksibel tidak masuk penilaian.
-      </p>
+      <div className="mt-4 text-xs text-muted">
+        <p>Peringkat dihitung dari total poin selama periode ini.</p>
+        <ul className="mt-1 list-disc space-y-0.5 pl-4">
+          <li>Masuk tepat waktu dan absen pulang: 30 poin.</li>
+          <li>Datang lebih awal: +1 poin per menit, maks. +30 poin.</li>
+          <li>
+            Telat: −1 poin per menit, tetap dihitung walau tidak absen
+            pulang. Tidak ada toleransi.
+          </li>
+          <li>
+            0 poin kalau: tidak absen pulang, datang lebih dari 30 menit
+            sebelum shift, atau absennya pernah diedit.
+          </li>
+          <li>Shift fleksibel tidak dihitung.</li>
+        </ul>
+      </div>
     </>
   );
 }
