@@ -7,15 +7,15 @@ import type { NextAuthConfig } from "next-auth";
  */
 export const authConfig = {
   /**
-   * Sesi login berlaku 1 hari sejak login. updateAge sengaja sama dengan
+   * Sesi login berlaku 8 jam sejak login. updateAge sengaja sama dengan
    * maxAge, jadi sesi TIDAK diperpanjang otomatis saat dipakai — karyawan
-   * login ulang tiap hari. Ini juga membatasi efek "password diubah
-   * diam-diam tertutup sesi lama" (dulu sampai 30 hari) menjadi 1 hari.
+   * login ulang tiap 8 jam. Ini juga membatasi efek "password diubah
+   * diam-diam tertutup sesi lama" (dulu sampai 30 hari) menjadi 8 jam.
    */
   session: {
     strategy: "jwt",
-    maxAge: 24 * 60 * 60,
-    updateAge: 24 * 60 * 60,
+    maxAge: 8 * 60 * 60,
+    updateAge: 8 * 60 * 60,
   },
   pages: { signIn: "/login" },
   providers: [],
