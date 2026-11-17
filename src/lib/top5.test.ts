@@ -4,9 +4,11 @@ import {
   bagiPodium,
   hariValid,
   hitungPeringkat,
+  hitungPeringkatPerbaikan,
   hitungPoinHari,
   type BarisAbsensiTop,
   type HariTerjadwal,
+  type MasukanPerbaikan,
   type PeringkatTop,
 } from "@/lib/top5";
 
@@ -250,5 +252,51 @@ describe("bagiPodium", () => {
     expect(bagiPodium(buat(1)).podium.map((p) => p.rank)).toEqual([1]);
     expect(bagiPodium(buat(2)).podium.map((p) => p.rank)).toEqual([2, 1]);
     expect(bagiPodium([]).podium).toEqual([]);
+  });
+});
+
+describe("hitungPeringkatPerbaikan", () => {
+  const buat = (
+    userId: string,
+    nama: string,
+    jumlahTransaksi: number,
+  ): MasukanPerbaikan => ({
+    userId,
+    nama,
+    foto: null,
+    cabang: "KWSN",
+    jumlahTransaksi,
+  });
+
+  it("urut poin turun, lalu nama; 1 perbaikan = 1 poin", () => {
+    const hasil = hitungPeringkatPerbaikan([
+      buat("u1", "Fajri", 12),
+      buat("u2", "Elsi", 24),
+      buat("u3", "Dedi", 12),
+    ]);
+    expect(hasil.map((h) => h.userId)).toEqual(["u2", "u3", "u1"]);
+    expect(hasil.map((h) => h.skor)).toEqual([24, 12, 12]);
+  });
+
+  it("satu nota dengan 2 perbaikan = 2 poin (per item, bukan per nota)", () => {
+    // jumlahTransaksi sudah menghitung per item/baris: 2 baris pada nota
+    // yang sama masuk sebagai 2, bukan 1.
+    const hasil = hitungPeringkatPerbaikan([buat("u1", "Fajri", 2)]);
+    expect(hasil[0].skor).toBe(2);
+  });
+
+  it("hanya yang poinnya > 0 yang masuk peringkat", () => {
+    const hasil = hitungPeringkatPerbaikan([
+      buat("u1", "Fajri", 5),
+      buat("u2", "Elsi", 0),
+    ]);
+    expect(hasil.map((h) => h.userId)).toEqual(["u1"]);
+  });
+
+  it("maksimal 10 orang", () => {
+    const banyak = Array.from({ length: 12 }, (_, i) =>
+      buat(`u${i}`, `Karyawan ${i}`, 12 - i),
+    );
+    expect(hitungPeringkatPerbaikan(banyak)).toHaveLength(10);
   });
 });

@@ -1,10 +1,14 @@
 import { db } from "@/lib/db";
+import { ambilInsentifRentang } from "@/lib/insentif";
 import { labelPeriode, rentangPeriodeGajian } from "@/lib/rekap";
 import {
   hitungPeringkat,
+  hitungPeringkatPerbaikan,
+  type MasukanPerbaikan,
   type BarisAbsensiTop,
   type HariTerjadwal,
   type PenggunaTop,
+  type PeringkatPerbaikan,
   type PeringkatTop,
 } from "@/lib/top5";
 import { tanggalLokal } from "@/lib/waktu";
@@ -57,6 +61,47 @@ export async function ambilTop5(): Promise<HasilTop5> {
       ...kosong,
       peringkat: hitungPeringkat(hari, absensi, pengguna),
     };
+  } catch {
+    return kosong;
+  }
+}
+
+export type HasilTopPerbaikan = {
+  peringkat: PeringkatPerbaikan[];
+  periode: string;
+  dari: string;
+  sampai: string;
+};
+
+/**
+ * Top 10 "Perbaikan": peringkat karyawan dari jumlah item/baris transaksi
+ * insentif (1 perbaikan = 1 poin) untuk siklus gajian berjalan yang sama
+ * dengan tab absensi. Foto diambil dari User (ringkasan insentif tidak
+ * membawa foto). Bila query gagal, halaman menampilkan empty state.
+ */
+export async function ambilTopPerbaikan(): Promise<HasilTopPerbaikan> {
+  const bulanIni = tanggalLokal().slice(0, 7);
+  const rentang = rentangPeriodeGajian(bulanIni);
+  const kosong: HasilTopPerbaikan = {
+    peringkat: [],
+    periode: labelPeriode(bulanIni),
+    dari: rentang.dari,
+    sampai: rentang.sampai,
+  };
+  try {
+    const ringkasan = await ambilInsentifRentang(rentang.dari, rentang.sampai);
+    const foto = await db.$queryRaw<{ id: string; foto: string | null }[]>`
+      SELECT "id", "image" AS "foto" FROM "User" WHERE "aktif" = true
+    `;
+    const fotoPerId = new Map(foto.map((f) => [f.id, f.foto]));
+    const masukan: MasukanPerbaikan[] = ringkasan.map((r) => ({
+      userId: r.userId,
+      nama: r.user.name,
+      foto: fotoPerId.get(r.userId) ?? null,
+      cabang: r.user.cabangNama,
+      jumlahTransaksi: r.jumlahTransaksi,
+    }));
+    return { ...kosong, peringkat: hitungPeringkatPerbaikan(masukan) };
   } catch {
     return kosong;
   }

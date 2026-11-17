@@ -415,6 +415,20 @@ export type HasilSinkronInsentif = {
 };
 
 /**
+ * Pengaman sinkron: bila feed mengembalikan 0 baris padahal database masih
+ * menyimpan baris di rentang itu, sinkron harus dibatalkan — feed yang
+ * tiba-tiba kosong hampir pasti gangguan, bukan data yang memang hilang;
+ * menghapus dulu baru tahu akan menghilangkan data yang masih benar.
+ * Rentang yang memang kosong (database juga kosong) boleh lanjut normal.
+ */
+export function harusBatalkanSinkronKosong(
+  jumlahFeed: number,
+  jumlahDb: number,
+): boolean {
+  return jumlahFeed === 0 && jumlahDb > 0;
+}
+
+/**
  * Jalankan satu kali sinkron insentif untuk periode "yyyy-mm".
  * Dipakai langsung oleh API route DAN server action — jangan panggil API
  * route lewat fetch dari server action, karena cookie sesi tidak ikut
@@ -472,6 +486,23 @@ export async function jalankanSinkronInsentif(
     startDate: tanggalDari,
     endDate: tanggalSampai,
   });
+
+  // Pengaman: feed kosong mendadak + data lama masih ada = batalkan
+  // SEBELUM ada baris yang dihapus (lihat harusBatalkanSinkronKosong).
+  // Gagal tarik feed sudah aman dengan sendirinya (throw di atas, belum
+  // ada yang dihapus); yang dijaga di sini adalah feed yang berhasil
+  // tapi isinya kosong/salah.
+  if (data.length === 0) {
+    const lama = await db.$queryRaw<{ jumlah: bigint }[]>`
+      SELECT COUNT(*) AS "jumlah" FROM "InsentifTransaksi"
+      WHERE "tanggal" >= ${tanggalDari} AND "tanggal" <= ${tanggalSampai}
+    `;
+    if (harusBatalkanSinkronKosong(data.length, Number(lama[0]?.jumlah ?? 0))) {
+      throw new Error(
+        "Sinkron dibatalkan: feed inox.my.id mengembalikan 0 baris padahal data lama masih ada di rentang ini.",
+      );
+    }
+  }
 
   // 4. Ambil semua user untuk matching nama + pemetaan manual
   const users = await db.user.findMany({

@@ -135,15 +135,56 @@ export function hitungPeringkat(
 }
 
 /**
+ * Ranking "Perbaikan" (tab kedua Top 10): 1 perbaikan = 1 poin, dihitung
+ * per item/baris transaksi insentif — satu nota dengan 2 perbaikan = 2
+ * poin (keputusan Ucok 2026-11-17). Tanpa nominal rupiah. Urutan sama
+ * seperti tab absensi: poin turun, seri nama naik, maksimal 10 besar,
+ * hanya yang poinnya > 0.
+ */
+export type MasukanPerbaikan = {
+  userId: string;
+  nama: string;
+  foto: string | null;
+  cabang: string | null;
+  /** Jumlah item/baris transaksi insentif pada periode ini. */
+  jumlahTransaksi: number;
+};
+
+export type PeringkatPerbaikan = {
+  userId: string;
+  nama: string;
+  foto: string | null;
+  cabang: string | null;
+  /** Poin = jumlah perbaikan (per item/baris transaksi). */
+  skor: number;
+};
+
+export function hitungPeringkatPerbaikan(
+  masukan: MasukanPerbaikan[],
+): PeringkatPerbaikan[] {
+  return masukan
+    .filter((m) => m.jumlahTransaksi > 0)
+    .map((m) => ({
+      userId: m.userId,
+      nama: m.nama,
+      foto: m.foto,
+      cabang: m.cabang,
+      skor: m.jumlahTransaksi,
+    }))
+    .sort((a, b) => b.skor - a.skor || a.nama.localeCompare(b.nama))
+    .slice(0, JUMLAH_TOP);
+}
+
+/**
  * Bagi peringkat jadi podium (juara 1–3, susunan tampil: 2 kiri, 1 tengah,
  * 3 kanan) dan sisanya (peringkat 4 ke bawah).
  */
-export function bagiPodium(peringkat: PeringkatTop[]): {
-  podium: { item: PeringkatTop; rank: number }[];
-  sisanya: PeringkatTop[];
+export function bagiPodium<T>(peringkat: T[]): {
+  podium: { item: T; rank: number }[];
+  sisanya: T[];
 } {
   const tiga = peringkat.slice(0, 3);
-  const podium: { item: PeringkatTop; rank: number }[] = [];
+  const podium: { item: T; rank: number }[] = [];
   if (tiga[1]) podium.push({ item: tiga[1], rank: 2 });
   if (tiga[0]) podium.push({ item: tiga[0], rank: 1 });
   if (tiga[2]) podium.push({ item: tiga[2], rank: 3 });

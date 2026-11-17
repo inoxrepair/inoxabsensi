@@ -3,6 +3,7 @@ import {
   bacaCookieDariHeaders,
   cocokkanUser,
   gabungkanCookie,
+  harusBatalkanSinkronKosong,
   kelompokkanInsentifPerUser,
   normalisasiNama,
   pecahSetCookie,
@@ -323,5 +324,21 @@ describe("ringkasInsentifPerUser", () => {
 
   it("daftar kosong menghasilkan ringkasan kosong", () => {
     expect(ringkasInsentifPerUser([])).toEqual([]);
+  });
+});
+
+describe("harusBatalkanSinkronKosong", () => {
+  it("feed 0 baris + DB masih ada data = batalkan", () => {
+    expect(harusBatalkanSinkronKosong(0, 5)).toBe(true);
+    expect(harusBatalkanSinkronKosong(0, 1)).toBe(true);
+  });
+
+  it("feed 0 baris + DB juga kosong = lanjut normal (rentang memang kosong)", () => {
+    expect(harusBatalkanSinkronKosong(0, 0)).toBe(false);
+  });
+
+  it("feed ada isinya = lanjut normal, berapa pun isi DB", () => {
+    expect(harusBatalkanSinkronKosong(3, 5)).toBe(false);
+    expect(harusBatalkanSinkronKosong(10, 0)).toBe(false);
   });
 });
