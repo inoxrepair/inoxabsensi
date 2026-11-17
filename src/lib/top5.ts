@@ -22,6 +22,25 @@ export const BATAS_AWAL_MASUK_MENIT = 30;
 export const POIN_HARI_VALID = 30;
 export const JUMLAH_TOP = 10;
 
+/**
+ * Umur cache peringkat Top 10 di memori proses: 5 menit. Peringkat hanya
+ * berubah bila ada yang absen atau sinkron insentif jalan, jadi jeda 5
+ * menit tidak terasa — tapi kunjungan berulang tidak mengulang query.
+ */
+export const TTL_CACHE_TOP5_MS = 5 * 60 * 1000;
+
+/**
+ * true bila entri cache yang disimpan pada `disimpanPadaMs` masih segar
+ * pada `sekarangMs`. Dipakai cache di top5-data (kunci = rentang gajian).
+ */
+export function cacheTop5Segar(
+  disimpanPadaMs: number,
+  sekarangMs: number = Date.now(),
+  ttlMs: number = TTL_CACHE_TOP5_MS,
+): boolean {
+  return sekarangMs - disimpanPadaMs < ttlMs;
+}
+
 export type HariTerjadwal = {
   userId: string;
   tanggal: string;

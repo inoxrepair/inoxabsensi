@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   BATAS_AWAL_MASUK_MENIT,
   bagiPodium,
+  cacheTop5Segar,
   hariValid,
   hitungPeringkat,
   hitungPeringkatPerbaikan,
   hitungPoinHari,
+  TTL_CACHE_TOP5_MS,
   type BarisAbsensiTop,
   type HariTerjadwal,
   type MasukanPerbaikan,
@@ -298,5 +300,23 @@ describe("hitungPeringkatPerbaikan", () => {
       buat(`u${i}`, `Karyawan ${i}`, 12 - i),
     );
     expect(hitungPeringkatPerbaikan(banyak)).toHaveLength(10);
+  });
+});
+
+describe("cacheTop5Segar", () => {
+  it("TTL cache 5 menit", () => {
+    expect(TTL_CACHE_TOP5_MS).toBe(5 * 60 * 1000);
+  });
+
+  it("segar bila belum 5 menit", () => {
+    expect(cacheTop5Segar(0, 4 * 60 * 1000 + 59 * 1000)).toBe(true);
+  });
+
+  it("kedaluwarsa tepat di 5 menit", () => {
+    expect(cacheTop5Segar(0, 5 * 60 * 1000)).toBe(false);
+  });
+
+  it("kedaluwarsa bila sudah lewat 5 menit", () => {
+    expect(cacheTop5Segar(0, 6 * 60 * 1000)).toBe(false);
   });
 });

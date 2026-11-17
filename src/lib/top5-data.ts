@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { ambilInsentifRentang } from "@/lib/insentif";
 import { labelPeriode, rentangPeriodeGajian } from "@/lib/rekap";
 import {
+  cacheTop5Segar,
   hitungPeringkat,
   hitungPeringkatPerbaikan,
   type MasukanPerbaikan,
@@ -12,6 +13,35 @@ import {
   type PeringkatTop,
 } from "@/lib/top5";
 import { tanggalLokal } from "@/lib/waktu";
+
+/**
+ * Cache peringkat di memori proses (TTL 5 menit, lihat TTL_CACHE_TOP5_MS):
+ * halaman Top 10 dibuka berkali-kali sehari, tapi isinya hanya berubah
+ * bila ada yang absen atau sinkron insentif jalan. Kunci = rentang gajian
+ * supaya pergantian periode tidak menyajikan data periode lama. Yang
+ * di-cache hanya hasil sukses — gagal query tidak di-cache supaya
+ * kunjungan berikutnya langsung mencoba lagi.
+ */
+type EntriCache<T> = {
+  dari: string;
+  sampai: string;
+  waktu: number;
+  hasil: T;
+};
+
+let cacheAbsensi: EntriCache<HasilTop5> | null = null;
+let cachePerbaikan: EntriCache<HasilTopPerbaikan> | null = null;
+
+function cacheCocok<T>(
+  entri: EntriCache<T> | null,
+  dari: string,
+  sampai: string,
+): T | null {
+  if (!entri) return null;
+  if (entri.dari !== dari || entri.sampai !== sampai) return null;
+  if (!cacheTop5Segar(entri.waktu)) return null;
+  return entri.hasil;
+}
 
 /**
  * Top 5 performa absensi untuk siklus gajian berjalan. Semua via raw SQL
@@ -36,6 +66,8 @@ export async function ambilTop5(): Promise<HasilTop5> {
     dari: rentang.dari,
     sampai: rentang.sampai,
   };
+  const dariCache = cacheCocok(cacheAbsensi, rentang.dari, rentang.sampai);
+  if (dariCache) return dariCache;
   try {
     // Hanya hari dengan shift terjadwal; shift fleksibel tidak punya jam
     // mulai tetap sehingga tidak masuk penilaian.
@@ -57,10 +89,17 @@ export async function ambilTop5(): Promise<HasilTop5> {
       LEFT JOIN "Cabang" c ON c."id" = u."cabangId"
       WHERE u."aktif" = true
     `;
-    return {
+    const hasil: HasilTop5 = {
       ...kosong,
       peringkat: hitungPeringkat(hari, absensi, pengguna),
     };
+    cacheAbsensi = {
+      dari: rentang.dari,
+      sampai: rentang.sampai,
+      waktu: Date.now(),
+      hasil,
+    };
+    return hasil;
   } catch {
     return kosong;
   }
@@ -88,6 +127,8 @@ export async function ambilTopPerbaikan(): Promise<HasilTopPerbaikan> {
     dari: rentang.dari,
     sampai: rentang.sampai,
   };
+  const dariCache = cacheCocok(cachePerbaikan, rentang.dari, rentang.sampai);
+  if (dariCache) return dariCache;
   try {
     const ringkasan = await ambilInsentifRentang(rentang.dari, rentang.sampai);
     const foto = await db.$queryRaw<{ id: string; foto: string | null }[]>`
@@ -101,7 +142,17 @@ export async function ambilTopPerbaikan(): Promise<HasilTopPerbaikan> {
       cabang: r.user.cabangNama,
       jumlahTransaksi: r.jumlahTransaksi,
     }));
-    return { ...kosong, peringkat: hitungPeringkatPerbaikan(masukan) };
+    const hasil: HasilTopPerbaikan = {
+      ...kosong,
+      peringkat: hitungPeringkatPerbaikan(masukan),
+    };
+    cachePerbaikan = {
+      dari: rentang.dari,
+      sampai: rentang.sampai,
+      waktu: Date.now(),
+      hasil,
+    };
+    return hasil;
   } catch {
     return kosong;
   }
