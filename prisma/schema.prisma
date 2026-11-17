@@ -319,6 +319,45 @@ model Payroll {
   @@index([periode])
 }
 
+/// Snapshot slip gaji per karyawan per periode (menu Slip Gaji, super_admin).
+/// Angka disalin dari hitungPayroll saat slip dibuat, supaya riwayat tidak
+/// berubah bila data absensi/gaji nanti diedit. Status "dibuat" saat
+/// snapshot dibuat, "dibayar" setelah ditandai dibayar. Tanpa relasi ke
+/// User supaya riwayat tidak ikut terhapus bila karyawan dihapus (pola
+/// AuditLog); nama disimpan sebagai snapshot untuk tampilan riwayat.
+model SlipGaji {
+  id     String @id @default(cuid())
+  userId String
+  /// Nama karyawan saat slip dibuat.
+  nama    String @default("")
+  /// Periode gajian "yyyy-mm".
+  periode String
+
+  gajiPokok          Int @default(0)
+  gajiPokokFleksibel Int @default(0)
+  gajiPokokHarian    Int @default(0)
+  tunjangan          Int @default(0)
+  tunjanganMakan     Int @default(0)
+  lembur             Int @default(0)
+  insentif           Int @default(0)
+  potonganTelat      Int @default(0)
+  kasbon             Int @default(0)
+  diterima           Int @default(0)
+
+  /// "dibuat" | "dibayar".
+  status String @default("dibuat")
+  /// ID admin yang membuat slip.
+  dibuatOleh String?
+  dibuatPada DateTime @default(now())
+  /// ID admin yang menandai dibayar.
+  dibayarOleh String?
+  dibayarPada DateTime?
+
+  @@unique([userId, periode])
+  @@index([periode])
+  @@index([userId])
+}
+
 /// Jejak audit minimal untuk penghapusan log absensi. Baris absensi tetap
 /// dihapus (agar karyawan bisa absen lagi di tanggal itu), tetapi ringkasan
 /// baris yang dihapus disimpan di sini dan bisa dibaca admin di halaman

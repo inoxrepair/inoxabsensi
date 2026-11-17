@@ -117,6 +117,14 @@ export function IkonMenu({
           <path d="M9.5 8h5M9.5 11.5h5" />
         </Bingkai>
       );
+    case "/admin/slip-gaji":
+      // Slip Gaji: struk dengan tepi bawah robek.
+      return (
+        <Bingkai {...props}>
+          <path d="M6 3.5h12V19l-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5L6 19V3.5Z" />
+          <path d="M9.5 8h5M9.5 11.5h5" />
+        </Bingkai>
+      );
     case "/admin/insentif":
       // Insentif: grafik naik.
       return (

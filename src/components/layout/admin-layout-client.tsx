@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { IkonMenu } from "@/components/ui/ikon-menu";
 import { LencanaJumlah } from "@/components/ui/lencana-jumlah";
+import { KATEGORI_ADMIN_NAV } from "@/lib/nav";
 import type { NavItem } from "@/lib/nav";
 
 /**
@@ -76,6 +77,17 @@ export function AdminLayoutClient({
       ? pathname === "/admin"
       : pathname.startsWith(item.href);
 
+  /**
+   * Menu dikelompokkan berdasarkan kategori. `menu` sudah disaring hak
+   * akses di layout server, jadi grup yang kosong untuk role ini otomatis
+   * tidak tampil. Item tanpa kategori (seharusnya tidak ada) jatuh ke
+   * "Lainnya" supaya tidak hilang diam-diam dari sidebar.
+   */
+  const grupMenu = KATEGORI_ADMIN_NAV.map((kategori) => ({
+    kategori,
+    item: menu.filter((n) => (n.kategori ?? "Lainnya") === kategori),
+  })).filter((g) => g.item.length > 0);
+
   return (
     <div className="flex min-h-dvh">
       {/* Sidebar desktop: expanded w-60 dengan label, ciut w-16 dengan ubin. */}
@@ -104,10 +116,10 @@ export function AdminLayoutClient({
         </div>
 
         <nav aria-label="Menu admin" className="flex-1 overflow-y-auto p-3">
-          <ul className="space-y-1">
-            {menu.map((item) => {
-              const isAktif = aktif(item);
-              if (ciut) {
+          {ciut ? (
+            <ul className="space-y-1">
+              {menu.map((item) => {
+                const isAktif = aktif(item);
                 return (
                   <li key={item.href}>
                     <Link
@@ -131,31 +143,46 @@ export function AdminLayoutClient({
                     </Link>
                   </li>
                 );
-              }
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    aria-current={isAktif ? "page" : undefined}
-                    className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                      isAktif
-                        ? "bg-ink font-medium text-paper"
-                        : "text-muted hover:bg-white/70 dark:bg-zinc-900/60 hover:text-ink"
-                    }`}
-                  >
-                    <IkonMenu href={item.href} className="size-5 shrink-0" />
-                    {item.label}
-                    {item.menu === "chat" ? (
-                      <LencanaJumlah
-                        jumlah={jmlBelumDibacaChat}
-                        className="ml-auto"
-                      />
-                    ) : null}
-                  </Link>
+              })}
+            </ul>
+          ) : (
+            <ul className="space-y-1">
+              {grupMenu.map((grup) => (
+                <li key={grup.kategori} className="pt-3 first:pt-0">
+                  <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                    {grup.kategori}
+                  </p>
+                  <ul className="space-y-1">
+                    {grup.item.map((item) => {
+                      const isAktif = aktif(item);
+                      return (
+                        <li key={item.href}>
+                          <Link
+                            href={item.href}
+                            aria-current={isAktif ? "page" : undefined}
+                            className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+                              isAktif
+                                ? "bg-ink font-medium text-paper"
+                                : "text-muted hover:bg-white/70 dark:bg-zinc-900/60 hover:text-ink"
+                            }`}
+                          >
+                            <IkonMenu href={item.href} className="size-5 shrink-0" />
+                            {item.label}
+                            {item.menu === "chat" ? (
+                              <LencanaJumlah
+                                jumlah={jmlBelumDibacaChat}
+                                className="ml-auto"
+                              />
+                            ) : null}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </li>
-              );
-            })}
-          </ul>
+              ))}
+            </ul>
+          )}
         </nav>
       </aside>
 
@@ -211,32 +238,41 @@ export function AdminLayoutClient({
           </div>
           <nav aria-label="Menu admin" className="flex-1 overflow-y-auto p-3">
             <ul className="space-y-1">
-              {menu.map((item) => {
-                const isAktif = aktif(item);
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={() => setDrawerBuka(false)}
-                      aria-current={isAktif ? "page" : undefined}
-                      className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                        isAktif
-                          ? "bg-ink font-medium text-paper"
-                          : "text-muted hover:bg-white/70 dark:bg-zinc-900/60 hover:text-ink"
-                      }`}
-                    >
-                      <IkonMenu href={item.href} className="size-5 shrink-0" />
-                      {item.label}
-                      {item.menu === "chat" ? (
-                        <LencanaJumlah
-                          jumlah={jmlBelumDibacaChat}
-                          className="ml-auto"
-                        />
-                      ) : null}
-                    </Link>
-                  </li>
-                );
-              })}
+              {grupMenu.map((grup) => (
+                <li key={grup.kategori} className="pt-3 first:pt-0">
+                  <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                    {grup.kategori}
+                  </p>
+                  <ul className="space-y-1">
+                    {grup.item.map((item) => {
+                      const isAktif = aktif(item);
+                      return (
+                        <li key={item.href}>
+                          <Link
+                            href={item.href}
+                            onClick={() => setDrawerBuka(false)}
+                            aria-current={isAktif ? "page" : undefined}
+                            className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+                              isAktif
+                                ? "bg-ink font-medium text-paper"
+                                : "text-muted hover:bg-white/70 dark:bg-zinc-900/60 hover:text-ink"
+                            }`}
+                          >
+                            <IkonMenu href={item.href} className="size-5 shrink-0" />
+                            {item.label}
+                            {item.menu === "chat" ? (
+                              <LencanaJumlah
+                                jumlah={jmlBelumDibacaChat}
+                                className="ml-auto"
+                              />
+                            ) : null}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </li>
+              ))}
             </ul>
           </nav>
           <div className="border-t border-white/50 dark:border-white/10 p-4">

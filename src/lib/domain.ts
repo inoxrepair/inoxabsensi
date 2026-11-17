@@ -73,6 +73,7 @@ export const MENU_ADMIN = [
   "rekap",
   "kasbon",
   "payroll",
+  "slip-gaji",
   "insentif",
   "informasi",
   "log-login",
