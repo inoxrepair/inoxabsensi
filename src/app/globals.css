@@ -197,6 +197,17 @@ textarea {
 
 .inox-tab-pindah [data-state="active"] {
   background-color: transparent;
+  /* Teks tab aktif harus kebalikan pil (paper di atas ink) — ditulis di sini
+     supaya menang atas utility, sama seperti background transparan di atas. */
+  color: var(--color-paper);
+}
+
+/* Pil indikator itu absolute, jadi tanpa ini ia menutupi teks tombol tab
+   (elemen berposisi digambar di atas konten statis) — angkat kedua tombol
+   di atas pil supaya tulisannya kelihatan. */
+.inox-tab-pindah [data-state] {
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes inox-tab-masuk {

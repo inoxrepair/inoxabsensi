@@ -34,9 +34,11 @@ export const ADMIN_NAV: NavItem[] = [
 
 /** Menu karyawan (bottom navigation, mobile): 5 utama + Lainnya. */
 export const KARYAWAN_NAV: NavItem[] = [
-  { href: "/karyawan", label: "Absen", menu: "absen", utama: true },
   { href: "/karyawan/jadwal", label: "Jadwal", menu: "jadwal_saya", utama: true },
   { href: "/karyawan/chat", label: "Chat", menu: "chat", utama: true },
+  // Absen di tengah (indeks 2 dari 5) dan ditampilkan menonjol: tombol bulat
+  // naik di atas bar — menu yang paling sering dipakai karyawan.
+  { href: "/karyawan", label: "Absen", menu: "absen", utama: true },
   { href: "/karyawan/top5", label: "Top 10", menu: "top5", utama: true },
   { href: "/karyawan/riwayat", label: "Riwayat", menu: "riwayat_saya" },
   { href: "/karyawan/kasbon", label: "Kasbon", menu: "kasbon_saya" },

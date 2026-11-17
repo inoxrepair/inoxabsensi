@@ -55,11 +55,11 @@ const ICON: Record<string, React.ReactNode> = {
   ),
 };
 
-function ikon(menu: string, aktif: boolean) {
+function ikon(menu: string, aktif: boolean, ukuran = 22) {
   return (
     <svg
-      width="22"
-      height="22"
+      width={ukuran}
+      height={ukuran}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -73,10 +73,20 @@ function ikon(menu: string, aktif: boolean) {
   );
 }
 
+function apakahAktif(href: string, pathname: string) {
+  return href === "/karyawan"
+    ? pathname === "/karyawan"
+    : pathname.startsWith(href);
+}
+
 /**
- * Bottom bar karyawan: 5 menu utama (Absen, Jadwal, Chat, Top 5, Lainnya)
+ * Bottom bar karyawan: 5 slot (Jadwal, Chat, Absen tengah, Top 10, Lainnya)
  * + lembar "Lainnya" untuk menu sisanya (Riwayat, Kasbon, Izin, Insentif,
- * Profil). Bar tetap ringkas; semua menu tetap satu ketukan jauhnya.
+ * Profil). Absen di tengah ditampilkan menonjol: tombol bulat naik di atas
+ * bar (menu yang paling sering dipakai). Pil penanda aktif (latar ink)
+ * bergeser halus mengikuti menu yang dipilih — ikon + teks tiap slot diangkat
+ * di atas pil (z-10) supaya tidak tertutup pil, seperti perbaikan tab Top 10.
+ * Bar tetap ringkas; semua menu tetap satu ketukan jauhnya.
  */
 export function KaryawanBottomNav({
   jmlBelumDibacaChat = 0,
@@ -89,10 +99,16 @@ export function KaryawanBottomNav({
   const utama = KARYAWAN_NAV.filter((i) => i.utama);
   const lainnya = KARYAWAN_NAV.filter((i) => !i.utama);
   const aktifLainnya = lainnya.some((item) =>
-    item.href === "/karyawan"
-      ? pathname === "/karyawan"
-      : pathname.startsWith(item.href),
+    apakahAktif(item.href, pathname),
   );
+
+  // Indeks slot aktif untuk pil geser: 0 Jadwal, 1 Chat, 2 Absen, 3 Top 10,
+  // 4 Lainnya. Fallback ke Absen bila tidak ada yang cocok (tak seharusnya
+  // terjadi — semua halaman karyawan ada di daftar nav).
+  const indeksUtama = utama.findIndex((item) =>
+    apakahAktif(item.href, pathname),
+  );
+  const indeksAktif = aktifLainnya ? 4 : indeksUtama === -1 ? 2 : indeksUtama;
 
   return (
     <>
@@ -100,20 +116,46 @@ export function KaryawanBottomNav({
         aria-label="Menu karyawan"
         className="sticky bottom-3 z-10 mx-3 mb-3 rounded-full border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/10 dark:shadow-black/60 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"
       >
-        <ul className="mx-auto flex max-w-md">
+        <ul className="relative mx-auto flex max-w-md">
+          <span
+            aria-hidden="true"
+            className="absolute bottom-1 left-0 top-1 w-1/5 rounded-full bg-ink transition-transform duration-200 ease-out motion-reduce:transition-none"
+            style={{ transform: `translateX(${indeksAktif * 100}%)` }}
+          />
           {utama.map((item) => {
-            const active =
-              item.href === "/karyawan"
-                ? pathname === "/karyawan"
-                : pathname.startsWith(item.href);
+            const active = apakahAktif(item.href, pathname);
+
+            // Slot tengah (Absen): tombol bulat naik di atas bar.
+            if (item.menu === "absen") {
+              return (
+                <li key={item.href} className="relative z-10 flex-1">
+                  <Link
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={`flex min-h-14 flex-col items-center justify-center gap-1 py-2 text-[11px] ${
+                      active ? "font-medium text-paper" : "text-muted"
+                    }`}
+                  >
+                    <span
+                      className={`-mt-6 flex h-14 w-14 items-center justify-center rounded-full shadow-lg shadow-black/20 transition-colors ${
+                        active ? "bg-ink text-paper" : "bg-surface text-ink"
+                      }`}
+                    >
+                      {ikon(item.menu, active, 26)}
+                    </span>
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            }
 
             return (
-              <li key={item.href} className="flex-1">
+              <li key={item.href} className="relative z-10 flex-1">
                 <Link
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={`flex min-h-14 flex-col items-center justify-center gap-1 py-2 text-[11px] ${
-                    active ? "font-medium text-ink" : "text-muted"
+                    active ? "font-medium text-paper" : "text-muted"
                   }`}
                 >
                   <span className="relative">
@@ -130,15 +172,15 @@ export function KaryawanBottomNav({
               </li>
             );
           })}
-          <li className="flex-1">
+          <li className="relative z-10 flex-1">
             <Button
               type="button"
               variant="ghost"
               onClick={() => setBuka(true)}
               aria-expanded={buka}
               aria-label="Menu lainnya"
-              className={`min-h-14 w-full flex-col gap-1 py-2 text-[11px] [&_svg]:size-[22px] ${
-                aktifLainnya ? "font-medium text-ink" : "font-normal text-muted"
+              className={`min-h-14 w-full flex-col gap-1 py-2 text-[11px] hover:bg-transparent [&_svg]:size-[22px] ${
+                aktifLainnya ? "font-medium text-paper" : "font-normal text-muted"
               }`}
             >
               {ikon("lainnya", aktifLainnya)}
@@ -153,10 +195,7 @@ export function KaryawanBottomNav({
           <DialogTitle className="sr-only">Menu lainnya</DialogTitle>
           <ul>
             {lainnya.map((item) => {
-              const active =
-                item.href === "/karyawan"
-                  ? pathname === "/karyawan"
-                  : pathname.startsWith(item.href);
+              const active = apakahAktif(item.href, pathname);
               return (
                 <li key={item.href}>
                   <Link
