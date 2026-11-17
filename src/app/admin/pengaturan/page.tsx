@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { forbidden } from "next/navigation";
 import { ADMIN_NAV } from "@/lib/nav";
 import { LABEL_ROLE, ROLE, bacaRole } from "@/lib/domain";
 import { db } from "@/lib/db";
@@ -23,6 +24,7 @@ import { DaftarSeragam } from "./seragam";
 import { FormLogo } from "./logo-form";
 import { FormNamaPerusahaan } from "./nama-perusahaan-form";
 import { BackupJadwalPanel } from "./backup-jadwal";
+import { CentangHakAkses } from "./hak-akses-form";
 import {
   bacaLogoAplikasi,
   bacaNamaPerusahaan,
@@ -34,7 +36,11 @@ import { tanggalLokal } from "@/lib/waktu";
 export const dynamic = "force-dynamic";
 
 export default async function AdminPengaturanPage() {
-  await wajibAkses("pengaturan");
+  // Matriks hanya boleh diedit super admin: wajibAkses saja tidak cukup,
+  // karena role lain yang diberi "pengaturan" lewat database bisa ikut
+  // mengedit matriks dan menaikkan haknya sendiri.
+  const admin = await wajibAkses("pengaturan");
+  if (admin.role !== "super_admin") forbidden();
 
   const [izin, shift, seragam, logo, versiLogo, namaPerusahaan] =
     await Promise.all([
@@ -84,7 +90,9 @@ export default async function AdminPengaturanPage() {
             </TableHeader>
             <TableBody>
               {ADMIN_NAV.map((item) => (
-                <TableRow key={item.menu}>
+                // Key pakai href, bukan menu: menu "karyawan" dipakai tiga
+                // baris (Karyawan, Log Absensi, Izin).
+                <TableRow key={item.href}>
                   <th scope="row" className="py-2.5 pr-4 text-left font-medium">
                     {item.label}
                   </th>
@@ -92,12 +100,13 @@ export default async function AdminPengaturanPage() {
                     const boleh = akses.has(`${r}:${item.menu}`);
                     return (
                       <TableCell key={r}>
-                        <span className="sr-only">
-                          {boleh ? "Diizinkan" : "Tidak diizinkan"}
-                        </span>
-                        <span aria-hidden="true" className="text-muted">
-                          {boleh ? "Ya" : "—"}
-                        </span>
+                        <CentangHakAkses
+                          key={`${r}:${item.menu}:${boleh}`}
+                          role={r}
+                          menu={item.menu}
+                          label={item.label}
+                          diizinkan={boleh}
+                        />
                       </TableCell>
                     );
                   })}
@@ -107,7 +116,7 @@ export default async function AdminPengaturanPage() {
           </Table>
         </CardContent>
         <CardFooter>
-          {`${izin.length} baris izin aktif di tabel RolePermission. Ubah di database, tampilan langsung ikut.`}
+          {`${izin.length} baris izin aktif di tabel RolePermission. Centang untuk memberi akses, hapus centang untuk mencabut — perubahan langsung berlaku dan sidebar mengikuti.`}
         </CardFooter>
       </Card>
 
