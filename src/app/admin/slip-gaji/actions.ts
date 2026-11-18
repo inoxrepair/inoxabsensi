@@ -131,7 +131,12 @@ export async function tandaiDibayar(
 
   segarkan();
 
+  // Email slip hanya bila toggle di Pengaturan aktif. Bila nonaktif,
+  // kirimEmailSlipDibayar kembali dengan dilewati: true tanpa upaya kirim.
   const email = await kirimEmailSlipDibayar(id);
+  if (email.dilewati) {
+    return { ok: true, pesan: "Slip ditandai sudah dibayar." };
+  }
   if (email.terkirim) {
     return {
       ok: true,

@@ -1,7 +1,20 @@
 import { db } from "@/lib/db";
+import {
+  PRESET_SMTP,
+  presetValid,
+  type PresetSmtp,
+} from "@/lib/email-smtp-preset";
 
 export const KUNCI_LOGO_APLIKASI = "logo_aplikasi";
 export const KUNCI_NAMA_PERUSAHAAN = "nama_perusahaan";
+
+/** Setelan email slip gaji (diatur di Pengaturan, super_admin saja). */
+export const KUNCI_EMAIL_SLIP_AKTIF = "email_slip_aktif";
+export const KUNCI_EMAIL_SMTP_PRESET = "email_smtp_preset";
+export const KUNCI_EMAIL_SMTP_HOST = "email_smtp_host";
+export const KUNCI_EMAIL_SMTP_PORT = "email_smtp_port";
+export const KUNCI_EMAIL_PENGIRIM = "email_pengirim";
+export const KUNCI_EMAIL_SANDI = "email_sandi";
 /** Nama perusahaan bila belum pernah diatur (sesuai logo iNOX). */
 export const NAMA_PERUSAHAAN_BAWAAN = "iNOX Repair";
 
@@ -61,4 +74,98 @@ export async function bacaVersiLogo(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Setelan email slip gaji lengkap, termasuk sandi — hanya dipakai kode
+ * server (transport + aksi tes). JANGAN teruskan objek ini ke komponen
+ * client; halaman Pengaturan memetakannya ke SetelanEmailSlipTampil.
+ */
+export type SetelanEmailSlip = {
+  aktif: boolean;
+  preset: PresetSmtp;
+  host: string;
+  port: number;
+  pengirim: string;
+  sandi: string;
+};
+
+/**
+ * Setelan email slip gaji yang aman tampil di form: sandi tidak pernah
+ * dikirim ke client, hanya status sudah-diisi/belum.
+ */
+export type SetelanEmailSlipTampil = {
+  aktif: boolean;
+  preset: PresetSmtp;
+  host: string;
+  port: string;
+  pengirim: string;
+  sandiAda: boolean;
+};
+
+/** Bawaan bila belum pernah diatur: fitur NONAKTIF, preset Gmail. */
+export const SETELAN_EMAIL_SLIP_BAWAAN: SetelanEmailSlip = {
+  aktif: false,
+  preset: "gmail",
+  host: PRESET_SMTP.gmail.host,
+  port: PRESET_SMTP.gmail.port,
+  pengirim: "",
+  sandi: "",
+};
+
+/**
+ * Baca setelan email slip gaji dari tabel Pengaturan (satu query untuk
+ * semua kunci; tabel ini kecil). Nilai hilang/tidak valid kembali ke
+ * bawaan; port di luar 1–65535 kembali ke 587.
+ */
+export async function bacaSetelanEmailSlip(): Promise<SetelanEmailSlip> {
+  try {
+    const rows = await db.$queryRaw<{ kunci: string; nilai: string }[]>`
+      SELECT "kunci", "nilai" FROM "Pengaturan"
+    `;
+    const peta = new Map(rows.map((r) => [r.kunci, r.nilai]));
+    const presetMentah = peta.get(KUNCI_EMAIL_SMTP_PRESET) ?? "";
+    const preset: PresetSmtp = presetValid(presetMentah)
+      ? presetMentah
+      : "gmail";
+    const portMentah = Number.parseInt(
+      peta.get(KUNCI_EMAIL_SMTP_PORT) ?? "",
+      10,
+    );
+    const port =
+      Number.isInteger(portMentah) && portMentah >= 1 && portMentah <= 65535
+        ? portMentah
+        : 587;
+    const host = (peta.get(KUNCI_EMAIL_SMTP_HOST) ?? "").trim();
+    const hostEfektif =
+      host ||
+      (preset === "kustom"
+        ? PRESET_SMTP.gmail.host
+        : PRESET_SMTP[preset].host);
+    return {
+      aktif: peta.get(KUNCI_EMAIL_SLIP_AKTIF) === "1",
+      preset,
+      host: hostEfektif,
+      port: peta.has(KUNCI_EMAIL_SMTP_PORT) ? port : PRESET_SMTP.gmail.port,
+      pengirim: (peta.get(KUNCI_EMAIL_PENGIRIM) ?? "").trim(),
+      sandi: peta.get(KUNCI_EMAIL_SANDI) ?? "",
+    };
+  } catch {
+    // Tabel belum ada (migrasi belum jalan): fitur tetap nonaktif.
+    return { ...SETELAN_EMAIL_SLIP_BAWAAN };
+  }
+}
+
+/** Versi tampil untuk form Pengaturan (tanpa nilai sandi). */
+export function setelanEmailSlipTampil(
+  setelan: SetelanEmailSlip,
+): SetelanEmailSlipTampil {
+  return {
+    aktif: setelan.aktif,
+    preset: setelan.preset,
+    host: setelan.host,
+    port: String(setelan.port),
+    pengirim: setelan.pengirim,
+    sandiAda: setelan.sandi.length > 0,
+  };
 }

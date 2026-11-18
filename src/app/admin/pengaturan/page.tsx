@@ -25,10 +25,13 @@ import { FormLogo } from "./logo-form";
 import { FormNamaPerusahaan } from "./nama-perusahaan-form";
 import { BackupJadwalPanel } from "./backup-jadwal";
 import { CentangHakAkses } from "./hak-akses-form";
+import { FormEmailSlip } from "./email-slip-form";
 import {
   bacaLogoAplikasi,
   bacaNamaPerusahaan,
+  bacaSetelanEmailSlip,
   bacaVersiLogo,
+  setelanEmailSlipTampil,
 } from "@/lib/pengaturan";
 import { tanggalLokal } from "@/lib/waktu";
 
@@ -42,7 +45,7 @@ export default async function AdminPengaturanPage() {
   const admin = await wajibAkses("pengaturan");
   if (admin.role !== "super_admin") forbidden();
 
-  const [izin, shift, seragam, logo, versiLogo, namaPerusahaan] =
+  const [izin, shift, seragam, logo, versiLogo, namaPerusahaan, setelanEmail] =
     await Promise.all([
       db.rolePermission.findMany(),
       db.shift.findMany({ orderBy: { mulaiMenit: "asc" } }),
@@ -53,6 +56,7 @@ export default async function AdminPengaturanPage() {
       bacaLogoAplikasi(),
       bacaVersiLogo(),
       bacaNamaPerusahaan(),
+      bacaSetelanEmailSlip(),
     ]);
 
   // Set gabungan "role:menu" untuk lookup O(1) saat render matriks.
@@ -144,6 +148,20 @@ export default async function AdminPengaturanPage() {
           </CardContent>
           <CardFooter>
             Nama ini dipakai di slip gaji karyawan. Dikosongkan lalu disimpan akan kembali ke nama bawaan.
+          </CardFooter>
+        </Card>
+      </div>
+
+      <div className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Email Slip Gaji</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FormEmailSlip nilaiAwal={setelanEmailSlipTampil(setelanEmail)} />
+          </CardContent>
+          <CardFooter>
+            Sandi / App Password tersimpan di database aplikasi ini (bukan di file konfigurasi server). Siapa pun yang bisa membaca database bisa melihatnya — batas kepercayaan yang sama seperti file .env di server yang sama.
           </CardFooter>
         </Card>
       </div>
