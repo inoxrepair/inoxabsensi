@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { buatPengirimSmtp } from "@/lib/email-slip";
+import { buatPengirimSmtp, tujuanEmailTes } from "@/lib/email-slip";
 import { presetValid, type PresetSmtp } from "@/lib/email-smtp-preset";
 import {
   KUNCI_EMAIL_PENGIRIM,
@@ -12,6 +12,7 @@ import {
   KUNCI_EMAIL_SMTP_LOGIN,
   KUNCI_EMAIL_SMTP_PORT,
   KUNCI_EMAIL_SMTP_PRESET,
+  KUNCI_EMAIL_TES_KE,
   bacaSetelanEmailSlip,
 } from "@/lib/pengaturan";
 import { wajibAkses } from "@/lib/session";
@@ -81,6 +82,8 @@ export async function simpanSetelanEmail(
   const sandi = String(formData.get("sandi") ?? "");
   // Login SMTP opsional: kosong = login memakai alamat pengirim.
   const login = String(formData.get("login") ?? "").trim();
+  // Alamat tujuan tes opsional: kosong = tes dikirim ke alamat pengirim.
+  const emailTesKe = String(formData.get("emailTesKe") ?? "").trim();
 
   if (host.length > MAKS_PANJANG) {
     return { ok: false, pesan: "Host SMTP terlalu panjang (maks. 200 karakter)." };
@@ -96,6 +99,9 @@ export async function simpanSetelanEmail(
   }
   if (login.length > MAKS_PANJANG) {
     return { ok: false, pesan: "Login SMTP terlalu panjang (maks. 200 karakter)." };
+  }
+  if (emailTesKe && !emailValid(emailTesKe)) {
+    return { ok: false, pesan: "Alamat email tujuan tes tidak valid." };
   }
 
   // Mengaktifkan wajib lengkap; sandi boleh mengandalkan yang tersimpan.
@@ -122,6 +128,9 @@ export async function simpanSetelanEmail(
   // Login kosong = login memakai alamat pengirim (kunci dihapus).
   if (login) await simpanKunci(KUNCI_EMAIL_SMTP_LOGIN, login);
   else await hapusKunci(KUNCI_EMAIL_SMTP_LOGIN);
+  // Tujuan tes kosong = tes dikirim ke alamat pengirim (kunci dihapus).
+  if (emailTesKe) await simpanKunci(KUNCI_EMAIL_TES_KE, emailTesKe);
+  else await hapusKunci(KUNCI_EMAIL_TES_KE);
   // Sandi kosong = sandi lama tetap dipakai (kunci tidak disentuh).
   if (sandi) await simpanKunci(KUNCI_EMAIL_SANDI, sandi);
 
@@ -135,10 +144,11 @@ export async function simpanSetelanEmail(
 }
 
 /**
- * Kirim email tes ke alamat pengirim sendiri, memakai setelan yang terisi
- * di form saat ini (tidak harus disimpan dulu). Sandi yang dikosongkan
- * memakai sandi yang sudah tersimpan. Melaporkan berhasil/gagal beserta
- * alasannya; nilai sandi tidak pernah ditulis ke log.
+ * Kirim email tes ke alamat tujuan tes (atau alamat pengirim bila tujuan
+ * tes dikosongkan), memakai setelan yang terisi di form saat ini (tidak
+ * harus disimpan dulu). Sandi yang dikosongkan memakai sandi yang sudah
+ * tersimpan. Melaporkan berhasil/gagal beserta alasannya; nilai sandi
+ * tidak pernah ditulis ke log.
  */
 export async function kirimEmailTes(
   formData: FormData,
@@ -152,8 +162,10 @@ export async function kirimEmailTes(
   const pengirim = String(formData.get("pengirim") ?? "").trim();
   const sandiForm = String(formData.get("sandi") ?? "");
   // Login SMTP dari form (bila terisi) dipakai untuk auth; From tetap
-  // alamat pengirim, jadi tes kini sampai ke inbox pengirim.
+  // alamat pengirim.
   const login = String(formData.get("login") ?? "").trim();
+  // Tujuan tes dari form (bila terisi); kosong = ke alamat pengirim.
+  const emailTesKe = String(formData.get("emailTesKe") ?? "").trim();
 
   if (!host || port === null || !pengirim) {
     return {
@@ -163,6 +175,10 @@ export async function kirimEmailTes(
   }
   if (!emailValid(pengirim)) {
     return { ok: false, pesan: "Alamat email pengirim tidak valid." };
+  }
+  const tujuan = tujuanEmailTes(pengirim, emailTesKe);
+  if (tujuan === null) {
+    return { ok: false, pesan: "Alamat email tujuan tes tidak valid." };
   }
   const tersimpan = await bacaSetelanEmailSlip();
   const sandi = sandiForm || tersimpan.sandi;
@@ -179,7 +195,7 @@ export async function kirimEmailTes(
   }
   try {
     await pengirimEmail({
-      ke: pengirim,
+      ke: tujuan,
       subjek: "Tes Email Slip Gaji — iNOX Absensi",
       teks: [
         "Ini email tes dari menu Pengaturan → Email Slip Gaji.",
@@ -190,7 +206,7 @@ export async function kirimEmailTes(
     });
     return {
       ok: true,
-      pesan: `Email tes terkirim ke ${pengirim}. Periksa inbox (dan folder spam).`,
+      pesan: `Email tes terkirim ke ${tujuan}. Periksa inbox (dan folder spam).`,
     };
   } catch (galat) {
     const pesan =

@@ -21,6 +21,12 @@ export const KUNCI_EMAIL_SANDI = "email_sandi";
  * Diisi untuk Brevo, yang login-nya alamat khusus xxx@smtp-brevo.com.
  */
 export const KUNCI_EMAIL_SMTP_LOGIN = "email_smtp_login";
+/**
+ * Alamat tujuan email tes (opsional). Kosong = tes dikirim ke alamat
+ * pengirim. Diisi bila super admin mau tes sampai ke inbox lain
+ * (mis. email pribadinya) tanpa mengubah alamat pengirim.
+ */
+export const KUNCI_EMAIL_TES_KE = "email_tes_ke";
 /** Nama perusahaan bila belum pernah diatur (sesuai logo iNOX). */
 export const NAMA_PERUSAHAAN_BAWAAN = "iNOX Repair";
 
@@ -96,6 +102,8 @@ export type SetelanEmailSlip = {
   sandi: string;
   /** Login SMTP (auth). Kosong = login memakai alamat pengirim. */
   login: string;
+  /** Alamat tujuan email tes. Kosong = tes dikirim ke alamat pengirim. */
+  emailTesKe: string;
 };
 
 /**
@@ -111,6 +119,7 @@ export type SetelanEmailSlipTampil = {
   pengirim: string;
   sandiAda: boolean;
   login: string;
+  emailTesKe: string;
 };
 
 /** Bawaan bila belum pernah diatur: fitur NONAKTIF, preset Gmail. */
@@ -122,6 +131,7 @@ export const SETELAN_EMAIL_SLIP_BAWAAN: SetelanEmailSlip = {
   pengirim: "",
   sandi: "",
   login: "",
+  emailTesKe: "",
 };
 
 /**
@@ -161,6 +171,7 @@ export async function bacaSetelanEmailSlip(): Promise<SetelanEmailSlip> {
       pengirim: (peta.get(KUNCI_EMAIL_PENGIRIM) ?? "").trim(),
       sandi: peta.get(KUNCI_EMAIL_SANDI) ?? "",
       login: (peta.get(KUNCI_EMAIL_SMTP_LOGIN) ?? "").trim(),
+      emailTesKe: (peta.get(KUNCI_EMAIL_TES_KE) ?? "").trim(),
     };
   } catch {
     // Tabel belum ada (migrasi belum jalan): fitur tetap nonaktif.
@@ -180,5 +191,6 @@ export function setelanEmailSlipTampil(
     pengirim: setelan.pengirim,
     sandiAda: setelan.sandi.length > 0,
     login: setelan.login,
+    emailTesKe: setelan.emailTesKe,
   };
 }

@@ -40,6 +40,7 @@ export function FormEmailSlip({ nilaiAwal }: { nilaiAwal: SetelanEmailSlipTampil
   const [port, setPort] = useState(nilaiAwal.port);
   const [pengirim, setPengirim] = useState(nilaiAwal.pengirim);
   const [login, setLogin] = useState(nilaiAwal.login);
+  const [emailTesKe, setEmailTesKe] = useState(nilaiAwal.emailTesKe);
   const [sandi, setSandi] = useState("");
   const [hasilSimpan, setHasilSimpan] = useState<HasilEmailSlip>(undefined);
   const [hasilTes, setHasilTes] = useState<HasilEmailSlip>(undefined);
@@ -72,6 +73,7 @@ export function FormEmailSlip({ nilaiAwal }: { nilaiAwal: SetelanEmailSlipTampil
     data.append("port", port);
     data.append("pengirim", pengirim);
     data.append("login", login);
+    data.append("emailTesKe", emailTesKe);
     data.append("sandi", sandi);
     return data;
   }
@@ -245,6 +247,26 @@ export function FormEmailSlip({ nilaiAwal }: { nilaiAwal: SetelanEmailSlipTampil
         </p>
       ) : null}
 
+      <div className="mt-4">
+        <Label htmlFor="email-tujuan-tes" className="text-xs font-normal text-muted">
+          Email tujuan tes (opsional)
+        </Label>
+        <Input
+          id="email-tujuan-tes"
+          type="email"
+          value={emailTesKe}
+          onChange={(e) => setEmailTesKe(e.target.value)}
+          maxLength={200}
+          placeholder="Kosongkan = kirim ke alamat pengirim"
+          autoComplete="off"
+          className="mt-1.5"
+        />
+        <p className="mt-1 text-xs text-muted">
+          Email tes dikirim ke alamat ini (mis. email pribadimu). Kosongkan
+          bila tes cukup dikirim ke alamat pengirim.
+        </p>
+      </div>
+
       <div className="mt-4 flex flex-wrap gap-3">
         <Button
           type="button"
@@ -265,8 +287,9 @@ export function FormEmailSlip({ nilaiAwal }: { nilaiAwal: SetelanEmailSlipTampil
         </Button>
       </div>
       <p className="mt-2 text-xs text-muted">
-        Email tes dikirim ke alamat pengirim di atas memakai setelan yang
-        terisi saat ini — tidak harus disimpan dulu.
+        Email tes dikirim ke alamat tujuan tes (atau alamat pengirim bila
+        dikosongkan) memakai setelan yang terisi saat ini — tidak harus
+        disimpan dulu.
       </p>
     </div>
   );

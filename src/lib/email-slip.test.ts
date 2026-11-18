@@ -8,6 +8,7 @@ import {
   isiEmailSlip,
   kirimEmailSlipDibayar,
   opsiTransportSmtp,
+  tujuanEmailTes,
 } from "@/lib/email-slip";
 import type { SetelanEmailSlip } from "@/lib/pengaturan";
 
@@ -138,7 +139,27 @@ const SETELAN_AKTIF: SetelanEmailSlip = {
   pengirim: "a@gmail.com",
   sandi: "x",
   login: "",
+  emailTesKe: "",
 };
+
+describe("tujuanEmailTes", () => {
+  it("tujuan tes terisi: tes dikirim ke alamat itu, bukan ke pengirim", () => {
+    expect(tujuanEmailTes("a@gmail.com", "pribadi@gmail.com")).toBe(
+      "pribadi@gmail.com",
+    );
+  });
+
+  it("tujuan tes kosong: tes dikirim ke alamat pengirim (perilaku lama)", () => {
+    expect(tujuanEmailTes("a@gmail.com", "")).toBe("a@gmail.com");
+    expect(tujuanEmailTes("a@gmail.com", "   ")).toBe("a@gmail.com");
+  });
+
+  it("tujuan tes tidak valid: null — pemanggil menolak sebelum mengirim", () => {
+    expect(tujuanEmailTes("a@gmail.com", "bukan-email")).toBeNull();
+    expect(tujuanEmailTes("a@gmail.com", "a @gmail.com")).toBeNull();
+    expect(tujuanEmailTes("a@gmail.com", `${"x".repeat(195)}@gmail.com`)).toBeNull();
+  });
+});
 
 describe("kirimEmailSlipDibayar", () => {
   it("toggle nonaktif: dilewati tanpa upaya kirim dan tanpa menyentuh database", async () => {

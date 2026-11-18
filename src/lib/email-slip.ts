@@ -28,6 +28,8 @@ import { tanggalLokal } from "@/lib/waktu";
  * terisi = login khusus, mis. xxx@smtp-brevo.com untuk Brevo, yang From-nya
  * harus alamat pengirim yang sudah divalidasi di Brevo. Toggle default
  * NONAKTIF — tidak ada email yang terkirim sampai super admin mengaktifkannya.
+ * Email tes bisa diarahkan ke alamat tujuan tes (opsional) — bila kosong,
+ * tes dikirim ke alamat pengirim.
  */
 
 export type LampiranEmail = { namaFile: string; isi: Uint8Array };
@@ -122,6 +124,28 @@ export function opsiTransportSmtp(
     auth: { user: login || pengirim, pass: sandi },
     from: pengirim,
   };
+}
+
+/**
+ * Tujuan email tes (murni): alamat tujuan tes bila terisi, kalau tidak
+ * alamat pengirim. null bila alamat tujuan tes terisi tapi tidak valid —
+ * aturan yang sama dengan validasi pengirim (mengandung "@", tanpa spasi,
+ * maks. 200 karakter). Pemanggil menolak sebelum mengirim.
+ */
+export function tujuanEmailTes(
+  pengirim: string,
+  emailTesKe: string,
+): string | null {
+  const tujuan = emailTesKe.trim();
+  if (!tujuan) return pengirim;
+  if (
+    tujuan.length > 200 ||
+    !tujuan.includes("@") ||
+    tujuan.includes(" ")
+  ) {
+    return null;
+  }
+  return tujuan;
 }
 
 /**
