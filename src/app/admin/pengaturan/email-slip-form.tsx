@@ -39,6 +39,7 @@ export function FormEmailSlip({ nilaiAwal }: { nilaiAwal: SetelanEmailSlipTampil
   const [host, setHost] = useState(nilaiAwal.host);
   const [port, setPort] = useState(nilaiAwal.port);
   const [pengirim, setPengirim] = useState(nilaiAwal.pengirim);
+  const [login, setLogin] = useState(nilaiAwal.login);
   const [sandi, setSandi] = useState("");
   const [hasilSimpan, setHasilSimpan] = useState<HasilEmailSlip>(undefined);
   const [hasilTes, setHasilTes] = useState<HasilEmailSlip>(undefined);
@@ -70,6 +71,7 @@ export function FormEmailSlip({ nilaiAwal }: { nilaiAwal: SetelanEmailSlipTampil
     data.append("host", host);
     data.append("port", port);
     data.append("pengirim", pengirim);
+    data.append("login", login);
     data.append("sandi", sandi);
     return data;
   }
@@ -180,6 +182,26 @@ export function FormEmailSlip({ nilaiAwal }: { nilaiAwal: SetelanEmailSlipTampil
       </div>
 
       <div className="mt-4">
+        <Label htmlFor="email-smtp-login" className="text-xs font-normal text-muted">
+          Login SMTP (opsional)
+        </Label>
+        <Input
+          id="email-smtp-login"
+          type="text"
+          value={login}
+          onChange={(e) => setLogin(e.target.value)}
+          maxLength={200}
+          placeholder="Kosongkan bila sama dengan alamat pengirim"
+          autoComplete="off"
+          className="mt-1.5"
+        />
+        <p className="mt-1 text-xs text-muted">
+          Untuk Brevo, isi Login dari halaman SMTP &amp; API (bentuk
+          xxx@smtp-brevo.com). Untuk Gmail/Outlook, kosongkan saja.
+        </p>
+      </div>
+
+      <div className="mt-4">
         <Label htmlFor="email-sandi" className="text-xs font-normal text-muted">
           Sandi / App Password pengirim
         </Label>
@@ -199,7 +221,9 @@ export function FormEmailSlip({ nilaiAwal }: { nilaiAwal: SetelanEmailSlipTampil
         />
         <p className="mt-1 text-xs text-muted">
           Gmail butuh App Password 16 karakter (aktifkan Verifikasi 2 Langkah
-          dulu). Outlook.com juga memakai app password.
+          dulu). Outlook.com juga memakai app password. Brevo memakai SMTP
+          key (xkeysib-...) dan alamat pengirim harus sudah divalidasi
+          sebagai Sender di Brevo.
         </p>
       </div>
 

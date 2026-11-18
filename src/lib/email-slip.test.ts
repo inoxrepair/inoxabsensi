@@ -64,7 +64,32 @@ describe("opsiTransportSmtp", () => {
       port: 587,
       secure: false,
       auth: { user: "a@gmail.com", pass: "abcd efgh ijkl mnop" },
+      from: "a@gmail.com",
     });
+  });
+
+  it("login terisi: auth user = login, From tetap alamat pengirim", () => {
+    const opsi = opsiTransportSmtp({
+      ...lengkap,
+      host: "smtp-relay.brevo.com",
+      login: "c3f773001@smtp-brevo.com",
+    });
+    expect(opsi?.auth.user).toBe("c3f773001@smtp-brevo.com");
+    expect(opsi?.from).toBe("a@gmail.com");
+  });
+
+  it("login kosong: auth user = alamat pengirim (perilaku lama Gmail/Outlook)", () => {
+    expect(opsiTransportSmtp({ ...lengkap, login: "" })?.auth.user).toBe(
+      "a@gmail.com",
+    );
+    expect(opsiTransportSmtp(lengkap)?.auth.user).toBe("a@gmail.com");
+    expect(opsiTransportSmtp(lengkap)?.from).toBe("a@gmail.com");
+  });
+
+  it("login lebih dari 200 karakter: null", () => {
+    expect(
+      opsiTransportSmtp({ ...lengkap, login: "x".repeat(201) }),
+    ).toBeNull();
   });
 
   it("port 465 menghasilkan secure true", () => {
@@ -112,6 +137,7 @@ const SETELAN_AKTIF: SetelanEmailSlip = {
   port: 587,
   pengirim: "a@gmail.com",
   sandi: "x",
+  login: "",
 };
 
 describe("kirimEmailSlipDibayar", () => {

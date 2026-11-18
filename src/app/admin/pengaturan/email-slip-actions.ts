@@ -9,6 +9,7 @@ import {
   KUNCI_EMAIL_SANDI,
   KUNCI_EMAIL_SLIP_AKTIF,
   KUNCI_EMAIL_SMTP_HOST,
+  KUNCI_EMAIL_SMTP_LOGIN,
   KUNCI_EMAIL_SMTP_PORT,
   KUNCI_EMAIL_SMTP_PRESET,
   bacaSetelanEmailSlip,
@@ -78,6 +79,8 @@ export async function simpanSetelanEmail(
   const port = bacaPort(portMentah);
   const pengirim = String(formData.get("pengirim") ?? "").trim();
   const sandi = String(formData.get("sandi") ?? "");
+  // Login SMTP opsional: kosong = login memakai alamat pengirim.
+  const login = String(formData.get("login") ?? "").trim();
 
   if (host.length > MAKS_PANJANG) {
     return { ok: false, pesan: "Host SMTP terlalu panjang (maks. 200 karakter)." };
@@ -90,6 +93,9 @@ export async function simpanSetelanEmail(
   }
   if (sandi.length > MAKS_PANJANG) {
     return { ok: false, pesan: "Sandi terlalu panjang (maks. 200 karakter)." };
+  }
+  if (login.length > MAKS_PANJANG) {
+    return { ok: false, pesan: "Login SMTP terlalu panjang (maks. 200 karakter)." };
   }
 
   // Mengaktifkan wajib lengkap; sandi boleh mengandalkan yang tersimpan.
@@ -113,6 +119,9 @@ export async function simpanSetelanEmail(
   else await hapusKunci(KUNCI_EMAIL_SMTP_PORT);
   if (pengirim) await simpanKunci(KUNCI_EMAIL_PENGIRIM, pengirim);
   else await hapusKunci(KUNCI_EMAIL_PENGIRIM);
+  // Login kosong = login memakai alamat pengirim (kunci dihapus).
+  if (login) await simpanKunci(KUNCI_EMAIL_SMTP_LOGIN, login);
+  else await hapusKunci(KUNCI_EMAIL_SMTP_LOGIN);
   // Sandi kosong = sandi lama tetap dipakai (kunci tidak disentuh).
   if (sandi) await simpanKunci(KUNCI_EMAIL_SANDI, sandi);
 
@@ -142,6 +151,9 @@ export async function kirimEmailTes(
   const port = bacaPort(String(formData.get("port") ?? "").trim());
   const pengirim = String(formData.get("pengirim") ?? "").trim();
   const sandiForm = String(formData.get("sandi") ?? "");
+  // Login SMTP dari form (bila terisi) dipakai untuk auth; From tetap
+  // alamat pengirim, jadi tes kini sampai ke inbox pengirim.
+  const login = String(formData.get("login") ?? "").trim();
 
   if (!host || port === null || !pengirim) {
     return {
@@ -161,7 +173,7 @@ export async function kirimEmailTes(
     };
   }
 
-  const pengirimEmail = buatPengirimSmtp({ host, port, pengirim, sandi });
+  const pengirimEmail = buatPengirimSmtp({ host, port, pengirim, sandi, login });
   if (!pengirimEmail) {
     return { ok: false, pesan: "Setelan SMTP tidak valid." };
   }

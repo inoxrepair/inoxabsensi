@@ -23,8 +23,11 @@ import { tanggalLokal } from "@/lib/waktu";
  * hasilnya. Konfigurasi dari halaman Pengaturan → Email Slip Gaji
  * (tabel Pengaturan, bukan env): toggle aktif, preset penyedia
  * (Gmail/Outlook.com/Microsoft 365/Kustom), host, port, alamat pengirim,
- * dan sandi/App Password. Toggle default NONAKTIF — tidak ada email
- * yang terkirim sampai super admin mengaktifkannya.
+ * dan sandi/App Password. Login SMTP (username auth) dipisah dari alamat
+ * pengirim (From): kosong = login memakai alamat pengirim (Gmail/Outlook);
+ * terisi = login khusus, mis. xxx@smtp-brevo.com untuk Brevo, yang From-nya
+ * harus alamat pengirim yang sudah divalidasi di Brevo. Toggle default
+ * NONAKTIF — tidak ada email yang terkirim sampai super admin mengaktifkannya.
  */
 
 export type LampiranEmail = { namaFile: string; isi: Uint8Array };
@@ -72,12 +75,21 @@ export type SetelanTransportSmtp = {
   port: number;
   pengirim: string;
   sandi: string;
+  /**
+   * Login SMTP (username auth), opsional. Kosong/undefined = login memakai
+   * alamat pengirim (Gmail/Outlook). Terisi = login khusus (mis. Brevo:
+   * xxx@smtp-brevo.com); From tetap alamat pengirim.
+   */
+  login?: string;
 };
 
 /**
  * Opsi nodemailer dari setelan SMTP (murni, bisa dites tanpa kirim).
  * null bila ada field yang kosong/tidak valid. Port 465 = TLS langsung
- * (secure true); port lain (587 STARTTLS, 25) = secure false.
+ * (secure true); port lain (587 STARTTLS, 25) = secure false. Auth user =
+ * login bila terisi, kalau tidak alamat pengirim; From SELALU alamat
+ * pengirim (login SMTP Brevo xxx@smtp-brevo.com bukan alamat pengirim
+ * yang valid, jadi tidak boleh dipakai sebagai From).
  */
 export function opsiTransportSmtp(
   setelan: SetelanTransportSmtp,
@@ -86,14 +98,17 @@ export function opsiTransportSmtp(
   port: number;
   secure: boolean;
   auth: { user: string; pass: string };
+  from: string;
 } | null {
   const host = setelan.host.trim();
   const pengirim = setelan.pengirim.trim();
   const sandi = setelan.sandi;
+  const login = (setelan.login ?? "").trim();
   if (
     !host ||
     !pengirim ||
     !sandi ||
+    login.length > 200 ||
     !Number.isInteger(setelan.port) ||
     setelan.port < 1 ||
     setelan.port > 65535
@@ -104,7 +119,8 @@ export function opsiTransportSmtp(
     host,
     port: setelan.port,
     secure: secureUntukPort(setelan.port),
-    auth: { user: pengirim, pass: sandi },
+    auth: { user: login || pengirim, pass: sandi },
+    from: pengirim,
   };
 }
 
@@ -120,7 +136,7 @@ export function buatPengirimSmtp(
   const transporter = nodemailer.createTransport(opsi);
   return async (pesan) => {
     await transporter.sendMail({
-      from: opsi.auth.user,
+      from: opsi.from,
       to: pesan.ke,
       subject: pesan.subjek,
       text: pesan.teks,

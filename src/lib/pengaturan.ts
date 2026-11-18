@@ -15,6 +15,12 @@ export const KUNCI_EMAIL_SMTP_HOST = "email_smtp_host";
 export const KUNCI_EMAIL_SMTP_PORT = "email_smtp_port";
 export const KUNCI_EMAIL_PENGIRIM = "email_pengirim";
 export const KUNCI_EMAIL_SANDI = "email_sandi";
+/**
+ * Login SMTP (username auth), dipisah dari alamat pengirim (From).
+ * Opsional: kosong = login memakai alamat pengirim (Gmail/Outlook).
+ * Diisi untuk Brevo, yang login-nya alamat khusus xxx@smtp-brevo.com.
+ */
+export const KUNCI_EMAIL_SMTP_LOGIN = "email_smtp_login";
 /** Nama perusahaan bila belum pernah diatur (sesuai logo iNOX). */
 export const NAMA_PERUSAHAAN_BAWAAN = "iNOX Repair";
 
@@ -88,11 +94,14 @@ export type SetelanEmailSlip = {
   port: number;
   pengirim: string;
   sandi: string;
+  /** Login SMTP (auth). Kosong = login memakai alamat pengirim. */
+  login: string;
 };
 
 /**
  * Setelan email slip gaji yang aman tampil di form: sandi tidak pernah
- * dikirim ke client, hanya status sudah-diisi/belum.
+ * dikirim ke client, hanya status sudah-diisi/belum. Login bukan rahasia
+ * (hanya username), jadi boleh tampil di form.
  */
 export type SetelanEmailSlipTampil = {
   aktif: boolean;
@@ -101,6 +110,7 @@ export type SetelanEmailSlipTampil = {
   port: string;
   pengirim: string;
   sandiAda: boolean;
+  login: string;
 };
 
 /** Bawaan bila belum pernah diatur: fitur NONAKTIF, preset Gmail. */
@@ -111,6 +121,7 @@ export const SETELAN_EMAIL_SLIP_BAWAAN: SetelanEmailSlip = {
   port: PRESET_SMTP.gmail.port,
   pengirim: "",
   sandi: "",
+  login: "",
 };
 
 /**
@@ -149,6 +160,7 @@ export async function bacaSetelanEmailSlip(): Promise<SetelanEmailSlip> {
       port: peta.has(KUNCI_EMAIL_SMTP_PORT) ? port : PRESET_SMTP.gmail.port,
       pengirim: (peta.get(KUNCI_EMAIL_PENGIRIM) ?? "").trim(),
       sandi: peta.get(KUNCI_EMAIL_SANDI) ?? "",
+      login: (peta.get(KUNCI_EMAIL_SMTP_LOGIN) ?? "").trim(),
     };
   } catch {
     // Tabel belum ada (migrasi belum jalan): fitur tetap nonaktif.
@@ -167,5 +179,6 @@ export function setelanEmailSlipTampil(
     port: String(setelan.port),
     pengirim: setelan.pengirim,
     sandiAda: setelan.sandi.length > 0,
+    login: setelan.login,
   };
 }
