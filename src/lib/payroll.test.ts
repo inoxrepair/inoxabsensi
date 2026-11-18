@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  dalamMasaPercobaan,
   dihitungHadir,
   durasiShiftMenit,
   jamDibulatkan,
@@ -391,6 +392,29 @@ describe("lembur", () => {
   it("nilai negatif dijaga nol", () => {
     expect(jamLembur(-10)).toBe(0);
     expect(upahLembur(-2)).toBe(0);
+  });
+});
+
+describe("masa percobaan", () => {
+  it("hari masuk dan 29 hari setelahnya dihitung masa percobaan", () => {
+    expect(dalamMasaPercobaan("2026-01-15", "2026-01-15")).toBe(true);
+    expect(dalamMasaPercobaan("2026-01-15", "2026-02-13")).toBe(true); // +29 hari, melewati batas bulan
+  });
+
+  it("mulai hari ke-30 lembur dihitung normal", () => {
+    expect(dalamMasaPercobaan("2026-01-15", "2026-02-14")).toBe(false); // +30 hari
+    expect(dalamMasaPercobaan("2026-01-15", "2026-03-01")).toBe(false);
+  });
+
+  it("tanggal sebelum masuk bukan masa percobaan", () => {
+    expect(dalamMasaPercobaan("2026-01-15", "2026-01-14")).toBe(false);
+  });
+
+  it("tanggal tidak valid aman: lembur tetap dihitung (false)", () => {
+    expect(dalamMasaPercobaan("2026-02-31", "2026-03-01")).toBe(false);
+    expect(dalamMasaPercobaan("2026-01-15", "2026-02-30")).toBe(false);
+    expect(dalamMasaPercobaan("bukan-tanggal", "2026-01-15")).toBe(false);
+    expect(dalamMasaPercobaan("", "")).toBe(false);
   });
 });
 

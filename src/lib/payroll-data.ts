@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { ambilInsentifRentang } from "@/lib/insentif";
 import { sisaKasbon } from "@/lib/kasbon";
 import {
+  dalamMasaPercobaan,
   dihitungHadir,
   jamDibulatkan,
   jamLembur,
@@ -25,7 +26,8 @@ import { bacaRentangGajian, rentangPeriodeGajian } from "@/lib/rekap";
  * hadir dan potongan telat dari menit telat tercatat di jendela aktif;
  * insentif dari baris transaksi iNOX dalam jendela yang sama; lembur dari
  * definisi shift terjadwal di atas 8 jam (ikut shift, bukan jam absen
- * nyata), dibulatkan per hari, dalam jendela yang sama; gaji pokok
+ * nyata), dibulatkan per hari, dalam jendela yang sama — kecuali 30 hari
+ * pertama sejak tanggal masuk karyawan (masa percobaan, lembur 0); gaji pokok
  * fleksibel dari jam kerja nyata hari fleksibel (jumlah cycle absen hari
  * itu, dibulatkan per hari) × Rp 12.000, dalam jendela yang sama; gaji
  * pokok harian dari durasi shift hari terjadwal (maksimal 8 jam,
@@ -63,7 +65,7 @@ export async function hitungPayroll({
       db.user.findMany({
         where: { aktif: true, role: { not: "super_admin" }, ...filterCabang },
         orderBy: [{ cabang: { nama: "asc" } }, { name: "asc" }],
-        select: { id: true, name: true, cabang: { select: { nama: true } } },
+        select: { id: true, name: true, tanggalMasuk: true, cabang: { select: { nama: true } } },
       }),
       db.payroll.findMany({
         where: { periode, user: { aktif: true, ...filterCabang } },
@@ -111,6 +113,7 @@ export async function hitungPayroll({
     ]);
 
   const peta = new Map(payroll.map((p) => [p.userId, p]));
+  const petaTanggalMasuk = new Map(karyawan.map((k) => [k.id, k.tanggalMasuk]));
   const petaTelat = new Map<string, number>();
   const petaHadir = new Map<string, number>();
   for (const a of absensiPeriode) {
@@ -133,7 +136,8 @@ export async function hitungPayroll({
   // Jam lembur & jam kerja fleksibel per karyawan — dihitung PER HARI,
   // ditentukan oleh shift hari itu: hari terjadwal dihitung lembur dari
   // definisi shiftnya (durasi di atas 8 jam, dibulatkan per hari, sisa
-  // 30 menit atau lebih ke atas); hari fleksibel dihitung dari jam kerja
+  // 30 menit atau lebih ke atas; kecuali masa percobaan — 30 hari pertama
+  // sejak tanggal masuk, lembur hari itu 0); hari fleksibel dihitung dari jam kerja
   // nyata (jumlah cycle absen hari itu, 1–3 cycle diakumulasi, dibulatkan
   // per hari dengan aturan yang sama). Hari alpa/izin/off tidak dihitung
   // keduanya; shift fleksibel tidak dihitung lembur.
@@ -155,7 +159,11 @@ export async function hitungPayroll({
     const shift = petaJadwal.get(`${a.userId}|${a.tanggal}`);
     if (!shift) continue;
     if (shift.mode === "terjadwal") {
-      const jam = jamLembur(menitLembur(shift.mulaiMenit, shift.selesaiMenit, shift.mode));
+      // Masa percobaan: 30 hari pertama sejak tanggal masuk tidak
+      // dihitung lembur, berapa pun durasi shiftnya.
+      const jam = dalamMasaPercobaan(petaTanggalMasuk.get(a.userId) ?? "", a.tanggal)
+        ? 0
+        : jamLembur(menitLembur(shift.mulaiMenit, shift.selesaiMenit, shift.mode));
       if (jam > 0) petaJamLembur.set(a.userId, (petaJamLembur.get(a.userId) ?? 0) + jam);
       if ((peta.get(a.userId)?.gajiPokok ?? 0) === 0) {
         const jamHarian = jamShiftBiasa(shift.mulaiMenit, shift.selesaiMenit);

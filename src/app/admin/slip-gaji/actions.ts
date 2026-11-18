@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { kirimEmailSlipDibayar } from "@/lib/email-slip";
 import { hitungPayroll } from "@/lib/payroll-data";
 import { periodeValid } from "@/lib/rekap";
 import { wajibAkses } from "@/lib/session";
@@ -109,8 +110,8 @@ export async function buatSemuaSlip(
 
 /**
  * Tandai slip sudah dibayar. Satu-satunya transisi status di sini —
- * pemicu kirim email slip otomatis (belum dibangun) dikaitkan ke
- * transisi ini nanti, bukan ke pembuatan snapshot.
+ * kirim email slip otomatis dikaitkan ke transisi ini, bukan ke
+ * pembuatan snapshot. Gagal kirim email tidak membatalkan status Dibayar.
  */
 export async function tandaiDibayar(
   formData: FormData,
@@ -129,5 +130,16 @@ export async function tandaiDibayar(
   }
 
   segarkan();
-  return { ok: true, pesan: "Slip ditandai sudah dibayar." };
+
+  const email = await kirimEmailSlipDibayar(id);
+  if (email.terkirim) {
+    return {
+      ok: true,
+      pesan: "Slip ditandai sudah dibayar. Email slip terkirim.",
+    };
+  }
+  return {
+    ok: true,
+    pesan: `Slip ditandai sudah dibayar. Email gagal terkirim: ${email.alasan}`,
+  };
 }

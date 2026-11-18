@@ -237,6 +237,23 @@ export async function ambilSlipPeriode(
   return new Map(rows.map((r) => [r.userId, petakanSlip(r)]));
 }
 
+/** Satu snapshot slip berdasarkan id-nya (untuk kirim email). */
+export async function ambilSlip(id: string): Promise<SlipGaji | null> {
+  const rows = await db.$queryRaw<BarisSlipGaji[]>`
+    SELECT s."id", s."userId", s."nama", s."periode", s."gajiPokok",
+      s."gajiPokokFleksibel", s."gajiPokokHarian", s."tunjangan",
+      s."tunjanganMakan", s."lembur", s."insentif", s."potonganTelat",
+      s."kasbon", s."diterima", s."status", s."dibuatOleh", s."dibuatPada",
+      s."dibayarOleh", s."dibayarPada", c."nama" AS "cabangNama"
+    FROM "SlipGaji" s
+    LEFT JOIN "User" u ON u."id" = s."userId"
+    LEFT JOIN "Cabang" c ON c."id" = u."cabangId"
+    WHERE s."id" = ${id}
+  `;
+  const row = rows[0];
+  return row ? petakanSlip(row) : null;
+}
+
 /** Riwayat slip yang sudah diterbitkan, dengan filter. */
 export async function ambilRiwayatSlip({
   periode,

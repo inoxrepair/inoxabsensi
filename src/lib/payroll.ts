@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { periodeValid } from "@/lib/rekap";
-import { durasiMenit } from "@/lib/waktu";
+import { periodeValid, tanggalValid } from "@/lib/rekap";
+import { durasiMenit, selisihHari } from "@/lib/waktu";
 
 /**
  * Validasi komponen payroll. Nilai diisi manual oleh super admin karena
@@ -81,6 +81,21 @@ export function durasiShiftMenit(mulaiMenit: number, selesaiMenit: number): numb
 export function menitLembur(mulaiMenit: number, selesaiMenit: number, mode: string): number {
   if (mode !== "terjadwal") return 0;
   return Math.max(0, durasiShiftMenit(mulaiMenit, selesaiMenit) - BATAS_LEMBUR_MENIT);
+}
+
+/** Lama masa percobaan karyawan baru: lembur tidak dihitung selama ini. */
+export const MASA_PERCOBAAN_HARI = 30;
+
+/**
+ * True bila tanggal absen jatuh dalam 30 hari pertama sejak tanggal
+ * masuk (hari masuk s.d. hari ke-29 setelahnya, inklusif; mulai hari
+ * ke-30 lembur dihitung normal). Tanggal tidak valid -> false, supaya
+ * data aneh tidak membuat gaji hilang.
+ */
+export function dalamMasaPercobaan(tanggalMasuk: string, tanggalAbsen: string): boolean {
+  if (!tanggalValid(tanggalMasuk) || !tanggalValid(tanggalAbsen)) return false;
+  const selisih = selisihHari(tanggalMasuk, tanggalAbsen);
+  return selisih >= 0 && selisih < MASA_PERCOBAAN_HARI;
 }
 
 /**
