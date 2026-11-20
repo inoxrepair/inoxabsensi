@@ -398,7 +398,10 @@ async function loginInox(username: string, password: string): Promise<string> {
     cache: "no-store",
   });
   const homeHtml = await homeRes.text();
-  if (!homeHtml.includes("Keluar")) {
+  // Tombol keluar bisa tertulis "Keluar" (ID) atau "Logout" (EN) tergantung
+  // bahasa akun — terima keduanya sebagai bukti login berhasil.
+  const homeHtmlLower = homeHtml.toLowerCase();
+  if (!homeHtml.includes("Keluar") && !homeHtmlLower.includes("logout")) {
     throw new Error("Login ke inox.my.id gagal. Periksa kredensial.");
   }
 
