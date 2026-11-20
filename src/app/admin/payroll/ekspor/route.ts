@@ -3,8 +3,13 @@ import { db } from "@/lib/db";
 import { ambilLogAbsensiSlip } from "@/lib/log-absensi-slip";
 import { buatPayrollPdf, buatSlipPayrollPdf } from "@/lib/payroll-pdf";
 import { hitungPayroll } from "@/lib/payroll-data";
-import { bacaNamaPerusahaan } from "@/lib/pengaturan";
+import { bacaLogoAplikasi, bacaNamaPerusahaan } from "@/lib/pengaturan";
 import { periodeValid } from "@/lib/rekap";
+import {
+  ambilSlipPeriode,
+  infoSlipPdf,
+  petaNamaUser,
+} from "@/lib/slip-gaji";
 import { wajibAkses } from "@/lib/session";
 import { tanggalLokal } from "@/lib/waktu";
 
@@ -57,9 +62,16 @@ export async function GET(request: Request) {
         status: 404,
       });
     }
-    const [perusahaan, log] = await Promise.all([
+    const [perusahaan, logoDataUrl, log, snapshots] = await Promise.all([
       bacaNamaPerusahaan(),
+      bacaLogoAplikasi(),
       ambilLogAbsensiSlip(karyawanId, jendela.dari, jendela.sampai),
+      ambilSlipPeriode(periode),
+    ]);
+    const snap = snapshots.get(karyawanId) ?? null;
+    const namaPembuat = await petaNamaUser([
+      snap?.dibuatOleh ?? null,
+      snap?.dibayarOleh ?? null,
     ]);
     const pdf = await buatSlipPayrollPdf({
       periode,
@@ -67,6 +79,8 @@ export async function GET(request: Request) {
       jendelaKustom: jendela.kustom,
       jendela,
       perusahaan,
+      logoDataUrl,
+      ...infoSlipPdf(snap, namaPembuat),
       baris: r,
       log,
     });

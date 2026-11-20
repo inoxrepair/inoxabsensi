@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PDFDocument } from "pdf-lib";
-import { buatPayrollPdf, buatSlipPayrollPdf } from "./payroll-pdf";
+import { buatPayrollPdf, buatSlipPayrollPdf, parseLogoDataUrl } from "./payroll-pdf";
 import type { BarisLogSlip } from "./log-absensi-slip";
 import { totalPayroll, type BarisPayroll } from "./payroll";
 
@@ -66,6 +66,9 @@ function logContoh(): BarisLogSlip[] {
     },
   ];
 }
+
+const LOGO_PNG_1X1 =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC";
 
 const DATA = {
   periode: "2026-11",
@@ -222,5 +225,70 @@ describe("buatSlipPayrollPdf", () => {
     expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe("%PDF-");
     const doc = await PDFDocument.load(bytes);
     expect(doc.getPageCount()).toBe(2);
+  });
+
+  it("gaya invoice: slip dibayar (snapshot + logo) tetap dua halaman yang valid", async () => {
+    const bytes = await buatSlipPayrollPdf({
+      periode: "2026-11",
+      rentang: { dari: "2026-10-28", sampai: "2026-11-27" },
+      jendelaKustom: false,
+      jendela: { dari: "2026-10-28", sampai: "2026-11-27" },
+      perusahaan: "iNOX Repair",
+      logoDataUrl: LOGO_PNG_1X1,
+      status: "dibayar",
+      dibuatPada: "20/11/2026",
+      dibayarPada: "21/11/2026",
+      dibuatOleh: "Admin",
+      dibayarOleh: "Admin",
+      baris: barisContoh("Fajri Mokodompit", "KWSN"),
+      log: logContoh(),
+    });
+    expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe("%PDF-");
+    const doc = await PDFDocument.load(bytes);
+    expect(doc.getPageCount()).toBe(2);
+  });
+
+  it("gaya invoice: slip belum dibuat (tanpa snapshot) tetap dua halaman yang valid", async () => {
+    const bytes = await buatSlipPayrollPdf({
+      periode: "2026-11",
+      rentang: { dari: "2026-10-28", sampai: "2026-11-27" },
+      jendelaKustom: false,
+      jendela: { dari: "2026-10-28", sampai: "2026-11-27" },
+      perusahaan: "iNOX Repair",
+      status: "belum",
+      baris: barisContoh("Fajri Mokodompit", "KWSN"),
+      log: logContoh(),
+    });
+    expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe("%PDF-");
+    const doc = await PDFDocument.load(bytes);
+    expect(doc.getPageCount()).toBe(2);
+  });
+
+  it("gaya invoice: logo berformat tak didukung diabaikan, slip tetap valid", async () => {
+    const bytes = await buatSlipPayrollPdf({
+      periode: "2026-11",
+      rentang: { dari: "2026-10-28", sampai: "2026-11-27" },
+      jendelaKustom: false,
+      jendela: { dari: "2026-10-28", sampai: "2026-11-27" },
+      perusahaan: "iNOX Repair",
+      logoDataUrl: "data:image/webp;base64,AAAA",
+      baris: barisContoh("Fajri Mokodompit", "KWSN"),
+      log: logContoh(),
+    });
+    expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe("%PDF-");
+    const doc = await PDFDocument.load(bytes);
+    expect(doc.getPageCount()).toBe(2);
+  });
+});
+
+describe("parseLogoDataUrl", () => {
+  it("PNG dikenali, format lain dan sampah ditolak", () => {
+    const png = parseLogoDataUrl(LOGO_PNG_1X1);
+    expect(png?.png).toBe(true);
+    expect(png?.bytes.length).toBe(69);
+    expect(parseLogoDataUrl("data:image/webp;base64,AAAA")).toBeNull();
+    expect(parseLogoDataUrl("bukan-data-url")).toBeNull();
+    expect(parseLogoDataUrl(null)).toBeNull();
+    expect(parseLogoDataUrl(undefined)).toBeNull();
   });
 });

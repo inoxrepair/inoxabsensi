@@ -34,6 +34,8 @@ export type BarisKaryawan = {
   role: RoleKaryawan;
   tanggalMasuk: string;
   aktif: boolean;
+  /** Centang "Dapat tunjangan makan" (default true). */
+  dapatTunjanganMakan: boolean;
   /** Foto profil (data URL) bila karyawan sudah mengunggahnya. */
   foto: string | null;
 };
@@ -274,7 +276,7 @@ function Kartu({
           </Button>
         </div>
       </div>
-      <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-line pt-3 text-sm md:grid-cols-4">
+      <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-line pt-3 text-sm md:grid-cols-5">
         <div>
           <dt className="text-xs text-muted">Cabang</dt>
           <dd>{r.cabang}</dd>
@@ -290,6 +292,10 @@ function Kartu({
         <div>
           <dt className="text-xs text-muted">Status</dt>
           <dd>{r.aktif ? "Aktif" : "Nonaktif"}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-muted">Tunjangan makan</dt>
+          <dd>{r.dapatTunjanganMakan ? "Ya" : "Tidak"}</dd>
         </div>
       </dl>
     </article>
@@ -441,6 +447,12 @@ function FormKaryawan({
           <Label htmlFor="aktif" className="flex items-center gap-2 text-sm font-normal">
             <Checkbox id="aktif" name="aktif" defaultChecked={awal?.aktif ?? true} />
             Akun aktif
+          </Label>
+        </div>
+        <div className="flex items-end pb-2">
+          <Label htmlFor="dapatTunjanganMakan" className="flex items-center gap-2 text-sm font-normal">
+            <Checkbox id="dapatTunjanganMakan" name="dapatTunjanganMakan" defaultChecked={awal?.dapatTunjanganMakan ?? true} />
+            Dapat tunjangan makan
           </Label>
         </div>
       </div>

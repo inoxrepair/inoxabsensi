@@ -19,6 +19,7 @@ import {
   TARIF_TUNJANGAN_MAKAN_PER_HARI,
   totalPayroll,
   tunjanganMakan,
+  tunjanganMakanKaryawan,
   upahLembur,
   upahPerJam,
 } from "./payroll";
@@ -229,6 +230,22 @@ describe("takeHomePay", () => {
         insentif: 0,
       }),
     ).toBe(0);
+  });
+});
+
+describe("tunjanganMakanKaryawan", () => {
+  it("nol bila karyawan tidak dapat tunjangan makan", () => {
+    expect(tunjanganMakanKaryawan(false, 22)).toBe(0);
+  });
+
+  it("tarif × hari hadir bila karyawan dapat tunjangan makan", () => {
+    expect(tunjanganMakanKaryawan(true, 22)).toBe(
+      22 * TARIF_TUNJANGAN_MAKAN_PER_HARI,
+    );
+  });
+
+  it("nol bila tidak ada hari hadir walau dapat tunjangan makan", () => {
+    expect(tunjanganMakanKaryawan(true, 0)).toBe(0);
   });
 });
 

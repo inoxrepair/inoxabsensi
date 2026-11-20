@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { formatTanggal } from "@/lib/format";
 import type { BarisLogSlip } from "@/lib/log-absensi-slip";
@@ -26,6 +27,7 @@ const A4_LANDSCAPE: [number, number] = [841.89, 595.28];
 const A4: [number, number] = [595.28, 841.89];
 const MARGIN = 36;
 const LEBAR_CETAK = A4_LANDSCAPE[0] - MARGIN * 2; // 769.89
+const LEBAR_SLIP = A4[0] - MARGIN * 2; // 523.28
 const TINGGI_BARIS = 24;
 
 export type DataPayrollPdf = {
@@ -284,17 +286,59 @@ export async function buatPayrollPdf(data: DataPayrollPdf): Promise<Uint8Array> 
   return pdf.save();
 }
 
+/** Status slip untuk PDF (dari snapshot; "belum" bila belum dibuat). */
+export type StatusSlipPdf = "belum" | "dibuat" | "dibayar";
+
+export const LABEL_STATUS_SLIP: Record<StatusSlipPdf, string> = {
+  belum: "Belum dibuat",
+  dibuat: "Sudah dibuat",
+  dibayar: "Sudah dibayar",
+};
+
+/**
+ * Data URL logo -> bytes + jenisnya, bila PNG/JPEG (yang didukung pdf-lib).
+ * null bila tidak ada logo atau formatnya tidak didukung (mis. WebP/SVG).
+ */
+export function parseLogoDataUrl(
+  dataUrl: string | null | undefined,
+): { bytes: Uint8Array; png: boolean } | null {
+  if (!dataUrl) return null;
+  const cocok = /^data:(image\/(png|jpeg));base64,([A-Za-z0-9+/=]+)$/.exec(
+    dataUrl.trim(),
+  );
+  if (!cocok) return null;
+  try {
+    return {
+      bytes: Uint8Array.from(Buffer.from(cocok[3], "base64")),
+      png: cocok[2] === "png",
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Slip gaji satu karyawan (A4 portrait, dua halaman: rincian + log absensi). */
 export type DataSlipPayrollPdf = {
   periode: string;
   rentang: { dari: string; sampai: string };
   jendelaKustom: boolean;
   jendela: { dari: string; sampai: string };
-  /** Nama perusahaan — tampil di kanan atas slip (diatur di Pengaturan). */
+  /** Nama perusahaan — tampil di kop slip (diatur di Pengaturan). */
   perusahaan: string;
   baris: BarisPayroll;
   /** Log absensi karyawan dalam jendela hitung — tampil di halaman 2. */
   log: BarisLogSlip[];
+  /** Data URL logo (PNG/JPEG) dari Pengaturan — tampil kiri atas bila ada. */
+  logoDataUrl?: string | null;
+  /** Status slip dari snapshot; "belum" bila belum dibuat (unduh live). */
+  status?: StatusSlipPdf;
+  /** Tanggal slip dibuat, sudah dd/mm/yyyy — null bila belum dibuat. */
+  dibuatPada?: string | null;
+  /** Tanggal dibayar, sudah dd/mm/yyyy — null bila belum dibayar. */
+  dibayarPada?: string | null;
+  /** Nama pembuat / pembayar (tabel Riwayat) — null bila tak diketahui. */
+  dibuatOleh?: string | null;
+  dibayarOleh?: string | null;
 };
 
 export async function buatSlipPayrollPdf(
@@ -316,74 +360,231 @@ export async function buatSlipPayrollPdf(
   const r = data.baris;
   let y = height - MARGIN;
 
-  page.drawText("Slip Gaji", {
-    x: MARGIN,
-    y,
-    size: 18,
+  const status = data.status ?? "belum";
+  const thp = takeHomePay(r);
+  const penghasilan =
+    r.gajiPokok +
+    r.gajiPokokFleksibel +
+    r.gajiPokokHarian +
+    r.tunjangan +
+    r.tunjanganMakan +
+    r.lembur +
+    r.insentif;
+  const potongan = r.potonganTelat + r.kasbon;
+  const sisa = status === "dibayar" ? 0 : thp;
+
+  /** Satu baris rata kanan: label tebal + nilai biasa, berdempetan. */
+  const kanan = (
+    label: string,
+    nilai: string,
+    yy: number,
+    size: number,
+    tebalNilai = false,
+  ) => {
+    const wLabel = bold.widthOfTextAtSize(label, size);
+    const wNilai = (tebalNilai ? bold : regular).widthOfTextAtSize(
+      nilai,
+      size,
+    );
+    const xAkhir = width - MARGIN;
+    page.drawText(label, {
+      x: xAkhir - wLabel - wNilai,
+      y: yy,
+      size,
+      font: bold,
+      color: rgb(0.12, 0.12, 0.12),
+    });
+    page.drawText(nilai, {
+      x: xAkhir - wNilai,
+      y: yy,
+      size,
+      font: tebalNilai ? bold : regular,
+      color: rgb(0.12, 0.12, 0.12),
+    });
+  };
+
+  /** Baris total rata kanan: label di kolom sendiri, angka di tepi kanan. */
+  const kananKolom = (
+    label: string,
+    nilai: string,
+    yy: number,
+    size: number,
+    tebal = false,
+  ) => {
+    const font = tebal ? bold : regular;
+    const wLabel = font.widthOfTextAtSize(label, size);
+    const wNilai = font.widthOfTextAtSize(nilai, size);
+    const xAkhir = width - MARGIN;
+    page.drawText(label, {
+      x: xAkhir - 130 - wLabel,
+      y: yy,
+      size,
+      font,
+      color: rgb(0.12, 0.12, 0.12),
+    });
+    page.drawText(nilai, {
+      x: xAkhir - wNilai,
+      y: yy,
+      size,
+      font,
+      color: rgb(0.12, 0.12, 0.12),
+    });
+  };
+
+  /** Satu paragraf kecil yang dibungkus otomatis selebar halaman slip. */
+  const gambarParagraf = (teks: string, size: number) => {
+    const abu = rgb(0.45, 0.45, 0.45);
+    let baris = "";
+    for (const kata of teks.split(" ")) {
+      const coba = baris ? `${baris} ${kata}` : kata;
+      if (baris && regular.widthOfTextAtSize(coba, size) > LEBAR_SLIP) {
+        page.drawText(baris, {
+          x: MARGIN,
+          y,
+          size,
+          font: regular,
+          color: abu,
+        });
+        y -= 11;
+        baris = kata;
+      } else {
+        baris = coba;
+      }
+    }
+    if (baris) {
+      page.drawText(baris, {
+        x: MARGIN,
+        y,
+        size,
+        font: regular,
+        color: abu,
+      });
+      y -= 11;
+    }
+  };
+
+  // ---- Kop (gaya invoice): logo kiri, blok tanggal kanan. ----
+  const yKop = y;
+  let logoTampil = false;
+  try {
+    const logo = parseLogoDataUrl(data.logoDataUrl);
+    if (logo) {
+      const img = logo.png
+        ? await pdf.embedPng(logo.bytes)
+        : await pdf.embedJpg(logo.bytes);
+      const skala = Math.min(150 / img.width, 44 / img.height);
+      const lw = img.width * skala;
+      const lh = img.height * skala;
+      page.drawImage(img, { x: MARGIN, y: yKop - lh, width: lw, height: lh });
+      logoTampil = true;
+    }
+  } catch {
+    logoTampil = false;
+  }
+  if (!logoTampil) {
+    page.drawText(data.perusahaan, {
+      x: MARGIN,
+      y: yKop - 12,
+      size: 14,
+      font: bold,
+      color: rgb(0.07, 0.07, 0.07),
+    });
+  }
+  const judulKanan = `Slip Gaji ${labelPeriode(data.periode)}`;
+  const wJudul = bold.widthOfTextAtSize(judulKanan, 11);
+  page.drawText(judulKanan, {
+    x: width - MARGIN - wJudul,
+    y: yKop - 2,
+    size: 11,
     font: bold,
     color: rgb(0.07, 0.07, 0.07),
   });
-  const merek = data.perusahaan;
-  page.drawText(merek, {
-    x: width - MARGIN - regular.widthOfTextAtSize(merek, 10),
-    y: y + 3,
-    size: 10,
-    font: regular,
-    color: rgb(0.4, 0.4, 0.4),
-  });
-  y -= 10;
-  page.drawLine({
-    start: { x: MARGIN, y },
-    end: { x: width - MARGIN, y },
-    thickness: 1,
-    color: rgb(0.85, 0.85, 0.86),
-  });
-  y -= 24;
+  kanan("Tanggal Dibuat ", data.dibuatPada ?? "—", yKop - 16, 10);
+  kanan(
+    "Tanggal Dibayar ",
+    data.dibayarPada ?? "Belum dibayar",
+    yKop - 30,
+    10,
+  );
+  y = yKop - 52;
 
-  const info: Array<[string, string]> = [
-    ["Nama", r.nama],
-    ["Cabang", r.cabang],
-    [
-      "Periode",
-      `${labelPeriode(data.periode)} (${formatTanggal(data.rentang.dari)}–${formatTanggal(data.rentang.sampai)})`,
-    ],
+  // Judul besar abu-abu (gaya "Invoice 747541" di invoice).
+  page.drawText(`Slip Gaji — ${r.nama}`, {
+    x: MARGIN,
+    y,
+    size: 17,
+    font: bold,
+    color: rgb(0.55, 0.55, 0.55),
+  });
+  y -= 26;
+
+  // ---- Kepada / Dari / Status (tiga kolom, gaya invoice). ----
+  const yKolom = y;
+  const xDari = MARGIN + 235;
+  page.drawText("Kepada:", {
+    x: MARGIN,
+    y: yKolom,
+    size: 9.5,
+    font: bold,
+    color: rgb(0.12, 0.12, 0.12),
+  });
+  page.drawText("Dari:", {
+    x: xDari,
+    y: yKolom,
+    size: 9.5,
+    font: bold,
+    color: rgb(0.12, 0.12, 0.12),
+  });
+  kanan("Status: ", LABEL_STATUS_SLIP[status], yKolom, 10, true);
+  kanan("Sisa: ", `Rp ${rupiah(sisa)}`, yKolom - 14, 10, true);
+  const barisKepada = [
+    r.nama,
+    `Cabang ${r.cabang}`,
+    `${labelPeriode(data.periode)} (${formatTanggal(data.rentang.dari)}–${formatTanggal(data.rentang.sampai)})`,
   ];
-  if (data.jendelaKustom) {
-    info.push([
-      "Hitungan hadir/telat",
-      `${formatTanggal(data.jendela.dari)}–${formatTanggal(data.jendela.sampai)} (rentang kustom)`,
-    ]);
-  }
-  info.forEach(([label, nilai]) => {
-    page.drawText(label, {
+  barisKepada.forEach((teks, i) => {
+    page.drawText(teks, {
       x: MARGIN,
-      y,
-      size: 9.5,
-      font: bold,
-      color: rgb(0.3, 0.3, 0.3),
-    });
-    page.drawText(nilai, {
-      x: MARGIN + 130,
-      y,
+      y: yKolom - 14 - i * 13,
       size: 9.5,
       font: regular,
       color: rgb(0.12, 0.12, 0.12),
     });
-    y -= 16;
   });
-  y -= 10;
+  page.drawText(data.perusahaan, {
+    x: xDari,
+    y: yKolom - 14,
+    size: 9.5,
+    font: regular,
+    color: rgb(0.12, 0.12, 0.12),
+  });
+  y = yKolom - 14 - 2 * 13 - 12;
+  if (data.jendelaKustom) {
+    page.drawText(
+      `Hitungan hadir/telat dibatasi ${formatTanggal(data.jendela.dari)}–${formatTanggal(data.jendela.sampai)} (rentang kustom)`,
+      {
+        x: MARGIN,
+        y,
+        size: 8.5,
+        font: regular,
+        color: rgb(0.45, 0.45, 0.45),
+      },
+    );
+    y -= 14;
+  }
+  y -= 6;
 
-  // Tabel rincian: Komponen | Detail | Jumlah (tanda "-" = potongan).
+  // ---- Tabel rincian (gaya invoice): header abu-abu, garis tipis antar baris. ----
   const kolomSlip: { judul: string; lebar: number; rata: "kiri" | "kanan" }[] = [
-    { judul: "Komponen", lebar: 180, rata: "kiri" },
-    { judul: "Detail", lebar: 195, rata: "kiri" },
+    { judul: "Komponen", lebar: 175, rata: "kiri" },
+    { judul: "Detail", lebar: 208, rata: "kiri" },
     { judul: "Jumlah (Rp)", lebar: 140, rata: "kanan" },
   ];
   const gambarHeaderSlip = () => {
     page.drawRectangle({
       x: MARGIN,
       y: y - 4,
-      width: LEBAR_CETAK,
+      width: LEBAR_SLIP,
       height: 18,
       color: rgb(0.95, 0.95, 0.96),
     });
@@ -403,112 +604,155 @@ export async function buatSlipPayrollPdf(
     });
     y -= 18;
   };
-  const gambarBarisSlip = (
-    sel: [string, string, string],
-    tebal: boolean,
-    arsir: boolean,
-  ) => {
-    if (arsir) {
-      page.drawRectangle({
-        x: MARGIN,
-        y: y - 4,
-        width: LEBAR_CETAK,
-        height: 22,
-        color: rgb(0.95, 0.95, 0.96),
-      });
-    }
+  const gambarBarisSlip = (sel: [string, string, string]) => {
     let x = MARGIN;
-    const font = tebal ? bold : regular;
     sel.forEach((teks, i) => {
       const { lebar, rata } = kolomSlip[i];
-      const lebarTeks = font.widthOfTextAtSize(teks, 9);
-      const posisiX =
-        rata === "kanan" ? x + lebar - lebarTeks - 2 : x + 2;
+      const lebarTeks = regular.widthOfTextAtSize(teks, 9);
+      const posisiX = rata === "kanan" ? x + lebar - lebarTeks - 2 : x + 2;
       page.drawText(teks, {
         x: posisiX,
         y,
         size: 9,
-        font,
+        font: regular,
         color: rgb(0.12, 0.12, 0.12),
       });
       x += lebar;
+    });
+    page.drawLine({
+      start: { x: MARGIN, y: y - 7 },
+      end: { x: width - MARGIN, y: y - 7 },
+      thickness: 0.5,
+      color: rgb(0.9, 0.9, 0.91),
     });
     y -= 22;
   };
 
   gambarHeaderSlip();
-  gambarBarisSlip(["Gaji Pokok", "-", rupiah(r.gajiPokok)], false, false);
+  gambarBarisSlip(["Gaji Pokok", "-", rupiah(r.gajiPokok)]);
   if (r.gajiPokokFleksibel > 0) {
-    gambarBarisSlip(
-      [
-        "Gaji Pokok Fleksibel",
-        `${r.jamFleksibel} jam × ${rupiah(TARIF_PER_JAM)}`,
-        rupiah(r.gajiPokokFleksibel),
-      ],
-      false,
-      false,
-    );
+    gambarBarisSlip([
+      "Gaji Pokok Fleksibel",
+      `${r.jamFleksibel} jam × ${rupiah(TARIF_PER_JAM)}`,
+      rupiah(r.gajiPokokFleksibel),
+    ]);
   }
   if (r.gajiPokokHarian > 0) {
-    gambarBarisSlip(
-      [
-        "Gaji Pokok Harian",
-        `${r.hariShiftBiasa} hari · ${r.jamShiftBiasa} jam × ${rupiah(TARIF_PER_JAM)}`,
-        rupiah(r.gajiPokokHarian),
-      ],
-      false,
-      false,
-    );
+    gambarBarisSlip([
+      "Gaji Pokok Harian",
+      `${r.hariShiftBiasa} hari · ${r.jamShiftBiasa} jam × ${rupiah(TARIF_PER_JAM)}`,
+      rupiah(r.gajiPokokHarian),
+    ]);
   }
-  gambarBarisSlip(["Tunjangan", "-", rupiah(r.tunjangan)], false, false);
-  gambarBarisSlip(
-    [
-      "Tunjangan Makan",
-      `${r.hariHadir} hari × ${rupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)}`,
-      rupiah(r.tunjanganMakan),
-    ],
-    false,
-    false,
-  );
-  gambarBarisSlip(
-    [
-      "Lembur",
-      `${r.jamLembur} jam × ${rupiah(TARIF_LEMBUR_PER_JAM)}`,
-      rupiah(r.lembur),
-    ],
-    false,
-    false,
-  );
-  gambarBarisSlip(
-    ["Insentif", `${r.insentifTransaksi} transaksi`, rupiah(r.insentif)],
-    false,
-    false,
-  );
-  gambarBarisSlip(
-    [
-      "Potongan Telat",
-      `${r.menitTelatRekap} menit × ${rupiah(TARIF_POTONGAN_TELAT_PER_MENIT)}`,
-      r.potonganTelat > 0 ? `-${rupiah(r.potonganTelat)}` : "0",
-    ],
-    false,
-    false,
-  );
-  gambarBarisSlip(
-    [
-      "Kasbon",
-      `sisa disetujui ${rupiah(r.kasbonDisetujuiSisa)}`,
-      r.kasbon > 0 ? `-${rupiah(r.kasbon)}` : "0",
-    ],
-    false,
-    false,
-  );
-  gambarBarisSlip(
-    ["TOTAL DITERIMA", "", rupiah(takeHomePay(r))],
-    true,
-    true,
-  );
+  gambarBarisSlip(["Tunjangan", "-", rupiah(r.tunjangan)]);
+  gambarBarisSlip([
+    "Tunjangan Makan",
+    `${r.hariHadir} hari × ${rupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)}`,
+    rupiah(r.tunjanganMakan),
+  ]);
+  gambarBarisSlip([
+    "Lembur",
+    `${r.jamLembur} jam × ${rupiah(TARIF_LEMBUR_PER_JAM)}`,
+    rupiah(r.lembur),
+  ]);
+  gambarBarisSlip([
+    "Insentif",
+    `${r.insentifTransaksi} transaksi`,
+    rupiah(r.insentif),
+  ]);
+  gambarBarisSlip([
+    "Potongan Telat",
+    `${r.menitTelatRekap} menit × ${rupiah(TARIF_POTONGAN_TELAT_PER_MENIT)}`,
+    r.potonganTelat > 0 ? `-${rupiah(r.potonganTelat)}` : "0",
+  ]);
+  gambarBarisSlip([
+    "Kasbon",
+    `sisa disetujui ${rupiah(r.kasbonDisetujuiSisa)}`,
+    r.kasbon > 0 ? `-${rupiah(r.kasbon)}` : "0",
+  ]);
 
-  y -= 8;
+  // ---- Blok total rata kanan (gaya Subtotal/VAT/Total di invoice). ----
+  y -= 2;
+  kananKolom("Subtotal:", `Rp ${rupiah(penghasilan)}`, y, 9.5);
+  y -= 16;
+  kananKolom(
+    "Potongan:",
+    potongan > 0 ? `-Rp ${rupiah(potongan)}` : "Rp 0",
+    y,
+    9.5,
+  );
+  y -= 18;
+  kananKolom("TOTAL DITERIMA", `Rp ${rupiah(thp)}`, y, 12, true);
+  y -= 24;
+
+  // ---- Riwayat Slip (gaya "Related transactions" di invoice). ----
+  if (data.dibuatPada) {
+    page.drawText("Riwayat Slip:", {
+      x: MARGIN,
+      y,
+      size: 10,
+      font: bold,
+      color: rgb(0.12, 0.12, 0.12),
+    });
+    y -= 16;
+    const kolomRiwayat = [
+      { judul: "Tanggal", lebar: 120 },
+      { judul: "Aksi", lebar: 140 },
+      { judul: "Oleh", lebar: 263 },
+    ];
+    page.drawRectangle({
+      x: MARGIN,
+      y: y - 4,
+      width: LEBAR_SLIP,
+      height: 16,
+      color: rgb(0.95, 0.95, 0.96),
+    });
+    let xr = MARGIN;
+    kolomRiwayat.forEach((k) => {
+      page.drawText(k.judul, {
+        x: xr + 2,
+        y,
+        size: 8,
+        font: bold,
+        color: rgb(0.12, 0.12, 0.12),
+      });
+      xr += k.lebar;
+    });
+    y -= 16;
+    const barisRiwayat: Array<[string, string, string]> = [
+      [data.dibuatPada, "Dibuat", data.dibuatOleh ?? "—"],
+    ];
+    if (data.dibayarPada) {
+      barisRiwayat.push([
+        data.dibayarPada,
+        "Dibayar",
+        data.dibayarOleh ?? "—",
+      ]);
+    }
+    barisRiwayat.forEach(([tgl, aksi, oleh]) => {
+      let x2 = MARGIN;
+      [tgl, aksi, oleh].forEach((teks, i) => {
+        page.drawText(teks, {
+          x: x2 + 2,
+          y,
+          size: 8.5,
+          font: regular,
+          color: rgb(0.12, 0.12, 0.12),
+        });
+        x2 += kolomRiwayat[i].lebar;
+      });
+      page.drawLine({
+        start: { x: MARGIN, y: y - 5 },
+        end: { x: width - MARGIN, y: y - 5 },
+        thickness: 0.5,
+        color: rgb(0.9, 0.9, 0.91),
+      });
+      y -= 18;
+    });
+    y -= 6;
+  }
+
+  // Catatan rumus di bawah tabel.
   const catatan = [
     "Gaji diterima = gaji pokok (manual + fleksibel + harian) + tunjangan + tunjangan makan + lembur + insentif - potongan - kasbon.",
     `Tunjangan makan = ${rupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)} × hari hadir (hadir/telat); potongan telat = ${rupiah(TARIF_POTONGAN_TELAT_PER_MENIT)} × menit telat tercatat (sudah dikurangi toleransi shift).`,
@@ -516,16 +760,7 @@ export async function buatSlipPayrollPdf(
     `Gaji pokok fleksibel = ${rupiah(TARIF_PER_JAM)} × jam kerja hari fleksibel (jumlah cycle absen hari itu, dibulatkan per hari dengan aturan yang sama).`,
     `Gaji pokok harian = ${rupiah(TARIF_PER_JAM)} × jam shift biasa (gaji manual 0: hari shift terjadwal hadir/telat dibayar penuh, maksimal 8 jam).`,
   ];
-  catatan.forEach((teks) => {
-    page.drawText(teks, {
-      x: MARGIN,
-      y,
-      size: 7.5,
-      font: regular,
-      color: rgb(0.45, 0.45, 0.45),
-    });
-    y -= 11;
-  });
+  catatan.forEach((teks) => gambarParagraf(teks, 7.5));
 
   // Footer halaman 1 — digambar sekarang karena `page` berpindah ke
   // halaman 2 (log absensi) setelah ini.

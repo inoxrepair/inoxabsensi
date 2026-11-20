@@ -2,12 +2,17 @@ import { Badge } from "@/components/ui/badge";
 import { db } from "@/lib/db";
 import { formatTanggal } from "@/lib/format";
 import {
+  JATAH_CUTI_TAHUNAN,
   LABEL_JENIS_IZIN,
   LABEL_STATUS_PENGAJUAN_IZIN,
   bacaJenisIzin,
   bacaStatusPengajuanIzin,
+  daftarTanggalIzin,
+  sisaCuti,
 } from "@/lib/izin";
+import { ambilKolomTambahanIzin, tandaiIzinDibaca } from "@/lib/izin-data";
 import { wajibLogin } from "@/lib/session";
+import { keJam, tanggalLokal } from "@/lib/waktu";
 import { AjukanIzinForm } from "./form";
 import { BatalkanIzinButton } from "./batalkan-button";
 
@@ -15,20 +20,36 @@ export const dynamic = "force-dynamic";
 
 export default async function KaryawanIzinPage() {
   const user = await wajibLogin();
-  const pengajuan = await db.pengajuanIzin.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-  });
+  const tahun = Number(tanggalLokal().slice(0, 4));
+  const [pengajuan, cutiDisetujui] = await Promise.all([
+    db.pengajuanIzin.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.pengajuanIzin.findMany({
+      where: { userId: user.id, jenis: "cuti", status: "disetujui" },
+      select: { dari: true, sampai: true },
+    }),
+  ]);
+  const tambahan = await ambilKolomTambahanIzin(pengajuan.map((p) => p.id));
+  const sisa = sisaCuti(tahun, cutiDisetujui);
+  // Membuka halaman ini menandai semua keputusan admin sudah dibaca
+  // (lencana di menu Izin hilang).
+  await tandaiIzinDibaca(user.id);
 
   return (
     <>
       <h1 className="text-xl font-semibold tracking-tight">Izin</h1>
       <p className="mt-1 text-sm text-muted">
-        Ajukan izin atau sakit. Setelah disetujui admin, hari itu ditandai
-        izin dan Anda tidak bisa absen masuk.
+        Ajukan izin, sakit, cuti, dinas luar, izin telat, atau izin pulang
+        cepat. Setelah disetujui admin, hari itu terisi otomatis — tanpa
+        perlu admin mengubah log manual.
+      </p>
+      <p className="mt-1 text-sm text-muted">
+        Sisa cuti {tahun}: <b>{sisa} hari</b> dari {JATAH_CUTI_TAHUNAN} hari.
       </p>
 
-      <AjukanIzinForm />
+      <AjukanIzinForm sisaCuti={sisa} tahun={tahun} />
 
       <div className="mt-6 space-y-3">
         <p className="text-xs text-muted">Riwayat pengajuan</p>
@@ -38,31 +59,58 @@ export default async function KaryawanIzinPage() {
           </p>
         ) : (
           <ul className="divide-y divide-line rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
-            {pengajuan.map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                <div>
-                  <p className="font-medium">
-                    {LABEL_JENIS_IZIN[bacaJenisIzin(p.jenis)]} ·{" "}
-                    {formatTanggal(p.dari)}
-                    {p.sampai !== p.dari ? ` s.d. ${formatTanggal(p.sampai)}` : ""}
-                  </p>
-                  <p className="text-xs text-muted">
-                    {p.alasan}
-                    {p.buktiKeterangan ? ` · Bukti: ${p.buktiKeterangan}` : ""}
-                    {p.catatanAdmin ? ` · Catatan admin: ${p.catatanAdmin}` : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted">
-                  <span>{formatTanggal(p.createdAt.toISOString().slice(0, 10))}</span>
-                  <Badge variant={p.status === "ditolak" ? "outline" : "default"}>
-                    {LABEL_STATUS_PENGAJUAN_IZIN[bacaStatusPengajuanIzin(p.status)]}
-                  </Badge>
-                  {p.status === "pending" ? (
-                    <BatalkanIzinButton id={p.id} />
-                  ) : null}
-                </div>
-              </li>
-            ))}
+            {pengajuan.map((p) => {
+              const jam = tambahan.get(p.id);
+              const jenis = bacaJenisIzin(p.jenis);
+              return (
+                <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                  <div>
+                    <p className="font-medium">
+                      {LABEL_JENIS_IZIN[jenis]} ·{" "}
+                      {formatTanggal(p.dari)}
+                      {p.sampai !== p.dari ? ` s.d. ${formatTanggal(p.sampai)}` : ""}
+                      {jenis === "telat" && jam?.jamMasukDiizinkan != null
+                        ? ` · Boleh masuk s.d. ${keJam(jam.jamMasukDiizinkan)}`
+                        : ""}
+                      {jenis === "pulang-cepat" && jam?.jamPulangDiizinkan != null
+                        ? ` · Boleh pulang mulai ${keJam(jam.jamPulangDiizinkan)}`
+                        : ""}
+                      {jenis === "cuti"
+                        ? ` · ${daftarTanggalIzin(p.dari, p.sampai).length} hari`
+                        : ""}
+                    </p>
+                    <p className="text-xs text-muted">
+                      {p.alasan}
+                      {p.buktiKeterangan ? ` · Bukti: ${p.buktiKeterangan}` : ""}
+                      {p.catatanAdmin ? ` · Catatan admin: ${p.catatanAdmin}` : ""}
+                    </p>
+                    {jam?.buktiFoto ? (
+                      <a
+                        href={jam.buktiFoto}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-2 block w-fit"
+                      >
+                        <img
+                          src={jam.buktiFoto}
+                          alt="Foto bukti pengajuan"
+                          className="h-20 rounded-lg object-cover"
+                        />
+                      </a>
+                    ) : null}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted">
+                    <span>{formatTanggal(p.createdAt.toISOString().slice(0, 10))}</span>
+                    <Badge variant={p.status === "ditolak" ? "outline" : "default"}>
+                      {LABEL_STATUS_PENGAJUAN_IZIN[bacaStatusPengajuanIzin(p.status)]}
+                    </Badge>
+                    {p.status === "pending" ? (
+                      <BatalkanIzinButton id={p.id} />
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

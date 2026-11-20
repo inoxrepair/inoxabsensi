@@ -5,7 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { prosesPengajuanIzin } from "./actions";
 
-export function ProsesIzinButtons({ id }: { id: string }) {
+export function ProsesIzinButtons({
+  id,
+  pesanSetujui = "Setujui pengajuan ini? Hari dengan jadwal akan ditandai izin; hari tanpa jadwal dilewati.",
+}: {
+  id: string;
+  /** Teks konfirmasi tombol Setujui (berbeda per jenis pengajuan). */
+  pesanSetujui?: string;
+}) {
   const [sedang, mulai] = useTransition();
   const [catatan, setCatatan] = useState("");
   const [pesan, setPesan] = useState<string | null>(null);
@@ -38,7 +45,7 @@ export function ProsesIzinButtons({ id }: { id: string }) {
           size="sm"
           disabled={sedang}
           onClick={() => {
-            if (!confirm("Setujui pengajuan ini? Hari dengan jadwal akan ditandai izin; hari tanpa jadwal dilewati.")) return;
+            if (!confirm(pesanSetujui)) return;
             kirim("disetujui");
           }}
         >

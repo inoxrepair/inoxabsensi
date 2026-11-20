@@ -11,12 +11,13 @@ import {
   menitLembur,
   potonganTelat,
   totalPayroll,
-  tunjanganMakan,
+  tunjanganMakanKaryawan,
   upahLembur,
   upahPerJam,
   type BarisPayroll,
 } from "@/lib/payroll";
 import { bacaRentangGajian, rentangPeriodeGajian } from "@/lib/rekap";
+import { petaDapatTunjanganMakan } from "@/lib/karyawan";
 
 /**
  * Hitung baris payroll untuk satu periode — SATU sumber kebenaran untuk
@@ -60,7 +61,7 @@ export async function hitungPayroll({
   // yang dijepit ke dalam periode gajian (filter bulan tetap berlaku).
   const jendela = bacaRentangGajian({ dari, sampai, periode }, bulanIni);
 
-  const [karyawan, payroll, absensiPeriode, kasbonPeriode, insentifPeriode, jadwalPeriode] =
+  const [karyawan, payroll, absensiPeriode, kasbonPeriode, insentifPeriode, jadwalPeriode, petaMakan] =
     await Promise.all([
       db.user.findMany({
         where: { aktif: true, role: { not: "super_admin" }, ...filterCabang },
@@ -110,6 +111,9 @@ export async function hitungPayroll({
           shift: { select: { mode: true, mulaiMenit: true, selesaiMenit: true } },
         },
       }),
+      // Flag tunjangan makan per karyawan (kolom User baru, via SQL
+      // mentah — lihat src/lib/karyawan.ts).
+      petaDapatTunjanganMakan(),
     ]);
 
   const peta = new Map(payroll.map((p) => [p.userId, p]));
@@ -187,7 +191,10 @@ export async function hitungPayroll({
       gajiPokok: p?.gajiPokok ?? 0,
       tunjangan: p?.tunjangan ?? 0,
       hariHadir: petaHadir.get(k.id) ?? 0,
-      tunjanganMakan: tunjanganMakan(petaHadir.get(k.id) ?? 0),
+      tunjanganMakan: tunjanganMakanKaryawan(
+        petaMakan.get(k.id) ?? true,
+        petaHadir.get(k.id) ?? 0,
+      ),
       // Lembur dihitung otomatis dari shift terjadwal di atas 8 jam
       // (ikut definisi shift, bukan jam absen nyata) × Rp 12.000 —
       // jam sudah dibulatkan per hari.

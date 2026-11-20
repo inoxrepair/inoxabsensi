@@ -8,12 +8,21 @@ import { wajibLogin } from "@/lib/session";
 import {
   bolehKeluar,
   bolehMasuk,
-  kekuranganKerja,
+  kekuranganKerjaDenganIzin,
   ringkasCycle,
   type KondisiAbsen,
 } from "@/lib/absensi";
 import { bacaStatusAbsensi } from "@/lib/domain";
-import { menitLokal, tanggalLokal } from "@/lib/waktu";
+import {
+  catatanIzinTelat,
+  catatanPulangCepat,
+  tambahCatatan,
+} from "@/lib/izin";
+import {
+  ambilIzinPulangCepatDisetujui,
+  ambilIzinTelatDisetujui,
+} from "@/lib/izin-data";
+import { keJam, menitLokal, tanggalLokal } from "@/lib/waktu";
 
 /** Koordinat dari browser; rentang divalidasi agar tidak menyimpan sampah. */
 const posisiSkema = z.object({
@@ -25,24 +34,28 @@ export type HasilAbsen = { ok: boolean; pesan: string };
 
 /** Kumpulkan kondisi hari ini: penempatan cabang, shift, dan absensi tercatat. */
 async function kondisiHariIni(userId: string, tanggal: string) {
-  const [user, jadwal, absensi] = await Promise.all([
-    db.user.findUniqueOrThrow({
-      where: { id: userId },
-      select: { cabang: true },
-    }),
-    db.jadwal.findUnique({
-      where: { userId_tanggal: { userId, tanggal } },
-      select: {
-        shift: true,
-        seragam: true,
-        jenisSeragam: { select: { nama: true } },
-      },
-    }),
-    db.absensi.findUnique({
-      where: { userId_tanggal: { userId, tanggal } },
-      include: { cycles: { orderBy: { urutan: "asc" } } },
-    }),
-  ]);
+  const [user, jadwal, absensi, izinTelatMenit, izinPulangCepatMenit] =
+    await Promise.all([
+      db.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: { cabang: true },
+      }),
+      db.jadwal.findUnique({
+        where: { userId_tanggal: { userId, tanggal } },
+        select: {
+          shift: true,
+          seragam: true,
+          jenisSeragam: { select: { nama: true } },
+        },
+      }),
+      db.absensi.findUnique({
+        where: { userId_tanggal: { userId, tanggal } },
+        include: { cycles: { orderBy: { urutan: "asc" } } },
+      }),
+      // Izin telat / pulang cepat yang disetujui untuk hari ini (batas jam).
+      ambilIzinTelatDisetujui(userId, tanggal),
+      ambilIzinPulangCepatDisetujui(userId, tanggal),
+    ]);
 
   const cycles = absensi?.cycles.length
     ? absensi.cycles
@@ -70,6 +83,7 @@ async function kondisiHariIni(userId: string, tanggal: string) {
     masukMenit: terakhir?.masukMenit ?? null,
     keluarMenit: terakhir?.keluarMenit ?? null,
     statusTercatat: absensi ? bacaStatusAbsensi(absensi.status) : null,
+    izinTelatMenit,
     jumlahCycle: cycles.length,
     maksimalCycle,
   };
@@ -84,6 +98,9 @@ async function kondisiHariIni(userId: string, tanggal: string) {
     seragam: jadwal?.jenisSeragam?.nama ?? jadwal?.seragam,
     minimumKerjaMenit:
       absensi?.minimumKerjaMenit ?? jadwal?.shift?.minimumKerjaMenit ?? null,
+    izinTelatMenit,
+    izinPulangCepatMenit,
+    catatanLama: absensi?.catatan ?? null,
   };
 }
 
@@ -96,8 +113,16 @@ export async function absenMasuk(formData: FormData): Promise<HasilAbsen> {
 
   const tanggal = tanggalLokal();
   const sekarang = menitLokal();
-  const { kondisi, cabangId, adaBaris, absensiId, cycles, maksimalCycle } =
-    await kondisiHariIni(user.id, tanggal);
+  const {
+    kondisi,
+    cabangId,
+    adaBaris,
+    absensiId,
+    cycles,
+    maksimalCycle,
+    izinTelatMenit,
+    catatanLama,
+  } = await kondisiHariIni(user.id, tanggal);
 
   const izin = bolehMasuk({ ...kondisi, posisi: posisi.data }, sekarang);
   if (!izin.ok) return { ok: false, pesan: izin.alasan };
@@ -118,6 +143,11 @@ export async function absenMasuk(formData: FormData): Promise<HasilAbsen> {
     masukLat: posisi.data.lat,
     masukLng: posisi.data.lng,
     masukJarakMeter: izin.jarakMeter,
+    // Izin telat yang dipakai dicatat di baris supaya log menjelaskan
+    // kenapa jam masuk itu tidak dihitung telat.
+    ...(izinTelatMenit != null
+      ? { catatan: tambahCatatan(catatanLama, catatanIzinTelat(izinTelatMenit)) }
+      : {}),
   };
 
   // Baris bisa sudah ada (mis. ditandai alpa oleh proses harian), jadi
@@ -172,7 +202,14 @@ export async function absenMasuk(formData: FormData): Promise<HasilAbsen> {
       ? `Absen masuk cycle ${urutan} tercatat, terlambat ${izin.menitTelat} menit.`
       : `Absen masuk cycle ${urutan} dari ${maksimalCycle} tercatat. Selamat bekerja.`;
 
-  return { ok: true, pesan: pesanDasar };
+  return {
+    ok: true,
+    pesan:
+      pesanDasar +
+      (izinTelatMenit != null
+        ? ` Izin telat s.d. ${keJam(izinTelatMenit)} dipakai.`
+        : ""),
+  };
 }
 
 export async function absenKeluar(formData: FormData): Promise<HasilAbsen> {
@@ -184,7 +221,15 @@ export async function absenKeluar(formData: FormData): Promise<HasilAbsen> {
 
   const tanggal = tanggalLokal();
   const sekarang = menitLokal();
-  const { kondisi, minimumKerjaMenit, absensiId, cycles, maksimalCycle } = await kondisiHariIni(user.id, tanggal);
+  const {
+    kondisi,
+    minimumKerjaMenit,
+    absensiId,
+    cycles,
+    maksimalCycle,
+    izinPulangCepatMenit,
+    catatanLama,
+  } = await kondisiHariIni(user.id, tanggal);
 
   const izin = bolehKeluar({ ...kondisi, posisi: posisi.data }, sekarang);
   if (!izin.ok) return { ok: false, pesan: izin.alasan };
@@ -194,6 +239,16 @@ export async function absenKeluar(formData: FormData): Promise<HasilAbsen> {
     index === cycles.length - 1 ? { ...cycle, keluarMenit: sekarang } : cycle,
   );
   const totalMenit = ringkasCycle(cyclesSelesai).totalMenit;
+  const masukPertama = cycles[0]?.masukMenit ?? kondisi.masukMenit ?? sekarang;
+  const kekurangan = kekuranganKerjaDenganIzin(
+    totalMenit,
+    minimumKerjaMenit,
+    masukPertama,
+    izinPulangCepatMenit,
+    sekarang,
+  );
+  const izinDipakai =
+    izinPulangCepatMenit != null && sekarang >= izinPulangCepatMenit;
   const disimpan = await db.$transaction(async (tx) => {
     if (terakhir.id === "legacy") {
       await tx.absensiCycle.create({
@@ -229,7 +284,15 @@ export async function absenKeluar(formData: FormData): Promise<HasilAbsen> {
         keluarLat: posisi.data.lat,
         keluarLng: posisi.data.lng,
         keluarJarakMeter: izin.jarakMeter,
-        kekuranganMenit: kekuranganKerja(totalMenit, minimumKerjaMenit),
+        kekuranganMenit: kekurangan,
+        ...(izinDipakai
+          ? {
+              catatan: tambahCatatan(
+                catatanLama,
+                catatanPulangCepat(izinPulangCepatMenit!),
+              ),
+            }
+          : {}),
       },
     });
     return true;
@@ -250,10 +313,9 @@ export async function absenKeluar(formData: FormData): Promise<HasilAbsen> {
   return {
     ok: true,
     pesan: `Absen keluar cycle ${urutan} tercatat. Total kerja ${jam}j${menit ? ` ${menit}m` : ""}.${
-      minimumKerjaMenit != null &&
-      kekuranganKerja(totalMenit, minimumKerjaMenit) > 0
-        ? ` Kurang ${kekuranganKerja(totalMenit, minimumKerjaMenit)} menit dari target.`
+      kekurangan > 0
+        ? ` Kurang ${kekurangan} menit dari target.`
         : ""
-    }${urutan < maksimalCycle ? ` Anda masih dapat memulai ${maksimalCycle - urutan} cycle lagi.` : " Batas cycle hari ini tercapai."}`,
+    }${izinDipakai ? ` Izin pulang cepat mulai ${keJam(izinPulangCepatMenit!)} dipakai.` : ""}${urutan < maksimalCycle ? ` Anda masih dapat memulai ${maksimalCycle - urutan} cycle lagi.` : " Batas cycle hari ini tercapai."}`,
   };
 }

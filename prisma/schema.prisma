@@ -33,6 +33,9 @@ model User {
   /// Disimpan sebagai tanggal lokal "yyyy-mm-dd" agar bebas timezone.
   tanggalMasuk String
   aktif        Boolean   @default(true)
+  /// Centang "Dapat tunjangan makan" per karyawan; false = tunjangan
+  /// makan Rp 0 (payroll), default true supaya yang sudah ada tetap dapat.
+  dapatTunjanganMakan Boolean @default(true)
 
   /// Vektor wajah (128 angka) hasil face recognition, disimpan sebagai JSON.
   /// Hanya vektor, bukan foto, sehingga tidak bisa dikembalikan jadi gambar.
@@ -274,11 +277,17 @@ model PengajuanIzin {
   /// Tanggal lokal "yyyy-mm-dd" (penyimpanan); tampilan memakai dd/mm/yyyy.
   dari   String
   sampai String
-  /// JenisIzin: izin | sakit
+  /// JenisIzin: izin | sakit | telat | cuti | dinas | pulang-cepat
   jenis  String
   alasan String
   /// Keterangan bukti sebagai teks saja, mis. "surat dokter dikirim via WA".
   buktiKeterangan String?
+  /// Batas masuk yang diizinkan (menit sejak tengah malam) — jenis "telat".
+  jamMasukDiizinkan Int?
+  /// Batas pulang yang diizinkan (menit sejak tengah malam) — jenis "pulang-cepat".
+  jamPulangDiizinkan Int?
+  /// Foto bukti sebagai data URL (JPEG hasil kompresi HP); null bila tidak ada.
+  buktiFoto String?
   /// StatusPengajuanIzin: pending | disetujui | ditolak | dibatalkan
   status       String @default("pending")
   catatanAdmin String?
@@ -476,6 +485,16 @@ model ChatMengetik {
 /// pesan dari orang lain yang dibuat setelah waktu ini dihitung belum dibaca.
 model ChatDibaca {
   /// id User yang membaca chat.
+  userId     String   @id
+  dibacaPada DateTime @default(now())
+}
+
+/// Kapan terakhir tiap karyawan membuka halaman izin, untuk lencana jumlah
+/// pengajuan yang sudah diproses admin (disetujui/ditolak) di menu Izin.
+/// Satu baris per pengguna; pengajuan yang diproses setelah waktu ini
+/// dihitung belum dibaca.
+model IzinDibaca {
+  /// id User yang membuka halaman izin.
   userId     String   @id
   dibacaPada DateTime @default(now())
 }

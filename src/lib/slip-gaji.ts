@@ -75,6 +75,49 @@ export function tanggalSlip(saat: Date | string): string {
   return formatTanggal(tanggalLokal(sebagaiDate(saat)));
 }
 
+/** Field status/tanggal/riwayat untuk PDF slip dari snapshot. */
+export type InfoSlipPdf = {
+  status: "belum" | "dibuat" | "dibayar";
+  /** Tanggal dibuat, sudah dd/mm/yyyy — null bila belum dibuat. */
+  dibuatPada: string | null;
+  /** Tanggal dibayar, sudah dd/mm/yyyy — null bila belum dibayar. */
+  dibayarPada: string | null;
+  /** Nama pembuat / pembayar — null bila tak diketahui. */
+  dibuatOleh: string | null;
+  dibayarOleh: string | null;
+};
+
+/**
+ * Petakan snapshot slip menjadi field PDF. Tanpa snapshot: status "belum"
+ * dan semua tanggal null — PDF menampilkan "Belum dibuat" dan
+ * "Belum dibayar", bukan tanggal cetak yang menyesatkan.
+ */
+export function infoSlipPdf(
+  snap: SlipGaji | null,
+  nama: Map<string, string>,
+): InfoSlipPdf {
+  if (!snap) {
+    return {
+      status: "belum",
+      dibuatPada: null,
+      dibayarPada: null,
+      dibuatOleh: null,
+      dibayarOleh: null,
+    };
+  }
+  return {
+    status: snap.status,
+    dibuatPada: tanggalSlip(snap.dibuatPada),
+    dibayarPada: snap.dibayarPada ? tanggalSlip(snap.dibayarPada) : null,
+    dibuatOleh: snap.dibuatOleh
+      ? (nama.get(snap.dibuatOleh) ?? snap.dibuatOleh)
+      : null,
+    dibayarOleh: snap.dibayarOleh
+      ? (nama.get(snap.dibayarOleh) ?? snap.dibayarOleh)
+      : null,
+  };
+}
+
 /** Salin komponen gaji satu baris payroll menjadi snapshot slip. */
 export function snapshotDariBaris(
   baris: BarisPayroll,

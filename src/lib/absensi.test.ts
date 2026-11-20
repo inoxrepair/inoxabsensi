@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bolehKeluar, bolehMasuk, kekuranganKerja, ringkas, ringkasCycle, snapshotKeterlambatan, type KondisiAbsen } from "./absensi";
+import { bolehKeluar, bolehMasuk, kekuranganKerja, kekuranganKerjaDenganIzin, ringkas, ringkasCycle, snapshotKeterlambatan, snapshotKeterlambatanTelat, type KondisiAbsen } from "./absensi";
 
 const CABANG = { lat: 0.7333, lng: 124.3167, radiusMeter: 100 };
 const DI_DALAM = { lat: 0.7333 + 0.0003, lng: 124.3167 }; // ~33 m
@@ -203,5 +203,88 @@ describe("snapshotKeterlambatan", () => {
       menitToleransi: 10,
       menitKotor: 11,
     });
+  });
+});
+
+describe("snapshotKeterlambatanTelat", () => {
+  // Shift 09.00–17.00, toleransi 10 menit; diizinkan masuk s.d. 10.00.
+  const jam = 600;
+  it("datang sebelum jam mulai: semua 0", () => {
+    expect(snapshotKeterlambatanTelat(530, SHIFT, jam)).toEqual({
+      menitTelat: 0,
+      menitToleransi: 0,
+      menitKotor: 0,
+    });
+  });
+  it("datang dalam batas yang diizinkan: hadir penuh, toleransi = kotor", () => {
+    // Masuk 09.45: kotor 45, semua diampuni.
+    expect(snapshotKeterlambatanTelat(585, SHIFT, jam)).toEqual({
+      menitTelat: 0,
+      menitToleransi: 45,
+      menitKotor: 45,
+    });
+  });
+  it("tepat di batas yang diizinkan masih hadir", () => {
+    expect(snapshotKeterlambatanTelat(600, SHIFT, jam)).toEqual({
+      menitTelat: 0,
+      menitToleransi: 60,
+      menitKotor: 60,
+    });
+  });
+  it("lewat batas: hanya selisihnya yang telat", () => {
+    // Masuk 10.15: telat 15, toleransi 60, kotor 75.
+    expect(snapshotKeterlambatanTelat(615, SHIFT, jam)).toEqual({
+      menitTelat: 15,
+      menitToleransi: 60,
+      menitKotor: 75,
+    });
+  });
+  it("invarian kotor = toleransi + telat selalu berlaku", () => {
+    for (const masuk of [540, 545, 550, 551, 590, 600, 601, 700, 1000]) {
+      const s = snapshotKeterlambatanTelat(masuk, SHIFT, jam);
+      expect(s.menitToleransi + s.menitTelat).toBe(s.menitKotor);
+    }
+  });
+  it("shift fleksibel selalu 0", () => {
+    expect(
+      snapshotKeterlambatanTelat(700, { ...SHIFT, mode: "fleksibel" }, jam),
+    ).toEqual({ menitTelat: 0, menitToleransi: 0, menitKotor: 0 });
+  });
+});
+
+describe("bolehMasuk dengan izin telat", () => {
+  it("masuk 09.45 dengan izin s.d. 10.00 dihitung hadir", () => {
+    const h = bolehMasuk(kondisi({ izinTelatMenit: 600 }), 585);
+    expect(h).toMatchObject({
+      ok: true,
+      status: "hadir",
+      menitTelat: 0,
+      menitToleransi: 45,
+      menitKotor: 45,
+    });
+  });
+  it("masuk 10.15 dengan izin s.d. 10.00 dihitung telat 15 menit", () => {
+    const h = bolehMasuk(kondisi({ izinTelatMenit: 600 }), 615);
+    expect(h).toMatchObject({ ok: true, status: "telat", menitTelat: 15 });
+  });
+});
+
+describe("kekuranganKerjaDenganIzin", () => {
+  // Target 480 menit (8 jam), masuk 09.00, izin pulang mulai 14.00.
+  it("pulang pada jam yang diizinkan: target dipangkas, kekurangan 0", () => {
+    expect(kekuranganKerjaDenganIzin(300, 480, 540, 840, 840)).toBe(0);
+  });
+  it("pulang setelah jam yang diizinkan: tetap 0 bila total memenuhi target pangkas", () => {
+    expect(kekuranganKerjaDenganIzin(360, 480, 540, 840, 900)).toBe(0);
+  });
+  it("pulang sebelum jam yang diizinkan: memakai target normal", () => {
+    expect(kekuranganKerjaDenganIzin(300, 480, 540, 840, 780)).toBe(180);
+  });
+  it("tanpa izin: sama dengan kekuranganKerja", () => {
+    expect(kekuranganKerjaDenganIzin(300, 480, 540, null, 900)).toBe(180);
+    expect(kekuranganKerjaDenganIzin(300, null, 540, 840, 900)).toBe(0);
+  });
+  it("pulang sesuai izin tapi kerja kurang dari target pangkas: sisa kekurangan", () => {
+    expect(kekuranganKerjaDenganIzin(240, 480, 540, 840, 840)).toBe(60);
   });
 });

@@ -39,6 +39,7 @@ export function AdminLayoutClient({
   labelRole,
   versiLogo,
   jmlBelumDibacaChat = 0,
+  jmlPendingIzin = 0,
   children,
 }: {
   menu: NavItem[];
@@ -46,6 +47,8 @@ export function AdminLayoutClient({
   labelRole: string;
   versiLogo: string | null;
   jmlBelumDibacaChat?: number;
+  /** Pengajuan izin pending dalam lingkup admin (lencana menu Izin). */
+  jmlPendingIzin?: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -140,6 +143,12 @@ export function AdminLayoutClient({
                           className="absolute -top-1 -right-1"
                         />
                       ) : null}
+                      {item.href === "/admin/izin" ? (
+                        <LencanaJumlah
+                          jumlah={jmlPendingIzin}
+                          className="absolute -top-1 -right-1"
+                        />
+                      ) : null}
                     </Link>
                   </li>
                 );
@@ -171,6 +180,12 @@ export function AdminLayoutClient({
                             {item.menu === "chat" ? (
                               <LencanaJumlah
                                 jumlah={jmlBelumDibacaChat}
+                                className="ml-auto"
+                              />
+                            ) : null}
+                            {item.href === "/admin/izin" ? (
+                              <LencanaJumlah
+                                jumlah={jmlPendingIzin}
                                 className="ml-auto"
                               />
                             ) : null}
@@ -263,6 +278,12 @@ export function AdminLayoutClient({
                             {item.menu === "chat" ? (
                               <LencanaJumlah
                                 jumlah={jmlBelumDibacaChat}
+                                className="ml-auto"
+                              />
+                            ) : null}
+                            {item.href === "/admin/izin" ? (
+                              <LencanaJumlah
+                                jumlah={jmlPendingIzin}
                                 className="ml-auto"
                               />
                             ) : null}

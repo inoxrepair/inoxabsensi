@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { bacaRole } from "@/lib/domain";
+import { petaDapatTunjanganMakan } from "@/lib/karyawan";
 import { wajibAkses } from "@/lib/session";
 import {
   DaftarKaryawan,
@@ -19,7 +20,7 @@ export default async function AdminKaryawanPage() {
       ? { cabangId: admin.cabangId, role: "karyawan" }
       : {};
 
-  const [karyawan, cabangRows] = await Promise.all([
+  const [karyawan, cabangRows, petaMakan] = await Promise.all([
     db.user.findMany({
       where: lingkup,
       orderBy: [{ aktif: "desc" }, { name: "asc" }],
@@ -45,6 +46,9 @@ export default async function AdminKaryawanPage() {
       orderBy: { nama: "asc" },
       select: { id: true, nama: true },
     }),
+    // Flag tunjangan makan per karyawan (kolom User baru, via SQL
+    // mentah — lihat src/lib/karyawan.ts).
+    petaDapatTunjanganMakan(),
   ]);
 
   const rows: BarisKaryawan[] = karyawan.map((k) => ({
@@ -58,6 +62,7 @@ export default async function AdminKaryawanPage() {
     role: bacaRole(k.role),
     tanggalMasuk: k.tanggalMasuk,
     aktif: k.aktif,
+    dapatTunjanganMakan: petaMakan.get(k.id) ?? true,
     foto: k.image,
   }));
 

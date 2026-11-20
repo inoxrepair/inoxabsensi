@@ -90,8 +90,11 @@ function apakahAktif(href: string, pathname: string) {
  */
 export function KaryawanBottomNav({
   jmlBelumDibacaChat = 0,
+  jmlIzinDiproses = 0,
 }: {
   jmlBelumDibacaChat?: number;
+  /** Pengajuan yang sudah diproses admin sejak terakhir membuka halaman Izin. */
+  jmlIzinDiproses?: number;
 }) {
   const pathname = usePathname();
   const [buka, setBuka] = useState(false);
@@ -183,7 +186,13 @@ export function KaryawanBottomNav({
                 aktifLainnya ? "font-medium text-paper" : "font-normal text-muted"
               }`}
             >
-              {ikon("lainnya", aktifLainnya)}
+              <span className="relative">
+                {ikon("lainnya", aktifLainnya)}
+                <LencanaJumlah
+                  jumlah={jmlIzinDiproses}
+                  className="absolute -top-1.5 -right-2.5"
+                />
+              </span>
               Lainnya
             </Button>
           </li>
@@ -208,6 +217,12 @@ export function KaryawanBottomNav({
                   >
                     {ikon(item.menu, active)}
                     {item.label}
+                    {item.menu === "izin_saya" ? (
+                      <LencanaJumlah
+                        jumlah={jmlIzinDiproses}
+                        className="ml-auto"
+                      />
+                    ) : null}
                   </Link>
                 </li>
               );

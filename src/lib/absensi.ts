@@ -34,6 +34,10 @@ export type KondisiAbsen = {
    * dari masukMenit.
    */
   statusTercatat: StatusAbsensi | null;
+  /** Batas masuk yang diizinkan hari ini (menit) dari izin telat yang
+   *  disetujui; null bila tidak ada. Mengganti toleransi shift saat
+   *  check-in (lihat snapshotKeterlambatanTelat). */
+  izinTelatMenit?: number | null;
   jumlahCycle: number;
   maksimalCycle: number;
 };
@@ -110,7 +114,10 @@ export function bolehMasuk(
   const lokasi = periksaLokasi(k);
   if (!lokasi.ok) return lokasi;
 
-  const snapshot = snapshotKeterlambatan(sekarangMenit, k.shift);
+  const snapshot =
+    k.izinTelatMenit != null
+      ? snapshotKeterlambatanTelat(sekarangMenit, k.shift, k.izinTelatMenit)
+      : snapshotKeterlambatan(sekarangMenit, k.shift);
   return {
     ok: true,
     status: snapshot.menitTelat > 0 ? "telat" : "hadir",
@@ -121,6 +128,36 @@ export function bolehMasuk(
   };
 }
 
+/**
+ * Snapshot keterlambatan dengan izin telat: batas toleransi diganti batas
+ * masuk yang diizinkan — datang sampai jam itu dihitung hadir penuh,
+ * selebihnya hanya selisihnya yang dihitung telat. Invarian
+ * menitKotor = menitToleransi + menitTelat tetap berlaku; shift fleksibel
+ * tetap 0 semua (tidak ada konsep telat di sana).
+ */
+export function snapshotKeterlambatanTelat(
+  masukMenit: number,
+  shift: Shift,
+  jamDiizinkan: number,
+): { menitTelat: number; menitToleransi: number; menitKotor: number } {
+  if (shift.mode === "fleksibel") {
+    return { menitTelat: 0, menitToleransi: 0, menitKotor: 0 };
+  }
+  const kotor = keterlambatanKotor(masukMenit, shift);
+  if (kotor === 0) {
+    return { menitTelat: 0, menitToleransi: 0, menitKotor: 0 };
+  }
+  const toleransiEfektif = Math.max(
+    shift.toleransiMenit,
+    jamDiizinkan - shift.mulaiMenit,
+  );
+  return {
+    menitTelat: Math.max(0, masukMenit - jamDiizinkan),
+    menitToleransi: Math.min(kotor, toleransiEfektif),
+    menitKotor: kotor,
+  };
+}
+
 /** Kekurangan target fleksibel hanya indikator; tidak memblokir check-out. */
 export function kekuranganKerja(
   durasi: number,
@@ -128,6 +165,31 @@ export function kekuranganKerja(
 ): number {
   if (minimumKerjaMenit == null) return 0;
   return Math.max(0, minimumKerjaMenit - durasi);
+}
+
+/**
+ * Kekurangan kerja dengan izin pulang cepat: bila karyawan pulang pada
+ * atau setelah jam yang diizinkan, target minimum hari itu dipangkas
+ * sampai jam tersebut (dihitung dari jam masuk) — pulang sesuai izin
+ * tidak dihitung kekurangan. Pulang SEBELUM jam yang diizinkan tetap
+ * memakai target normal.
+ */
+export function kekuranganKerjaDenganIzin(
+  totalMenit: number,
+  minimumKerjaMenit: number | null | undefined,
+  masukMenit: number,
+  jamPulangDiizinkan: number | null | undefined,
+  sekarangMenit: number,
+): number {
+  if (jamPulangDiizinkan == null || sekarangMenit < jamPulangDiizinkan) {
+    return kekuranganKerja(totalMenit, minimumKerjaMenit);
+  }
+  if (minimumKerjaMenit == null) return 0;
+  const targetEfektif = Math.min(
+    minimumKerjaMenit,
+    Math.max(0, jamPulangDiizinkan - masukMenit),
+  );
+  return Math.max(0, targetEfektif - totalMenit);
 }
 
 export type WaktuCycle = { masukMenit: number; keluarMenit: number | null };

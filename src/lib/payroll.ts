@@ -32,6 +32,11 @@ export function tunjanganMakan(hariHadir: number): number {
   return Math.max(0, Math.floor(hariHadir)) * TARIF_TUNJANGAN_MAKAN_PER_HARI;
 }
 
+/** Tunjangan makan karyawan: 0 bila karyawan tidak dapat tunjangan makan. */
+export function tunjanganMakanKaryawan(dapat: boolean, hariHadir: number): number {
+  return dapat ? tunjanganMakan(hariHadir) : 0;
+}
+
 /**
  * Tarif potongan telat per menit tercatat (Rp 1.000). Menit telat tercatat
  * sudah dikurangi toleransi shift (Shift.toleransiMenit) saat check-in —

@@ -4,7 +4,10 @@ import { hash } from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { validasiKaryawan } from "@/lib/karyawan";
+import {
+  simpanDapatTunjanganMakan,
+  validasiKaryawan,
+} from "@/lib/karyawan";
 import { wajibAkses } from "@/lib/session";
 
 export type HasilKaryawan = { ok: boolean; pesan: string };
@@ -87,24 +90,29 @@ export async function simpanKaryawan(
   const resetPassword = Boolean(id && data.resetPassword && data.password);
 
   try {
-  if (id) {
-      await db.user.update({
-        where: { id },
-        data: {
-          ...dasar,
-          ...(resetPassword
-            ? { passwordHash: await hash(data.password, 10) }
-            : {}),
-        },
-      });
-    } else {
-      await db.user.create({
-        data: {
-          ...dasar,
-          passwordHash: await hash(data.password, 10),
-        },
-      });
-    }
+    const karyawanId = id
+      ? (
+          await db.user.update({
+            where: { id },
+            data: {
+              ...dasar,
+              ...(resetPassword
+                ? { passwordHash: await hash(data.password, 10) }
+                : {}),
+            },
+          })
+        ).id
+      : (
+          await db.user.create({
+            data: {
+              ...dasar,
+              passwordHash: await hash(data.password, 10),
+            },
+          })
+        ).id;
+    // Flag tunjangan makan lewat SQL mentah (delegate belum mengenal
+    // kolom baru sebelum `prisma generate` — lihat src/lib/karyawan.ts).
+    await simpanDapatTunjanganMakan(karyawanId, data.dapatTunjanganMakan);
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
       if (e.code === "P2002") {

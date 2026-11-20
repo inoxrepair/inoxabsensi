@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -11,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { JENIS_IZIN, LABEL_JENIS_IZIN } from "@/lib/izin";
 import { buatIzinAdmin, type HasilIzin } from "./actions";
 import { InputTanggal } from "@/components/ui/input-tanggal";
 
@@ -23,6 +26,7 @@ export function BuatIzinAdminForm({
     HasilIzin | undefined,
     FormData
   >(buatIzinAdmin, undefined);
+  const [jenis, setJenis] = useState("izin");
 
   return (
     <form action={kirim} className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-4">
@@ -49,16 +53,47 @@ export function BuatIzinAdminForm({
       </div>
       <Label className="mt-3 block text-xs font-normal text-muted">
         Jenis
-        <Select name="jenis" required defaultValue="izin">
+        <Select name="jenis" value={jenis} onValueChange={setJenis} required>
           <SelectTrigger className="mt-1.5">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="izin">Izin</SelectItem>
-            <SelectItem value="sakit">Sakit</SelectItem>
+            {JENIS_IZIN.map((j) => (
+              <SelectItem key={j} value={j}>
+                {LABEL_JENIS_IZIN[j]}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </Label>
+      {jenis === "telat" ? (
+        <Label className="mt-3 block text-xs font-normal text-muted">
+          Boleh masuk sampai jam
+          <Input
+            name="jamMasukDiizinkan"
+            type="time"
+            required
+            className="mt-1.5 w-full"
+          />
+        </Label>
+      ) : null}
+      {jenis === "pulang-cepat" ? (
+        <Label className="mt-3 block text-xs font-normal text-muted">
+          Boleh pulang mulai jam
+          <Input
+            name="jamPulangDiizinkan"
+            type="time"
+            required
+            className="mt-1.5 w-full"
+          />
+        </Label>
+      ) : null}
+      {jenis === "cuti" ? (
+        <p className="mt-3 rounded-lg bg-surface px-3 py-2 text-xs">
+          Cuti langsung memakai saldo karyawan (12 hari/tahun). Bila saldo
+          tidak cukup, pembuatan ditolak.
+        </p>
+      ) : null}
       <Label className="mt-3 block text-xs font-normal text-muted">
         Alasan (wajib)
         <Textarea name="alasan" rows={2} maxLength={500} required className="mt-1.5 min-h-0" />

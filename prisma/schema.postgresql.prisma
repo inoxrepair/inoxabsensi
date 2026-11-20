@@ -22,6 +22,7 @@ model User {
   jabatan       String    @default("-")
   tanggalMasuk  String
   aktif         Boolean   @default(true)
+  dapatTunjanganMakan Boolean @default(true)
   faceEmbedding   String?
   faceDidaftarkan String?
   cabangId      String?
@@ -197,6 +198,12 @@ model PengajuanIzin {
   jenis           String
   alasan          String
   buktiKeterangan String?
+  /// Batas masuk yang diizinkan (menit sejak tengah malam) — jenis "telat".
+  jamMasukDiizinkan Int?
+  /// Batas pulang yang diizinkan (menit sejak tengah malam) — jenis "pulang-cepat".
+  jamPulangDiizinkan Int?
+  /// Foto bukti sebagai data URL (JPEG hasil kompresi HP); null bila tidak ada.
+  buktiFoto String?
   status          String   @default("pending")
   catatanAdmin    String?
   diprosesOleh    String?
@@ -371,6 +378,16 @@ model ChatMengetik {
 /// pesan dari orang lain yang dibuat setelah waktu ini dihitung belum dibaca.
 model ChatDibaca {
   /// id User yang membaca chat.
+  userId     String   @id
+  dibacaPada DateTime @default(now())
+}
+
+/// Kapan terakhir tiap karyawan membuka halaman izin, untuk lencana jumlah
+/// pengajuan yang sudah diproses admin (disetujui/ditolak) di menu Izin.
+/// Satu baris per pengguna; pengajuan yang diproses setelah waktu ini
+/// dihitung belum dibaca.
+model IzinDibaca {
+  /// id User yang membuka halaman izin.
   userId     String   @id
   dibacaPada DateTime @default(now())
 }

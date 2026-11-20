@@ -3,6 +3,7 @@ import { takeHomePay, type BarisPayroll } from "@/lib/payroll";
 import {
   bacaStatusSlip,
   gabungkanBarisSlip,
+  infoSlipPdf,
   komponenDariSnapshot,
   LABEL_STATUS_SLIP,
   snapshotDariBaris,
@@ -159,5 +160,45 @@ describe("gabungkanBarisSlip", () => {
     expect(r.snapshot?.dibayarPada).toEqual(
       new Date("2026-11-20T10:00:00.000Z"),
     );
+  });
+});
+
+describe("infoSlipPdf", () => {
+  it("tanpa snapshot: belum dibuat, semua tanggal null", () => {
+    expect(infoSlipPdf(null, new Map())).toEqual({
+      status: "belum",
+      dibuatPada: null,
+      dibayarPada: null,
+      dibuatOleh: null,
+      dibayarOleh: null,
+    });
+  });
+
+  it("snapshot dibuat: tanggal diformat, nama pembuat dari peta", () => {
+    const hasil = infoSlipPdf(
+      slip(),
+      new Map([["admin-1", "Admin Satu"]]),
+    );
+    expect(hasil).toEqual({
+      status: "dibuat",
+      dibuatPada: "17/11/2026",
+      dibayarPada: null,
+      dibuatOleh: "Admin Satu",
+      dibayarOleh: null,
+    });
+  });
+
+  it("snapshot dibayar: tanggal bayar terisi, nama tak dikenal kembali ke id", () => {
+    const hasil = infoSlipPdf(
+      slip({
+        status: "dibayar",
+        dibayarOleh: "admin-2",
+        dibayarPada: new Date("2026-11-20T02:00:00.000Z"),
+      }),
+      new Map(),
+    );
+    expect(hasil.status).toBe("dibayar");
+    expect(hasil.dibayarPada).toBe("20/11/2026");
+    expect(hasil.dibayarOleh).toBe("admin-2");
   });
 });

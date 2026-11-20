@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ROLE } from "@/lib/domain";
 import { tanggalValid } from "@/lib/rekap";
+import { db } from "@/lib/db";
 
 /** Validasi data akun karyawan/admin. */
 export const karyawanSkema = z
@@ -37,6 +38,12 @@ export const karyawanSkema = z
       .optional()
       .transform((v) => (v ? v : null)),
     aktif: z
+      .string()
+      .optional()
+      .transform((v) => v === "on" || v === "true"),
+    // Centang "Dapat tunjangan makan" (default tercentang di form):
+    // tidak dicentang = tunjangan makan Rp 0 di payroll.
+    dapatTunjanganMakan: z
       .string()
       .optional()
       .transform((v) => v === "on" || v === "true"),
@@ -93,4 +100,41 @@ export function validasiKaryawan(
     };
   }
   return hasil;
+}
+
+/**
+ * Flag "Dapat tunjangan makan" per karyawan (kolom User baru).
+ *
+ * Sengaja lewat SQL mentah, bukan delegate Prisma — pola yang sama dengan
+ * src/lib/pengaturan.ts: delegate baru tersedia setelah `prisma generate`
+ * dijalankan ulang, sedangkan generate di VM ini gagal mengunduh engine
+ * (jaringan proxy). Kolom tetap didefinisikan di schema Prisma + migrasi
+ * Postgres, jadi delegate bisa dipakai nanti setelah generate berhasil
+ * (mis. saat build di VPS). SQL di sini kompatibel dengan Postgres
+ * (produksi) maupun SQLite (dev lokal).
+ */
+
+/** Peta userId -> dapat tunjangan makan. Kolom belum ada = semua dapat. */
+export async function petaDapatTunjanganMakan(): Promise<Map<string, boolean>> {
+  try {
+    const rows = await db.$queryRaw<
+      { id: string; dapatTunjanganMakan: boolean | number }[]
+    >`
+      SELECT "id", "dapatTunjanganMakan" FROM "User"
+    `;
+    return new Map(rows.map((r) => [r.id, Boolean(r.dapatTunjanganMakan)]));
+  } catch {
+    // Kolom belum ada (migrasi belum jalan): anggap semua dapat.
+    return new Map();
+  }
+}
+
+/** Simpan flag untuk satu karyawan. Gagal bila kolom belum ada. */
+export async function simpanDapatTunjanganMakan(
+  id: string,
+  dapat: boolean,
+): Promise<void> {
+  await db.$executeRaw`
+    UPDATE "User" SET "dapatTunjanganMakan" = ${dapat} WHERE "id" = ${id}
+  `;
 }

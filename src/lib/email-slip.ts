@@ -8,12 +8,18 @@ import { ambilLogAbsensiSlip } from "@/lib/log-absensi-slip";
 import { buatSlipPayrollPdf } from "@/lib/payroll-pdf";
 import { hitungPayroll } from "@/lib/payroll-data";
 import {
+  bacaLogoAplikasi,
   bacaNamaPerusahaan,
   bacaSetelanEmailSlip,
   type SetelanEmailSlip,
 } from "@/lib/pengaturan";
 import { rentangPeriodeGajian } from "@/lib/rekap";
-import { ambilSlip } from "@/lib/slip-gaji";
+import {
+  ambilSlip,
+  ambilSlipPeriode,
+  infoSlipPdf,
+  petaNamaUser,
+} from "@/lib/slip-gaji";
 import { tanggalLokal } from "@/lib/waktu";
 
 /**
@@ -203,9 +209,16 @@ export async function bangunPdfSlip(
   });
   const r = baris.find((b) => b.userId === userId);
   if (!r) return null;
-  const [perusahaan, log] = await Promise.all([
+  const [perusahaan, logoDataUrl, log, snapshots] = await Promise.all([
     bacaNamaPerusahaan(),
+    bacaLogoAplikasi(),
     ambilLogAbsensiSlip(userId, jendela.dari, jendela.sampai),
+    ambilSlipPeriode(periode),
+  ]);
+  const snap = snapshots.get(userId) ?? null;
+  const namaPembuat = await petaNamaUser([
+    snap?.dibuatOleh ?? null,
+    snap?.dibayarOleh ?? null,
   ]);
   const pdf = await buatSlipPayrollPdf({
     periode,
@@ -213,6 +226,8 @@ export async function bangunPdfSlip(
     jendelaKustom: jendela.kustom,
     jendela,
     perusahaan,
+    logoDataUrl,
+    ...infoSlipPdf(snap, namaPembuat),
     baris: r,
     log,
   });

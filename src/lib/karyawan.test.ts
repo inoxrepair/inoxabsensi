@@ -47,6 +47,16 @@ describe("validasiKaryawan", () => {
     if (h.success) expect(h.data.aktif).toBe(false);
   });
 
+  it("centang tunjangan makan dicentang berarti dapat", () => {
+    const h = validasiKaryawan(form({ dapatTunjanganMakan: "on" }), true);
+    if (h.success) expect(h.data.dapatTunjanganMakan).toBe(true);
+  });
+
+  it("centang tunjangan makan kosong berarti tidak dapat", () => {
+    const h = validasiKaryawan(form({ dapatTunjanganMakan: undefined }), true);
+    if (h.success) expect(h.data.dapatTunjanganMakan).toBe(false);
+  });
+
   it("password wajib saat membuat akun", () => {
     expect(pesan({ password: "" }, true)).toMatch(/Password wajib/);
   });
