@@ -465,6 +465,8 @@ export async function buatSlipPayrollPdf(
 
   // ---- Kop (gaya invoice): logo kiri, blok tanggal kanan. ----
   const yKop = y;
+  // Bawah isi kop di kiri (logo atau nama perusahaan) — patokan judul besar.
+  let bawahKop = yKop - 16;
   let logoTampil = false;
   try {
     const logo = parseLogoDataUrl(data.logoDataUrl);
@@ -476,6 +478,7 @@ export async function buatSlipPayrollPdf(
       const lw = img.width * skala;
       const lh = img.height * skala;
       page.drawImage(img, { x: MARGIN, y: yKop - lh, width: lw, height: lh });
+      bawahKop = yKop - lh;
       logoTampil = true;
     }
   } catch {
@@ -506,7 +509,10 @@ export async function buatSlipPayrollPdf(
     yKop - 30,
     10,
   );
-  y = yKop - 52;
+  // Judul dipatok dari bawah kop, bukan angka tetap: logo setinggi 44
+  // membuat judul di yKop-52 menabrak bawah logo (huruf besar 17pt naik
+  // ~12pt dari baseline). Jarak 22pt memberi celah ~10pt dari bawah logo.
+  y = Math.min(yKop - 52, bawahKop - 22);
 
   // Judul besar abu-abu (gaya "Invoice 747541" di invoice).
   page.drawText(`Slip Gaji — ${r.nama}`, {
