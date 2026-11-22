@@ -23,19 +23,14 @@ export const maxDuration = 60;
  * landscape). Dengan `?karyawan=<userId>`: slip gaji satu karyawan
  * (A4 portrait).
  *
- * Keamanan: hanya super_admin yang boleh mengunduh — sama seperti
- * halaman Payroll (admin cabang tidak boleh membaca angka gaji).
- * Angka di PDF dihitung oleh hitungPayroll yang sama dengan halaman,
- * jadi tidak pernah berbeda dari yang tampil di layar.
+ * Keamanan: admin cabang hanya mengunduh lingkup cabangnya sendiri —
+ * parameter cabang dari URL diabaikan dan slip karyawan cabang lain
+ * tidak ditemukan (404). Angka di PDF dihitung oleh hitungPayroll yang
+ * sama dengan halaman, jadi tidak pernah berbeda dari yang tampil di
+ * layar.
  */
 export async function GET(request: Request) {
   const admin = await wajibAkses("payroll");
-  if (admin.role !== "super_admin") {
-    return new Response(
-      "Hanya super admin dapat mengunduh laporan payroll.",
-      { status: 403 },
-    );
-  }
 
   const q = new URL(request.url).searchParams;
   const bulanIni = tanggalLokal().slice(0, 7);
@@ -43,7 +38,11 @@ export async function GET(request: Request) {
     q.get("periode") && periodeValid(q.get("periode")!)
       ? q.get("periode")!
       : bulanIni;
-  const cabangId = q.get("cabang") ?? "";
+  // Admin cabang hanya cabangnya sendiri; super admin bebas memilih.
+  const cabangId =
+    admin.role === "super_admin"
+      ? (q.get("cabang") ?? "")
+      : (admin.cabangId ?? "");
 
   const { baris, total, jendela, rentang } = await hitungPayroll({
     periode,

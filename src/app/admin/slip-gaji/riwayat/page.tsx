@@ -32,27 +32,28 @@ export default async function AdminRiwayatSlipPage({
   const bulanIni = tanggalLokal().slice(0, 7);
   const periode = q.periode && periodeValid(q.periode) ? q.periode : bulanIni;
 
-  // Sama seperti Daftar: hanya super_admin yang boleh membaca angka gaji.
+  // Sama seperti Daftar: admin cabang hanya melihat cabangnya sendiri
+  // (parameter cabang dari URL diabaikan).
   const superAdmin = admin.role === "super_admin";
-  const cabangId = superAdmin ? (q.cabang ?? "") : "";
+  const cabangId = superAdmin ? (q.cabang ?? "") : (admin.cabangId ?? "");
   const status: StatusSlipTersimpan | undefined =
     q.status === "dibuat" || q.status === "dibayar" ? q.status : undefined;
   const cari = (q.cari ?? "").trim();
 
-  const riwayatMentah = superAdmin
-    ? await ambilRiwayatSlip({
-        periode,
-        cabangId: cabangId || undefined,
-        status,
-        cari: cari || undefined,
-      })
-    : [];
+  const riwayatMentah = await ambilRiwayatSlip({
+    periode,
+    cabangId: cabangId || undefined,
+    status,
+    cari: cari || undefined,
+  });
   // Tunjangan makan dinamis: sesuaikan tiap baris riwayat dengan hitungan
   // saat ini; baris tanpa hitungan live (mis. karyawan sudah tidak aktif)
   // tetap memakai snapshot apa adanya.
-  const { baris: barisLive } = superAdmin
-    ? await hitungPayroll({ periode, cabangId, bulanIni })
-    : { baris: [] as { userId: string; tunjanganMakan: number }[] };
+  const { baris: barisLive } = await hitungPayroll({
+    periode,
+    cabangId,
+    bulanIni,
+  });
   const petaMakanLive = new Map(
     barisLive.map((b) => [b.userId, b.tunjanganMakan]),
   );
@@ -65,6 +66,11 @@ export default async function AdminRiwayatSlipPage({
     orderBy: { nama: "asc" },
     select: { id: true, nama: true },
   });
+  // Admin cabang hanya ditawari cabangnya sendiri di filter (daftar satu
+  // cabang menyembunyikan dropdown cabang di FilterRiwayat).
+  const daftarCabang = superAdmin
+    ? cabang
+    : cabang.filter((c) => c.id === admin.cabangId);
   // Nama admin pembuat/penanda bayar (ID disimpan di snapshot).
   const namaAdmin = await petaNamaUser(
     riwayat.flatMap((s) => [s.dibuatOleh, s.dibayarOleh]),
@@ -90,22 +96,19 @@ export default async function AdminRiwayatSlipPage({
           periode={periode}
           daftarPeriode={periodeTerakhir(bulanIni, 12)}
           cabangId={cabangId}
-          cabang={cabang}
+          cabang={daftarCabang}
           status={status ?? ""}
           cari={cari}
         />
 
-        {!superAdmin ? (
-          <p className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-6 text-sm text-muted">
-            Hanya super admin dapat melihat slip gaji.
-          </p>
-        ) : riwayat.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-white/70 dark:border-white/15 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-8 text-center text-sm text-muted">
-            Belum ada slip yang diterbitkan pada filter ini.
-          </p>
-        ) : (
-          <div className="overflow-x-auto rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
-            <table className="w-full min-w-[880px] text-sm">
+        {superAdmin || admin.role === "admin_cabang" ? (
+          riwayat.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-white/70 dark:border-white/15 bg-white/60 dark:bg-zinc-900/60 shadow-md shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-8 text-center text-sm text-muted">
+              Belum ada slip yang diterbitkan pada filter ini.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
+              <table className="w-full min-w-[880px] text-sm">
               <caption className="sr-only">Riwayat slip gaji</caption>
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
@@ -175,6 +178,11 @@ export default async function AdminRiwayatSlipPage({
               </tbody>
             </table>
           </div>
+          )
+        ) : (
+          <p className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-6 text-sm text-muted">
+            Hanya super admin dapat melihat slip gaji.
+          </p>
         )}
       </div>
     </>

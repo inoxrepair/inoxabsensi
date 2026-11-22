@@ -48,10 +48,13 @@ const KOMPONEN_TAMPIL: {
 export function TabelSlip({
   periode,
   baris,
+  bolehUbah,
   rentang,
 }: {
   periode: string;
   baris: BarisSlip[];
+  /** false = baca-saja (admin cabang): tanpa tombol Buat/Tandai dibayar. */
+  bolehUbah: boolean;
   /** Rentang gajian periode ini (28–27) untuk keterangan dialog. */
   rentang: { dari: string; sampai: string };
 }) {
@@ -98,15 +101,17 @@ export function TabelSlip({
         <p className="text-sm text-muted">
           {`${jumlahDibuat} dari ${baris.length} slip dibuat · ${jumlahDibayar} sudah dibayar`}
         </p>
-        <Button
-          type="button"
-          size="sm"
-          disabled={menunggu || jumlahDibuat === baris.length}
-          onClick={buatSemua}
-          title="Buat snapshot slip untuk semua karyawan yang belum punya slip periode ini"
-        >
-          {menunggu ? "Membuat…" : "Buat semua slip periode ini"}
-        </Button>
+        {bolehUbah ? (
+          <Button
+            type="button"
+            size="sm"
+            disabled={menunggu || jumlahDibuat === baris.length}
+            onClick={buatSemua}
+            title="Buat snapshot slip untuk semua karyawan yang belum punya slip periode ini"
+          >
+            {menunggu ? "Membuat…" : "Buat semua slip periode ini"}
+          </Button>
+        ) : null}
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
@@ -126,6 +131,7 @@ export function TabelSlip({
                 key={`${periode}:${r.userId}`}
                 periode={periode}
                 r={r}
+                bolehUbah={bolehUbah}
                 rentang={rentang}
                 menunggu={menunggu}
                 jalankan={jalankan}
@@ -147,12 +153,14 @@ export function TabelSlip({
 function BarisSlip({
   periode,
   r,
+  bolehUbah,
   rentang,
   menunggu,
   jalankan,
 }: {
   periode: string;
   r: BarisSlip;
+  bolehUbah: boolean;
   rentang: { dari: string; sampai: string };
   menunggu: boolean;
   jalankan: (aksi: (f: FormData) => Promise<HasilSlip>, f: FormData) => void;
@@ -207,12 +215,12 @@ function BarisSlip({
           >
             Slip PDF
           </a>
-          {r.status === "belum" ? (
+          {bolehUbah && r.status === "belum" ? (
             <Button type="button" size="sm" disabled={menunggu} onClick={buat}>
               Buat slip
             </Button>
           ) : null}
-          {r.status === "dibuat" ? (
+          {bolehUbah && r.status === "dibuat" ? (
             <Button
               type="button"
               variant="outline"

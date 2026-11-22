@@ -89,7 +89,27 @@ export const AKSES_DEFAULT: Record<RoleKaryawan, readonly MenuAdmin[]> = {
   // Admin cabang bisa absen seperti karyawan (jadwal shift-nya sudah ada,
   // server action absen memang tidak membatasi role); menunya mengarah ke
   // halaman absen /karyawan yang sama.
-  admin_cabang: ["dashboard", "absen", "karyawan", "jadwal", "rekap", "kasbon", "insentif", "chat", "top5"],
+  // Admin cabang memegang semua menu kecuali yang memang global:
+  // "cabang" (mengelola cabang lain), "informasi" (broadcast semua cabang,
+  // modelnya tidak punya cabangId), dan "pengaturan" (memuat editor Hak
+  // Akses — memberikannya membuka eskalasi hak sendiri). Semua halaman
+  // yang dibuka di sini memaksa data ke cabang admin itu sendiri;
+  // "payroll" + "slip-gaji" tambahan dikunci toggle Pengaturan
+  // admin_cabang_lihat_gaji (lihat lib/session menuDiizinkan).
+  admin_cabang: [
+    "dashboard",
+    "absen",
+    "karyawan",
+    "jadwal",
+    "rekap",
+    "kasbon",
+    "payroll",
+    "slip-gaji",
+    "insentif",
+    "log-login",
+    "chat",
+    "top5",
+  ],
   // Rekap pribadi tersedia di /karyawan/riwayat; akses admin Headstore
   // hanya untuk menyusun jadwal cabangnya.
   headstore: ["dashboard", "absen", "jadwal", "chat", "top5"],

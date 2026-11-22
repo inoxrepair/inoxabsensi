@@ -7,6 +7,8 @@ import {
   type MenuAdmin,
   type RoleKaryawan,
 } from "@/lib/domain";
+import { batasiMenuGajiAdminCabang } from "@/lib/hak-akses";
+import { bacaAdminCabangLihatGaji } from "@/lib/pengaturan";
 
 export type Pengguna = {
   id: string;
@@ -62,7 +64,14 @@ export async function menuDiizinkan(role: RoleKaryawan): Promise<Set<string>> {
     where: { role },
     select: { menu: true },
   });
-  return new Set(izin.map((i) => i.menu));
+  const dasar = new Set(izin.map((i) => i.menu));
+  // Toggle Pengaturan: admin cabang hanya melihat menu gaji bila diizinkan.
+  if (role !== "admin_cabang") return dasar;
+  return batasiMenuGajiAdminCabang(
+    dasar,
+    role,
+    await bacaAdminCabangLihatGaji(),
+  );
 }
 
 /**

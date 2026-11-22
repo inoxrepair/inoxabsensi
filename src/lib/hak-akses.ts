@@ -19,3 +19,22 @@ export function bolehUbahHakAkses(
   }
   return true;
 }
+
+/** Menu yang berisi angka gaji (dikunci toggle Pengaturan untuk admin cabang). */
+export const MENU_GAJI: readonly MenuAdmin[] = ["payroll", "slip-gaji"];
+
+/**
+ * Toggle Pengaturan "admin cabang boleh lihat gaji": bila mati, menu gaji
+ * dicabut dari daftar izin admin_cabang — sidebar menyembunyikannya dan
+ * wajibAkses menolak URL-nya. Role lain tidak terpengaruh.
+ */
+export function batasiMenuGajiAdminCabang(
+  izin: Set<string>,
+  role: RoleKaryawan,
+  lihatGaji: boolean,
+): Set<string> {
+  if (role !== "admin_cabang" || lihatGaji) return izin;
+  const hasil = new Set(izin);
+  for (const menu of MENU_GAJI) hasil.delete(menu);
+  return hasil;
+}

@@ -284,6 +284,7 @@ function petakanSlip(r: BarisSlipGaji): SlipGaji {
 /** Snapshot slip satu periode, dipetakan per userId (untuk Daftar). */
 export async function ambilSlipPeriode(
   periode: string,
+  cabangId?: string,
 ): Promise<Map<string, SlipGaji>> {
   const rows = await db.$queryRaw<BarisSlipGaji[]>`
     SELECT s."id", s."userId", s."nama", s."periode", s."gajiPokok",
@@ -295,6 +296,7 @@ export async function ambilSlipPeriode(
     LEFT JOIN "User" u ON u."id" = s."userId"
     LEFT JOIN "Cabang" c ON c."id" = u."cabangId"
     WHERE s."periode" = ${periode}
+      AND (${cabangId === undefined} OR u."cabangId" = ${cabangId ?? ""})
     ORDER BY s."nama" ASC
   `;
   return new Map(rows.map((r) => [r.userId, petakanSlip(r)]));

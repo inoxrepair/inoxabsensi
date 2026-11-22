@@ -34,7 +34,7 @@ export default async function AdminLogLoginPage({
     jenis?: string;
   }>;
 }) {
-  await wajibAkses("log-login");
+  const admin = await wajibAkses("log-login");
   const q = await searchParams;
   const hariIni = tanggalLokal();
   // Tanpa rentang: 30 hari terakhir (bukan bulan kalender).
@@ -43,7 +43,11 @@ export default async function AdminLogLoginPage({
       ? bacaRentang({ dari: q.dari, sampai: q.sampai }, hariIni.slice(0, 7))
       : { dari: tanggalGeser(hariIni, -29), sampai: hariIni, kustom: true };
 
-  const cabangTerpilih = q.cabang ?? "";
+  // Admin cabang hanya melihat log cabangnya sendiri: parameter cabang
+  // dari URL diabaikan. Filter karyawan di bawah juga ikut terbatas,
+  // karena baris karyawan cabang lain punya cabangId yang berbeda.
+  const superAdmin = admin.role === "super_admin";
+  const cabangTerpilih = superAdmin ? (q.cabang ?? "") : (admin.cabangId ?? "");
   const karyawanTerpilih = q.karyawan ?? "";
   const jenisTerpilih =
     q.jenis === "masuk" || q.jenis === "keluar" ? q.jenis : "";
@@ -55,6 +59,8 @@ export default async function AdminLogLoginPage({
       select: { id: true, nama: true },
     }),
     db.user.findMany({
+      // Admin cabang hanya ditawari karyawan cabangnya di filter.
+      where: cabangTerpilih ? { cabangId: cabangTerpilih } : {},
       orderBy: { name: "asc" },
       select: { id: true, name: true, cabangId: true },
     }),
@@ -172,7 +178,7 @@ export default async function AdminLogLoginPage({
       <FilterLogLogin
         awal={rentang.dari}
         akhir={rentang.sampai}
-        cabang={cabang}
+        cabang={superAdmin ? cabang : cabang.filter((c) => c.id === admin.cabangId)}
         cabangTerpilih={cabangTerpilih}
         karyawan={karyawan}
         karyawanTerpilih={karyawanTerpilih}

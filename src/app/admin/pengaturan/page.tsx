@@ -25,8 +25,10 @@ import { FormLogo } from "./logo-form";
 import { FormNamaPerusahaan } from "./nama-perusahaan-form";
 import { BackupJadwalPanel } from "./backup-jadwal";
 import { CentangHakAkses } from "./hak-akses-form";
+import { CentangGajiAdminCabang } from "./gaji-admin-cabang-form";
 import { FormEmailSlip } from "./email-slip-form";
 import {
+  bacaAdminCabangLihatGaji,
   bacaLogoAplikasi,
   bacaNamaPerusahaan,
   bacaSetelanEmailSlip,
@@ -45,19 +47,28 @@ export default async function AdminPengaturanPage() {
   const admin = await wajibAkses("pengaturan");
   if (admin.role !== "super_admin") forbidden();
 
-  const [izin, shift, seragam, logo, versiLogo, namaPerusahaan, setelanEmail] =
-    await Promise.all([
-      db.rolePermission.findMany(),
-      db.shift.findMany({ orderBy: { mulaiMenit: "asc" } }),
-      db.jenisSeragam.findMany({
-        orderBy: [{ aktif: "desc" }, { nama: "asc" }],
-        include: { _count: { select: { jadwal: true } } },
-      }),
-      bacaLogoAplikasi(),
-      bacaVersiLogo(),
-      bacaNamaPerusahaan(),
-      bacaSetelanEmailSlip(),
-    ]);
+  const [
+    izin,
+    shift,
+    seragam,
+    logo,
+    versiLogo,
+    namaPerusahaan,
+    setelanEmail,
+    gajiAdminCabang,
+  ] = await Promise.all([
+    db.rolePermission.findMany(),
+    db.shift.findMany({ orderBy: { mulaiMenit: "asc" } }),
+    db.jenisSeragam.findMany({
+      orderBy: [{ aktif: "desc" }, { nama: "asc" }],
+      include: { _count: { select: { jadwal: true } } },
+    }),
+    bacaLogoAplikasi(),
+    bacaVersiLogo(),
+    bacaNamaPerusahaan(),
+    bacaSetelanEmailSlip(),
+    bacaAdminCabangLihatGaji(),
+  ]);
 
   // Set gabungan "role:menu" untuk lookup O(1) saat render matriks.
   const akses = new Set(izin.map((i) => `${bacaRole(i.role)}:${i.menu}`));
@@ -123,6 +134,17 @@ export default async function AdminPengaturanPage() {
           {`${izin.length} baris izin aktif di tabel RolePermission. Centang untuk memberi akses, hapus centang untuk mencabut — perubahan langsung berlaku dan sidebar mengikuti.`}
         </CardFooter>
       </Card>
+
+      <div className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Gaji untuk admin cabang</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CentangGajiAdminCabang diizinkan={gajiAdminCabang} />
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="mt-6">
         <Card>

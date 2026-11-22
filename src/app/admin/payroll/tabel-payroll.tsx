@@ -26,11 +26,14 @@ const KOMPONEN = [
 export function TabelPayroll({
   periode,
   baris,
+  bolehUbah,
   infoJendela,
   rentangKustom,
 }: {
   periode: string;
   baris: BarisPayroll[];
+  /** false = angka tampil baca-saja (admin cabang): tanpa input/Simpan. */
+  bolehUbah: boolean;
   /** Keterangan bila hitungan hadir/telat dibatasi rentang tanggal kustom. */
   infoJendela?: string;
   /** Rentang kustom aktif (bila ada) — diteruskan ke tautan Slip PDF per baris. */
@@ -63,7 +66,9 @@ export function TabelPayroll({
 
       <div className="overflow-x-auto rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
         <table className="w-full min-w-[1120px] text-sm">
-          <caption className="sr-only">Payroll editable per karyawan</caption>
+          <caption className="sr-only">
+            {bolehUbah ? "Payroll editable per karyawan" : "Payroll per karyawan"}
+          </caption>
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
               <th className="p-3 font-medium">Karyawan</th>
@@ -89,6 +94,7 @@ export function TabelPayroll({
                 key={`${periode}:${r.userId}`}
                 periode={periode}
                 awal={r}
+                bolehUbah={bolehUbah}
                 onPesan={setPesan}
                 rentangKustom={rentangKustom}
               />
@@ -136,11 +142,13 @@ export function TabelPayroll({
 function Baris({
   periode,
   awal,
+  bolehUbah,
   onPesan,
   rentangKustom,
 }: {
   periode: string;
   awal: BarisPayroll;
+  bolehUbah: boolean;
   onPesan: (h: HasilPayroll) => void;
   rentangKustom?: { dari: string; sampai: string };
 }) {
@@ -203,20 +211,26 @@ function Baris({
       </th>
       {KOMPONEN.map(([key, label]) => (
         <td key={key} className="p-2 text-right">
-          <Label className="sr-only" htmlFor={`${key}-${awal.userId}`}>
-            {label} {awal.nama}
-          </Label>
-          <Input
-            id={`${key}-${awal.userId}`}
-            name={key}
-            type="number"
-            min={0}
-            step={1}
-            inputMode="numeric"
-            value={nilai[key]}
-            onChange={(e) => setNilai((n) => ({ ...n, [key]: e.target.value }))}
-            className="h-auto w-32 px-2.5 py-1.5 text-right tabular-nums"
-          />
+          {bolehUbah ? (
+            <>
+              <Label className="sr-only" htmlFor={`${key}-${awal.userId}`}>
+                {label} {awal.nama}
+              </Label>
+              <Input
+                id={`${key}-${awal.userId}`}
+                name={key}
+                type="number"
+                min={0}
+                step={1}
+                inputMode="numeric"
+                value={nilai[key]}
+                onChange={(e) => setNilai((n) => ({ ...n, [key]: e.target.value }))}
+                className="h-auto w-32 px-2.5 py-1.5 text-right tabular-nums"
+              />
+            </>
+          ) : (
+            <span className="tabular-nums">{formatRupiah(awal[key])}</span>
+          )}
           {key === "gajiPokok" ? (
             <>
               {awal.gajiPokokFleksibel > 0 ? (
@@ -271,15 +285,17 @@ function Baris({
       </td>
       <td className="p-3">
         <div className="flex flex-col gap-2">
-          <Button
-            type="button"
-            size="sm"
-            disabled={menunggu}
-            onClick={simpan}
-            className="px-3 text-sm"
-          >
-            {menunggu ? "Menyimpan…" : "Simpan"}
-          </Button>
+          {bolehUbah ? (
+            <Button
+              type="button"
+              size="sm"
+              disabled={menunggu}
+              onClick={simpan}
+              className="px-3 text-sm"
+            >
+              {menunggu ? "Menyimpan…" : "Simpan"}
+            </Button>
+          ) : null}
           <a
             href={`/admin/payroll/ekspor?${slipParams.toString()}`}
             className="rounded-lg border border-line px-3 py-1.5 text-center text-xs font-medium"
@@ -287,18 +303,20 @@ function Baris({
           >
             Slip PDF
           </a>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={menunggu}
-            title="Isi kolom kasbon dari sisa kasbon disetujui; belum tersimpan sampai Simpan ditekan"
-            onClick={() =>
-              setNilai((n) => ({ ...n, kasbon: String(awal.kasbonDisetujuiSisa) }))
-            }
-          >
-            Isi kasbon dari pengajuan
-          </Button>
+          {bolehUbah ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={menunggu}
+              title="Isi kolom kasbon dari sisa kasbon disetujui; belum tersimpan sampai Simpan ditekan"
+              onClick={() =>
+                setNilai((n) => ({ ...n, kasbon: String(awal.kasbonDisetujuiSisa) }))
+              }
+            >
+              Isi kasbon dari pengajuan
+            </Button>
+          ) : null}
         </div>
       </td>
     </tr>

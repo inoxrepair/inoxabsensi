@@ -29,11 +29,11 @@ export default async function AdminSlipGajiPage({
   const bulanIni = tanggalLokal().slice(0, 7);
   const periode = q.periode && periodeValid(q.periode) ? q.periode : bulanIni;
 
-  // Permission default saat ini hanya memberi menu Slip Gaji ke super
-  // admin. Guard eksplisit dipertahankan agar bila permission tabel
-  // berubah, admin cabang tetap tidak dapat membaca angka gaji.
+  // Admin cabang hanya melihat cabangnya sendiri: parameter cabang dari
+  // URL diabaikan, supaya tidak bisa mengintip cabang lain. Super admin
+  // bebas memilih cabang (kosong = semua cabang).
   const superAdmin = admin.role === "super_admin";
-  const cabangId = superAdmin ? (q.cabang ?? "") : "";
+  const cabangId = superAdmin ? (q.cabang ?? "") : (admin.cabangId ?? "");
 
   // Satu sumber kebenaran dengan halaman Payroll dan ekspor PDF: angka
   // dihitung dari hitungPayroll yang sama; snapshot hanya membekukannya
@@ -43,12 +43,17 @@ export default async function AdminSlipGajiPage({
     cabangId,
     bulanIni,
   });
-  const snapshots = await ambilSlipPeriode(periode);
+  const snapshots = await ambilSlipPeriode(periode, cabangId || undefined);
   const gabungan = gabungkanBarisSlip(baris, snapshots);
   const cabang = await db.cabang.findMany({
     orderBy: { nama: "asc" },
     select: { id: true, nama: true },
   });
+  // Admin cabang hanya ditawari cabangnya sendiri di filter (daftar satu
+  // cabang menyembunyikan dropdown cabang di FilterSlip).
+  const daftarCabang = superAdmin
+    ? cabang
+    : cabang.filter((c) => c.id === admin.cabangId);
 
   const jumlahDibuat = gabungan.filter((r) => r.status !== "belum").length;
   const jumlahDibayar = gabungan.filter((r) => r.status === "dibayar").length;
@@ -59,7 +64,9 @@ export default async function AdminSlipGajiPage({
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Slip Gaji</h1>
           <p className="mt-1 text-sm text-muted">
-            {`Daftar slip gaji periode ${labelPeriode(periode)} (${formatTanggal(rentang.dari)}–${formatTanggal(rentang.sampai)}). Buat slip untuk membekukan angka periode ini — kecuali tunjangan makan yang mengikuti pengaturan saat ini; tandai dibayar setelah gaji dibayarkan.`}
+            {superAdmin
+              ? `Daftar slip gaji periode ${labelPeriode(periode)} (${formatTanggal(rentang.dari)}–${formatTanggal(rentang.sampai)}). Buat slip untuk membekukan angka periode ini — kecuali tunjangan makan yang mengikuti pengaturan saat ini; tandai dibayar setelah gaji dibayarkan.`
+              : `Daftar slip gaji periode ${labelPeriode(periode)} (${formatTanggal(rentang.dari)}–${formatTanggal(rentang.sampai)}). Hanya dapat dilihat — pembuatan slip dan tanda dibayar tetap super admin.`}
           </p>
         </div>
       </header>
@@ -110,11 +117,16 @@ export default async function AdminSlipGajiPage({
           periode={periode}
           daftarPeriode={periodeTerakhir(bulanIni, 12)}
           cabangId={cabangId}
-          cabang={cabang}
+          cabang={daftarCabang}
         />
 
-        {superAdmin ? (
-          <TabelSlip periode={periode} baris={gabungan} rentang={rentang} />
+        {superAdmin || admin.role === "admin_cabang" ? (
+          <TabelSlip
+            periode={periode}
+            baris={gabungan}
+            bolehUbah={superAdmin}
+            rentang={rentang}
+          />
         ) : (
           <p className="rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl p-6 text-sm text-muted">
             Hanya super admin dapat melihat slip gaji.

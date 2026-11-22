@@ -27,6 +27,11 @@ export const KUNCI_EMAIL_SMTP_LOGIN = "email_smtp_login";
  * (mis. email pribadinya) tanpa mengubah alamat pengirim.
  */
 export const KUNCI_EMAIL_TES_KE = "email_tes_ke";
+/**
+ * Admin cabang boleh melihat gaji cabangnya (menu Payroll + Slip Gaji).
+ * "1" = boleh, "0" = tidak. Bawaan: boleh (sesuai keputusan pemilik).
+ */
+export const KUNCI_ADMIN_CABANG_LIHAT_GAJI = "admin_cabang_lihat_gaji";
 /** Nama perusahaan bila belum pernah diatur (sesuai logo iNOX). */
 export const NAMA_PERUSAHAAN_BAWAAN = "iNOX Repair";
 
@@ -193,4 +198,23 @@ export function setelanEmailSlipTampil(
     login: setelan.login,
     emailTesKe: setelan.emailTesKe,
   };
+}
+
+/**
+ * Apakah admin cabang boleh melihat gaji cabangnya (menu Payroll + Slip
+ * Gaji). Bawaan: boleh. Bila dimatikan lewat Pengaturan, kedua menu itu
+ * hilang dari sidebar admin cabang dan URL-nya ditolak.
+ */
+export async function bacaAdminCabangLihatGaji(): Promise<boolean> {
+  try {
+    const rows = await db.$queryRaw<{ nilai: string }[]>`
+      SELECT "nilai" FROM "Pengaturan" WHERE "kunci" = ${KUNCI_ADMIN_CABANG_LIHAT_GAJI}
+    `;
+    const nilai = rows[0]?.nilai;
+    // Belum pernah diatur = boleh; hanya "0" yang mematikan.
+    return nilai !== "0";
+  } catch {
+    // Tabel belum ada (migrasi belum jalan): boleh.
+    return true;
+  }
 }

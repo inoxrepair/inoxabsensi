@@ -14,3 +14,4 @@ tsconfig.tsbuildinfo
 *.pem
 *.key
 backup/
+*npm-cache*/
