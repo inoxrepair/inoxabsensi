@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { formatRupiah } from "@/lib/format";
+import { hitungPayroll } from "@/lib/payroll-data";
 import { labelPeriode, periodeTerakhir, periodeValid } from "@/lib/rekap";
 import { wajibAkses } from "@/lib/session";
 import {
@@ -7,6 +8,7 @@ import {
   LABEL_STATUS_SLIP,
   petaNamaUser,
   tanggalSlip,
+  terapkanTunjanganMakanDinamis,
   type StatusSlipTersimpan,
 } from "@/lib/slip-gaji";
 import { tanggalLokal } from "@/lib/waktu";
@@ -37,7 +39,7 @@ export default async function AdminRiwayatSlipPage({
     q.status === "dibuat" || q.status === "dibayar" ? q.status : undefined;
   const cari = (q.cari ?? "").trim();
 
-  const riwayat = superAdmin
+  const riwayatMentah = superAdmin
     ? await ambilRiwayatSlip({
         periode,
         cabangId: cabangId || undefined,
@@ -45,6 +47,20 @@ export default async function AdminRiwayatSlipPage({
         cari: cari || undefined,
       })
     : [];
+  // Tunjangan makan dinamis: sesuaikan tiap baris riwayat dengan hitungan
+  // saat ini; baris tanpa hitungan live (mis. karyawan sudah tidak aktif)
+  // tetap memakai snapshot apa adanya.
+  const { baris: barisLive } = superAdmin
+    ? await hitungPayroll({ periode, cabangId, bulanIni })
+    : { baris: [] as { userId: string; tunjanganMakan: number }[] };
+  const petaMakanLive = new Map(
+    barisLive.map((b) => [b.userId, b.tunjanganMakan]),
+  );
+  const riwayat = riwayatMentah.map((s) =>
+    petaMakanLive.has(s.userId)
+      ? terapkanTunjanganMakanDinamis(s, petaMakanLive.get(s.userId)!)
+      : s,
+  );
   const cabang = await db.cabang.findMany({
     orderBy: { nama: "asc" },
     select: { id: true, nama: true },
@@ -62,7 +78,7 @@ export default async function AdminRiwayatSlipPage({
             Riwayat Slip Gaji
           </h1>
           <p className="mt-1 text-sm text-muted">
-            {`Slip yang sudah diterbitkan periode ${labelPeriode(periode)}. Angka di sini sesuai snapshot yang tersimpan — tidak berubah bila data absensi/gaji diubah sesudahnya.`}
+            {`Slip yang sudah diterbitkan periode ${labelPeriode(periode)}. Angka di sini sesuai snapshot yang tersimpan — tidak berubah bila data absensi/gaji diubah sesudahnya, kecuali tunjangan makan yang mengikuti pengaturan saat ini.`}
           </p>
         </div>
       </header>

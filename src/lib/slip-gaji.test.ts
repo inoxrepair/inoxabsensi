@@ -9,6 +9,7 @@ import {
   snapshotDariBaris,
   STATUS_SLIP,
   statusSlip,
+  terapkanTunjanganMakanDinamis,
   type SlipGaji,
 } from "@/lib/slip-gaji";
 
@@ -128,6 +129,26 @@ describe("snapshotDariBaris", () => {
   });
 });
 
+describe("terapkanTunjanganMakanDinamis", () => {
+  it("centang dimatikan sesudah slip dibuat: tunjangan makan 0, THP turun selisihnya", () => {
+    const s = slip({ tunjanganMakan: 400_000, diterima: 3_205_000 });
+    const hasil = terapkanTunjanganMakanDinamis(s, 0);
+    expect(hasil.tunjanganMakan).toBe(0);
+    expect(hasil.diterima).toBe(2_805_000);
+    // Komponen lain tidak berubah.
+    expect(hasil.gajiPokok).toBe(2_000_000);
+    expect(hasil.lembur).toBe(120_000);
+    expect(hasil.status).toBe("dibuat");
+  });
+
+  it("centang dihidupkan sesudah slip dibuat: tunjangan makan muncul, THP naik", () => {
+    const s = slip({ tunjanganMakan: 0, diterima: 2_805_000 });
+    const hasil = terapkanTunjanganMakanDinamis(s, 400_000);
+    expect(hasil.tunjanganMakan).toBe(400_000);
+    expect(hasil.diterima).toBe(3_205_000);
+  });
+});
+
 describe("gabungkanBarisSlip", () => {
   it("tanpa snapshot = Belum dibuat dengan THP hitungan saat ini", () => {
     const b = barisPayroll();
@@ -160,6 +181,19 @@ describe("gabungkanBarisSlip", () => {
     expect(r.snapshot?.dibayarPada).toEqual(
       new Date("2026-11-20T10:00:00.000Z"),
     );
+  });
+
+  it("tunjangan makan dinamis: snapshot lama mengikuti nilai live, komponen lain tetap beku", () => {
+    const b = barisPayroll({ gajiPokok: 9_999_999, tunjanganMakan: 0 });
+    const s = slip({ tunjanganMakan: 400_000, diterima: 3_205_000 });
+    const [r] = gabungkanBarisSlip([b], new Map([["u-1", s]]));
+    expect(r.status).toBe("dibuat");
+    expect(r.dariSnapshot).toBe(true);
+    expect(r.komponen.tunjanganMakan).toBe(0);
+    expect(r.diterima).toBe(2_805_000);
+    // Komponen lain tetap dari snapshot, bukan hitungan baru.
+    expect(r.komponen.gajiPokok).toBe(2_000_000);
+    expect(r.komponen.lembur).toBe(120_000);
   });
 });
 

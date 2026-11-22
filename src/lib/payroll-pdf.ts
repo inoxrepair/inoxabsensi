@@ -651,11 +651,15 @@ export async function buatSlipPayrollPdf(
     ]);
   }
   gambarBarisSlip(["Tunjangan", "-", rupiah(r.tunjangan)]);
-  gambarBarisSlip([
-    "Tunjangan Makan",
-    `${r.hariHadir} hari × ${rupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)}`,
-    rupiah(r.tunjanganMakan),
-  ]);
+  // Baris tunjangan makan hanya tampil bila karyawan memang mendapatnya:
+  // bila centang dimatikan, slip tidak lagi mencantumkan keterangan ini.
+  if (r.tunjanganMakan > 0) {
+    gambarBarisSlip([
+      "Tunjangan Makan",
+      `${r.hariHadir} hari × ${rupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)}`,
+      rupiah(r.tunjanganMakan),
+    ]);
+  }
   gambarBarisSlip([
     "Lembur",
     `${r.jamLembur} jam × ${rupiah(TARIF_LEMBUR_PER_JAM)}`,

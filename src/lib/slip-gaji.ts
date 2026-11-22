@@ -163,6 +163,23 @@ export function komponenDariSnapshot(s: SlipGaji): KomponenGaji {
   };
 }
 
+/**
+ * Tunjangan makan bersifat dinamis: yang tampil selalu mengikuti pengaturan
+ * "Dapat tunjangan makan" saat ini, bukan nilai saat slip dibuat. Salinan
+ * snapshot dengan tunjanganMakan diganti nilai live dan THP disesuaikan
+ * selisihnya; komponen lain tetap beku apa adanya.
+ */
+export function terapkanTunjanganMakanDinamis(
+  s: SlipGaji,
+  tunjanganMakanLive: number,
+): SlipGaji {
+  return {
+    ...s,
+    tunjanganMakan: tunjanganMakanLive,
+    diterima: s.diterima - s.tunjanganMakan + tunjanganMakanLive,
+  };
+}
+
 /** Satu baris Daftar Slip: baris payroll + snapshot bila sudah dibuat. */
 export type BarisSlip = {
   userId: string;
@@ -187,8 +204,11 @@ export function gabungkanBarisSlip(
 ): BarisSlip[] {
   return baris.map((b) => {
     const s = snapshots.get(b.userId) ?? null;
-    const komponen: KomponenGaji = s
-      ? komponenDariSnapshot(s)
+    // Tunjangan makan dinamis: slip yang sudah dibuat pun mengikuti
+    // pengaturan saat ini; komponen lain tetap dari snapshot.
+    const snap = s ? terapkanTunjanganMakanDinamis(s, b.tunjanganMakan) : null;
+    const komponen: KomponenGaji = snap
+      ? komponenDariSnapshot(snap)
       : {
           gajiPokok: b.gajiPokok,
           gajiPokokFleksibel: b.gajiPokokFleksibel,
@@ -204,11 +224,11 @@ export function gabungkanBarisSlip(
       userId: b.userId,
       nama: b.nama,
       cabang: b.cabang,
-      status: statusSlip(s),
+      status: statusSlip(snap),
       komponen,
-      diterima: s ? s.diterima : takeHomePay(b),
-      dariSnapshot: s !== null,
-      snapshot: s,
+      diterima: snap ? snap.diterima : takeHomePay(b),
+      dariSnapshot: snap !== null,
+      snapshot: snap,
     };
   });
 }

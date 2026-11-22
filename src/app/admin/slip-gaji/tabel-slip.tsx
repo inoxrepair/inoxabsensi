@@ -267,7 +267,10 @@ function LihatSlip({
             </span>
           </p>
           <dl className="space-y-1.5 text-sm">
-            {KOMPONEN_TAMPIL.map(({ kunci, label, kurang }) => (
+            {KOMPONEN_TAMPIL.filter(
+              ({ kunci }) =>
+                kunci !== "tunjanganMakan" || r.komponen.tunjanganMakan > 0,
+            ).map(({ kunci, label, kurang }) => (
               <div key={kunci} className="flex justify-between gap-3">
                 <dt className="text-muted">{label}</dt>
                 <dd className="tabular-nums">
@@ -283,7 +286,7 @@ function LihatSlip({
           </dl>
           <p className="text-xs text-muted">
             {s
-              ? `Sesuai snapshot yang tersimpan${s.dibuatPada ? ` pada ${tanggalSlip(s.dibuatPada)}` : ""}${s.dibayarPada ? ` · dibayar ${tanggalSlip(s.dibayarPada)}` : ""}.`
+              ? `Sesuai snapshot yang tersimpan${s.dibuatPada ? ` pada ${tanggalSlip(s.dibuatPada)}` : ""}${s.dibayarPada ? ` · dibayar ${tanggalSlip(s.dibayarPada)}` : ""}. Tunjangan makan mengikuti pengaturan saat ini.`
               : "Perhitungan saat ini — slip belum dibuat; angka bisa berubah bila data diubah."}
           </p>
         </DialogContent>

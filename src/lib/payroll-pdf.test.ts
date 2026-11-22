@@ -227,6 +227,24 @@ describe("buatSlipPayrollPdf", () => {
     expect(doc.getPageCount()).toBe(2);
   });
 
+  it("tunjangan makan 0 (centang mati): slip tetap dua halaman yang valid", async () => {
+    const bytes = await buatSlipPayrollPdf({
+      periode: "2026-11",
+      rentang: { dari: "2026-10-28", sampai: "2026-11-27" },
+      jendelaKustom: false,
+      jendela: { dari: "2026-10-28", sampai: "2026-11-27" },
+      perusahaan: "iNOX Repair",
+      baris: {
+        ...barisContoh("Fajri Mokodompit", "KWSN"),
+        tunjanganMakan: 0,
+      },
+      log: logContoh(),
+    });
+    expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe("%PDF-");
+    const doc = await PDFDocument.load(bytes);
+    expect(doc.getPageCount()).toBe(2);
+  });
+
   it("gaya invoice: slip dibayar (snapshot + logo) tetap dua halaman yang valid", async () => {
     const bytes = await buatSlipPayrollPdf({
       periode: "2026-11",

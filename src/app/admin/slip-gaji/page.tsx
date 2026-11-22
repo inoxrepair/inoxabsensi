@@ -36,7 +36,8 @@ export default async function AdminSlipGajiPage({
   const cabangId = superAdmin ? (q.cabang ?? "") : "";
 
   // Satu sumber kebenaran dengan halaman Payroll dan ekspor PDF: angka
-  // dihitung dari hitungPayroll yang sama; snapshot hanya membekukannya.
+  // dihitung dari hitungPayroll yang sama; snapshot hanya membekukannya
+  // (kecuali tunjangan makan yang dinamis mengikuti pengaturan saat ini).
   const { baris, total, rentang } = await hitungPayroll({
     periode,
     cabangId,
@@ -58,7 +59,7 @@ export default async function AdminSlipGajiPage({
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Slip Gaji</h1>
           <p className="mt-1 text-sm text-muted">
-            {`Daftar slip gaji periode ${labelPeriode(periode)} (${formatTanggal(rentang.dari)}–${formatTanggal(rentang.sampai)}). Buat slip untuk membekukan angka periode ini; tandai dibayar setelah gaji dibayarkan.`}
+            {`Daftar slip gaji periode ${labelPeriode(periode)} (${formatTanggal(rentang.dari)}–${formatTanggal(rentang.sampai)}). Buat slip untuk membekukan angka periode ini — kecuali tunjangan makan yang mengikuti pengaturan saat ini; tandai dibayar setelah gaji dibayarkan.`}
           </p>
         </div>
       </header>
