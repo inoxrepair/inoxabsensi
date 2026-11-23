@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 import { DataTable, type Kolom } from "@/components/ui/data-table";
 import {
   Card,
@@ -152,7 +153,7 @@ export default async function AdminLogAbsensiPage({
   if (adaBerikutnya) {
     paramsBerikutnya.set("cursor", rows[rows.length - 1].id);
   }
-  const tautanBerikutnya = `/admin/log-absensi?${paramsBerikutnya}`;
+  const tautanBerikutnya = `/admin/log-absensi?${paramsBerikutnya}` as Route;
 
   const kolom: Kolom<BarisLog>[] = [
     { header: "Nama", cell: (r) => r.nama, rowHeader: true },
