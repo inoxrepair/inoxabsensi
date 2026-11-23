@@ -1,4 +1,4 @@
-/** Lencana angka merah untuk jumlah pesan chat belum dibaca (maks. "99+"). */
+/** Lencana angka merah untuk jumlah yang belum dibaca (maks. "99+"). */
 export function LencanaJumlah({
   jumlah,
   className = "",

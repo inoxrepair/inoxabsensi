@@ -1,4 +1,26 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocksPayrollData = vi.hoisted(() => ({
+  userFindMany: vi.fn(),
+  payrollFindMany: vi.fn(),
+  absensiFindMany: vi.fn(),
+  kasbonFindMany: vi.fn(),
+  jadwalFindMany: vi.fn(),
+  queryRaw: vi.fn(),
+}));
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    user: { findMany: mocksPayrollData.userFindMany },
+    payroll: { findMany: mocksPayrollData.payrollFindMany },
+    absensi: { findMany: mocksPayrollData.absensiFindMany },
+    kasbon: { findMany: mocksPayrollData.kasbonFindMany },
+    jadwal: { findMany: mocksPayrollData.jadwalFindMany },
+    $queryRaw: mocksPayrollData.queryRaw,
+  },
+}));
+
+import { bersihkanCachePayroll, hitungPayroll } from "./payroll-data";
 import {
   dalamMasaPercobaan,
   dihitungHadir,
@@ -530,5 +552,80 @@ describe("dihitungHadir", () => {
     expect(dihitungHadir("izin")).toBe(false);
     expect(dihitungHadir("libur")).toBe(false);
     expect(dihitungHadir("lainnya")).toBe(false);
+  });
+});
+
+describe("hitungPayroll (cache)", () => {
+  const karyawan = [
+    { id: "u1", name: "Budi", tanggalMasuk: "2026-01-01", cabang: { nama: "KWSN" } },
+  ];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    bersihkanCachePayroll();
+    mocksPayrollData.userFindMany.mockResolvedValue(karyawan);
+    mocksPayrollData.payrollFindMany.mockResolvedValue([]);
+    mocksPayrollData.absensiFindMany.mockResolvedValue([]);
+    mocksPayrollData.kasbonFindMany.mockResolvedValue([]);
+    mocksPayrollData.jadwalFindMany.mockResolvedValue([]);
+    // Dipakai ambilInsentifRentang dan petaDapatTunjanganMakan:
+    // tidak ada transaksi insentif, semua karyawan dapat tunjangan makan.
+    mocksPayrollData.queryRaw.mockResolvedValue([]);
+  });
+
+  const panggil = (ubah: Record<string, string> = {}) =>
+    hitungPayroll({ periode: "2026-11", cabangId: "", bulanIni: "2026-11", ...ubah });
+
+  it("menghitung satu karyawan tanpa data pendukung", async () => {
+    const hasil = await panggil();
+    expect(hasil.baris).toHaveLength(1);
+    expect(hasil.baris[0].nama).toBe("Budi");
+    expect(hasil.baris[0].gajiPokok).toBe(0);
+    expect(hasil.jendela).toEqual({ dari: "2026-10-28", sampai: "2026-11-27", kustom: false });
+  });
+
+  it("panggilan kedua dengan kunci sama tidak mengulang query", async () => {
+    await panggil();
+    const hasil = await panggil();
+    expect(hasil.baris).toHaveLength(1);
+    expect(mocksPayrollData.userFindMany).toHaveBeenCalledTimes(1);
+    expect(mocksPayrollData.absensiFindMany).toHaveBeenCalledTimes(1);
+  });
+
+  it("rentang kustom yang dijepit ke jendela sama berbagi cache", async () => {
+    await panggil();
+    await panggil({ dari: "2026-10-28", sampai: "2026-11-27" });
+    expect(mocksPayrollData.userFindMany).toHaveBeenCalledTimes(1);
+  });
+
+  it("periode lain mengulang query", async () => {
+    await panggil();
+    await panggil({ periode: "2026-12" });
+    expect(mocksPayrollData.userFindMany).toHaveBeenCalledTimes(2);
+  });
+
+  it("cabang lain mengulang query", async () => {
+    await panggil();
+    await panggil({ cabangId: "cabang-1" });
+    expect(mocksPayrollData.userFindMany).toHaveBeenCalledTimes(2);
+  });
+
+  it("cache kedaluwarsa setelah 60 detik", async () => {
+    vi.useFakeTimers();
+    try {
+      await panggil();
+      vi.advanceTimersByTime(61_000);
+      await panggil();
+      expect(mocksPayrollData.userFindMany).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("bersihkanCachePayroll memaksa query ulang", async () => {
+    await panggil();
+    bersihkanCachePayroll();
+    await panggil();
+    expect(mocksPayrollData.userFindMany).toHaveBeenCalledTimes(2);
   });
 });

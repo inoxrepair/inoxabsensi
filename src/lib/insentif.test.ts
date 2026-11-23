@@ -1,9 +1,26 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocksInsentif = vi.hoisted(() => ({
+  userFindMany: vi.fn(),
+  queryRaw: vi.fn(),
+  txExecuteRaw: vi.fn(),
+  transaction: vi.fn(),
+}));
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    user: { findMany: mocksInsentif.userFindMany },
+    $queryRaw: mocksInsentif.queryRaw,
+    $transaction: mocksInsentif.transaction,
+  },
+}));
+
 import {
   bacaCookieDariHeaders,
   cocokkanUser,
   gabungkanCookie,
   harusBatalkanSinkronKosong,
+  jalankanSinkronInsentif,
   kelompokkanInsentifPerUser,
   normalisasiNama,
   pecahSetCookie,
@@ -340,5 +357,143 @@ describe("harusBatalkanSinkronKosong", () => {
   it("feed ada isinya = lanjut normal, berapa pun isi DB", () => {
     expect(harusBatalkanSinkronKosong(3, 5)).toBe(false);
     expect(harusBatalkanSinkronKosong(10, 0)).toBe(false);
+  });
+});
+
+describe("jalankanSinkronInsentif", () => {
+  const panggilanFetch: Array<{ url: string; init?: RequestInit }> = [];
+  // Diisi per test: baris mentah feed incentive-line-orders.
+  let barisFeed: Array<Record<string, unknown>> = [];
+
+  const headersTiruan = (init: { location?: string; setCookie?: string[] } = {}) => ({
+    get: (nama: string) =>
+      nama.toLowerCase() === "location" ? (init.location ?? null) : null,
+    getSetCookie: () => init.setCookie ?? [],
+  });
+
+  const responsTiruan = (init: {
+    text?: string;
+    json?: unknown;
+    headers?: { location?: string; setCookie?: string[] };
+  }) => ({
+    ok: true,
+    status: 200,
+    headers: headersTiruan(init.headers),
+    text: async () => init.text ?? "",
+    json: async () => init.json ?? {},
+  });
+
+  const buatBarisFeed = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      transaction_id: 1000 + i,
+      invoice_no: `INV-${i}`,
+      transaction_date: "05-11-2026",
+      service_staff: "FajriMokodompit",
+      product_name: "Service Fee",
+      quantity: 1,
+      unit_price_before_discount: 100000,
+      total_technician_commission_value: 25000,
+      total_technician_commission_percent_value: 0,
+      total_unit_price: 100000,
+      business_location: "KWSN",
+    }));
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    panggilanFetch.length = 0;
+    barisFeed = buatBarisFeed(2);
+    vi.stubEnv("INOX_USERNAME", "sinkron");
+    vi.stubEnv("INOX_PASSWORD", "rahasia");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        panggilanFetch.push({ url, init });
+        if (url === "https://inox.my.id/login" && init?.method === "POST") {
+          return responsTiruan({
+            headers: { location: "/home", setCookie: ["sesi=xyz; Path=/"] },
+          });
+        }
+        if (url === "https://inox.my.id/login") {
+          return responsTiruan({
+            text: '<form><input name="_token" value="tok123"></form>',
+            headers: { setCookie: ["sesi=abc; Path=/"] },
+          });
+        }
+        if (url === "https://inox.my.id/home") {
+          return responsTiruan({ text: "<html>Keluar</html>" });
+        }
+        if (url === "https://inox.my.id/reports/incentive-report") {
+          return responsTiruan({
+            text: '<meta name="csrf-token" content="csrf-1">',
+          });
+        }
+        if (url.startsWith("https://inox.my.id/reports/incentive-line-orders")) {
+          return responsTiruan({ json: { data: barisFeed } });
+        }
+        throw new Error(`URL tak terduga: ${url}`);
+      }),
+    );
+    mocksInsentif.userFindMany.mockResolvedValue(USERS);
+    mocksInsentif.queryRaw.mockResolvedValue([]);
+    mocksInsentif.txExecuteRaw.mockResolvedValue(0);
+    mocksInsentif.transaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
+      cb({ $executeRaw: mocksInsentif.txExecuteRaw }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  /** Gabung potongan template SQL panggilan $executeRaw ke-n. */
+  const sqlPanggilan = (i: number) =>
+    (mocksInsentif.txExecuteRaw.mock.calls[i][0] as TemplateStringsArray).join("?");
+  /** Nilai yang diinterpolasi ke template SQL panggilan $executeRaw ke-n. */
+  const nilaiPanggilan = (i: number) => mocksInsentif.txExecuteRaw.mock.calls[i].slice(1);
+
+  it("satu DELETE IN + INSERT batch dalam satu transaksi, semua fetch ber-timeout", async () => {
+    barisFeed = buatBarisFeed(501);
+    const hasil = await jalankanSinkronInsentif("2026-11");
+
+    expect(hasil.ok).toBe(true);
+    expect(hasil.totalTransaksi).toBe(501);
+    expect(hasil.totalUserDisinkron).toBe(1);
+
+    // Satu transaksi untuk hapus + sisip.
+    expect(mocksInsentif.transaction).toHaveBeenCalledTimes(1);
+    // 1 DELETE + 2 INSERT (batch 500 + 1), bukan 4 DELETE + 501 INSERT.
+    expect(mocksInsentif.txExecuteRaw).toHaveBeenCalledTimes(3);
+    expect(sqlPanggilan(0)).toContain('DELETE FROM "InsentifTransaksi"');
+    expect(sqlPanggilan(0)).toContain("IN (");
+    // DELETE memakai IN dengan seluruh karyawan aktif (4 user).
+    const nilaiDelete = nilaiPanggilan(0)[0] as { values?: unknown[] };
+    expect(nilaiDelete.values).toHaveLength(4);
+    expect(sqlPanggilan(1)).toContain('INSERT INTO "InsentifTransaksi"');
+    expect(sqlPanggilan(2)).toContain('INSERT INTO "InsentifTransaksi"');
+    // Batch pertama 500 baris, sisanya 1 baris. Prisma.join meratakan
+    // nilai: tiap baris menyumbang 9 nilai (9 kolom), jadi 500 baris =
+    // 4500 nilai dan 1 baris = 9 nilai.
+    const nilaiInsert1 = nilaiPanggilan(1)[0] as { values?: unknown[] };
+    const nilaiInsert2 = nilaiPanggilan(2)[0] as { values?: unknown[] };
+    expect(nilaiInsert1.values).toHaveLength(500 * 9);
+    expect(nilaiInsert2.values).toHaveLength(1 * 9);
+
+    // Semua fetch di jalur sinkron membawa AbortSignal timeout 30 detik.
+    expect(panggilanFetch).toHaveLength(5);
+    for (const p of panggilanFetch) {
+      expect(p.init?.signal).toBeInstanceOf(AbortSignal);
+      expect(p.init?.signal?.aborted).toBe(false);
+    }
+  });
+
+  it("feed kosong + data lama masih ada = batal sebelum ada yang dihapus", async () => {
+    barisFeed = [];
+    mocksInsentif.queryRaw.mockResolvedValueOnce([{ jumlah: 3 }]);
+    await expect(jalankanSinkronInsentif("2026-11")).rejects.toThrow(
+      "Sinkron dibatalkan",
+    );
+    expect(mocksInsentif.transaction).not.toHaveBeenCalled();
+    expect(mocksInsentif.txExecuteRaw).not.toHaveBeenCalled();
   });
 });

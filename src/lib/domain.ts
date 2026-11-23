@@ -77,7 +77,6 @@ export const MENU_ADMIN = [
   "insentif",
   "informasi",
   "log-login",
-  "chat",
   "top5",
   "pengaturan",
 ] as const;
@@ -107,11 +106,10 @@ export const AKSES_DEFAULT: Record<RoleKaryawan, readonly MenuAdmin[]> = {
     "slip-gaji",
     "insentif",
     "log-login",
-    "chat",
     "top5",
   ],
   // Rekap pribadi tersedia di /karyawan/riwayat; akses admin Headstore
   // hanya untuk menyusun jadwal cabangnya.
-  headstore: ["dashboard", "absen", "jadwal", "chat", "top5"],
+  headstore: ["dashboard", "absen", "jadwal", "top5"],
   karyawan: [],
 };

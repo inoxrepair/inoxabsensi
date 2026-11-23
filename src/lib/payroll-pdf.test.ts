@@ -309,4 +309,11 @@ describe("parseLogoDataUrl", () => {
     expect(parseLogoDataUrl(null)).toBeNull();
     expect(parseLogoDataUrl(undefined)).toBeNull();
   });
+
+  it("logo yang sama di-decode sekali: panggilan kedua memakai hasil cache", () => {
+    const pertama = parseLogoDataUrl(LOGO_PNG_1X1);
+    const kedua = parseLogoDataUrl(LOGO_PNG_1X1);
+    expect(kedua).toBe(pertama);
+    expect(kedua?.bytes).toBe(pertama?.bytes);
+  });
 });

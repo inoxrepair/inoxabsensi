@@ -1,6 +1,5 @@
 import { KaryawanBottomNav } from "@/components/layout/karyawan-bottom-nav";
 import { LatarLiquid } from "@/components/ui/latar-liquid";
-import { hitungPesanBelumDibaca } from "@/lib/chat-data";
 import { hitungIzinDiproses } from "@/lib/izin-data";
 import { wajibLogin } from "@/lib/session";
 import Link from "next/link";
@@ -12,7 +11,6 @@ export default async function KaryawanLayout({
 }) {
   // Semua halaman karyawan butuh sesi; proxy sudah menjaga, ini lapis kedua.
   const user = await wajibLogin();
-  const jmlBelumDibacaChat = await hitungPesanBelumDibaca(user.id);
   const jmlIzinDiproses = await hitungIzinDiproses(user.id);
 
   return (
@@ -32,10 +30,7 @@ export default async function KaryawanLayout({
         ) : null}
         {children}
       </main>
-      <KaryawanBottomNav
-        jmlBelumDibacaChat={jmlBelumDibacaChat}
-        jmlIzinDiproses={jmlIzinDiproses}
-      />
+      <KaryawanBottomNav jmlIzinDiproses={jmlIzinDiproses} />
     </div>
   );
 }

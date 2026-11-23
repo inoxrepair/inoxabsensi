@@ -2,8 +2,8 @@
  * Foto profil juara Top 10 dengan cincin beranimasi (lihat globals.css).
  * `besar` = juara 1 (96px, cincin api + pijar); `biru` = peringkat 2 & 3
  * (72px, cincin biru lebih tipis, putaran lebih lambat, tanpa pijar);
- * tanpa keduanya = ukuran avatar chat (28px, cincin api kecil).
- * Dipakai halaman Top 10 dan daftar chat (foto pengirim juara 1).
+ * tanpa keduanya = ukuran avatar kecil (28px, cincin api kecil).
+ * Dipakai halaman Top 10 (foto pengirim juara 1).
  */
 
 /** Inisial nama untuk avatar bila karyawan belum pasang foto profil. */

@@ -4,7 +4,7 @@
  */
 
 /** Rentang maksimum arsip agar server tidak kehabisan memori/timeout. */
-export const MAKS_BULAN_ARSIP = 12;
+export const MAKS_BULAN_ARSIP = 3;
 
 /** Periode "yyyy-mm" dari sebuah tanggal "yyyy-mm-dd". */
 export function periodeDari(tanggal: string): string {

@@ -12,7 +12,7 @@ import { tanggalLokal } from "@/lib/waktu";
  * Snapshot slip gaji (menu Slip Gaji, super_admin). Angka disalin dari
  * hitungPayroll saat slip dibuat, supaya riwayat tidak berubah bila data
  * absensi/gaji nanti diedit. Model SlipGaji ada di kedua schema Prisma,
- * tetapi diakses lewat raw SQL seperti InsentifTransaksi/ChatPesan
+ * tetapi diakses lewat raw SQL seperti InsentifTransaksi
  * (prisma generate gagal di VM ini).
  */
 

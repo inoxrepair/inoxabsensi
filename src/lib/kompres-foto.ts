@@ -1,8 +1,8 @@
 /**
  * Kompres foto di browser (canvas) sebelum upload, supaya foto dari kamera
  * HP yang aslinya bermega-mega tidak membebani database dan lolos batas
- * 2 MB di server. Dipakai foto profil (512 px, kualitas 0.82) dan foto
- * chat (1024 px, kualitas 0.8). Hasil selalu JPEG; bila canvas tidak
+ * 2 MB di server. Dipakai foto profil dan foto bukti izin
+ * (512 px, kualitas 0.82). Hasil selalu JPEG; bila canvas tidak
  * tersedia, berkas asli dikembalikan apa adanya.
  */
 export async function kompresFoto(

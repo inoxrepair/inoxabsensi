@@ -346,42 +346,6 @@ model LogLogin {
   @@index([dibuatPada])
 }
 
-/// Pesan ruang chat bersama (menu Chat). Satu ruang untuk semua karyawan.
-/// pengirimId tanpa relasi (pola LogLogin). Foto sebagai data URL JPEG
-/// hasil kompresi di HP; null bila hanya teks. Pesan hanya bertahan 24 jam
-/// (lihat BATAS_CHAT_JAM di src/lib/chat.ts) lalu dihapus permanen.
-model ChatPesan {
-  id         String   @id @default(cuid())
-  pengirimId String
-  /// Isi teks pesan; boleh kosong bila ada foto.
-  isi        String   @default("")
-  /// Foto sebagai data URL; null bila hanya teks.
-  foto       String?
-  /// Voice note sebagai data URL audio; null bila bukan voice note.
-  suara      String?
-  dibuatPada DateTime @default(now())
-
-  @@index([dibuatPada])
-}
-
-/// Siapa yang sedang mengetik di ruang chat (satu baris per pengguna).
-/// Baris kedaluwarsa dalam hitungan detik (lihat BATAS_MENGETIK_MS di
-/// src/lib/chat.ts) dan dihapus saat dibaca — bukan data permanen.
-model ChatMengetik {
-  /// id User yang sedang mengetik.
-  userId     String   @id
-  diperbarui DateTime @default(now())
-}
-
-/// Kapan terakhir tiap pengguna membuka ruang chat, untuk lencana jumlah
-/// pesan belum dibaca di ikon menu Chat. Satu baris per pengguna;
-/// pesan dari orang lain yang dibuat setelah waktu ini dihitung belum dibaca.
-model ChatDibaca {
-  /// id User yang membaca chat.
-  userId     String   @id
-  dibacaPada DateTime @default(now())
-}
-
 /// Kapan terakhir tiap karyawan membuka halaman izin, untuk lencana jumlah
 /// pengajuan yang sudah diproses admin (disetujui/ditolak) di menu Izin.
 /// Satu baris per pengguna; pengajuan yang diproses setelah waktu ini

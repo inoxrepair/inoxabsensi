@@ -16,6 +16,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { formatTanggal } from "@/lib/format";
 import { takeHomePay } from "@/lib/payroll";
@@ -172,6 +173,7 @@ export async function ambilDataInsentifInox({
       Cookie: cookieJar,
     },
     cache: "no-store",
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (!res.ok) {
@@ -349,6 +351,7 @@ async function loginInox(username: string, password: string): Promise<string> {
   const loginPage = await fetch("https://inox.my.id/login", {
     headers: { "User-Agent": "iNox-Absensi-Sync/1.0" },
     cache: "no-store",
+    signal: AbortSignal.timeout(30_000),
   });
 
   const setCookieLogin = bacaCookieDariHeaders(loginPage.headers);
@@ -377,6 +380,7 @@ async function loginInox(username: string, password: string): Promise<string> {
     // dari respons perantara ke respons akhir.
     redirect: "manual",
     cache: "no-store",
+    signal: AbortSignal.timeout(30_000),
   });
 
   // Cookie sesi bisa diset pada 302 login, atau sudah ada dari halaman login.
@@ -396,6 +400,7 @@ async function loginInox(username: string, password: string): Promise<string> {
       ...(setCookieAfterLogin ? { Cookie: setCookieAfterLogin } : {}),
     },
     cache: "no-store",
+    signal: AbortSignal.timeout(30_000),
   });
   const homeHtml = await homeRes.text();
   // Tombol keluar bisa tertulis "Keluar" (ID) atau "Logout" (EN) tergantung
@@ -477,6 +482,7 @@ export async function jalankanSinkronInsentif(
       Cookie: cookieJar,
     },
     cache: "no-store",
+    signal: AbortSignal.timeout(30_000),
   });
   const reportHtml = await reportPage.text();
   const csrfMatch = reportHtml.match(/name="csrf-token"\s+content="([^"]+)"/);
@@ -523,23 +529,49 @@ export async function jalankanSinkronInsentif(
   // 6. Simpan baris transaksi: hapus baris lama dalam rentang untuk semua
   //    karyawan aktif (supaya sinkron ulang tidak menggandakan dan nama
   //    yang dipetakan ulang pindah ke akun yang benar), lalu sisipkan
-  //    baris baru. Baris karyawan nonaktif dibiarkan — riwayat mereka
-  //    tidak bisa dicocokkan ulang dari feed, jadi jangan dihapus.
-  for (const u of users) {
-    await db.$executeRaw`
-      DELETE FROM "InsentifTransaksi"
-      WHERE "userId" = ${u.id}
-        AND "tanggal" >= ${tanggalDari} AND "tanggal" <= ${tanggalSampai}
-    `;
-  }
-  for (const kelompok of perUser) {
-    for (const b of kelompok.baris) {
-      await db.$executeRaw`
-        INSERT INTO "InsentifTransaksi" ("id", "userId", "tanggal", "transactionId", "invoiceNo", "productName", "quantity", "jumlah", "lokasi")
-        VALUES (${randomUUID()}, ${kelompok.userId}, ${b.tanggal}, ${b.transactionId}, ${b.invoiceNo}, ${b.productName}, ${b.quantity}, ${b.jumlah}, ${b.lokasi})
+  //    baris baru. Satu DELETE IN (...) + INSERT multi-baris batch 500
+  //    dalam satu transaksi — bukan satu query per karyawan/baris.
+  //    Delegate Prisma InsentifTransaksi belum ada di client yang
+  //    ter-generate di VM ini (lihat catatan di atas), jadi INSERT
+  //    multi-baris ditulis lewat $executeRaw + Prisma.join — hasilnya
+  //    sama dengan createMany batch 500. Baris karyawan nonaktif
+  //    dibiarkan — riwayat mereka tidak bisa dicocokkan ulang dari feed,
+  //    jadi jangan dihapus.
+  const barisBaru = perUser.flatMap((kelompok) =>
+    kelompok.baris.map((b) => ({
+      id: randomUUID(),
+      userId: kelompok.userId,
+      tanggal: b.tanggal,
+      transactionId: b.transactionId,
+      invoiceNo: b.invoiceNo,
+      productName: b.productName,
+      quantity: b.quantity,
+      jumlah: b.jumlah,
+      lokasi: b.lokasi,
+    })),
+  );
+  const userIds = users.map((u) => u.id);
+  await db.$transaction(async (tx) => {
+    if (userIds.length > 0) {
+      await tx.$executeRaw`
+        DELETE FROM "InsentifTransaksi"
+        WHERE "userId" IN (${Prisma.join(userIds)})
+          AND "tanggal" >= ${tanggalDari} AND "tanggal" <= ${tanggalSampai}
       `;
     }
-  }
+    for (let i = 0; i < barisBaru.length; i += 500) {
+      const batch = barisBaru.slice(i, i + 500);
+      await tx.$executeRaw`
+        INSERT INTO "InsentifTransaksi" ("id", "userId", "tanggal", "transactionId", "invoiceNo", "productName", "quantity", "jumlah", "lokasi")
+        VALUES ${Prisma.join(
+          batch.map(
+            (b) =>
+              Prisma.sql`(${b.id}, ${b.userId}, ${b.tanggal}, ${b.transactionId}, ${b.invoiceNo}, ${b.productName}, ${b.quantity}, ${b.jumlah}, ${b.lokasi})`,
+          ),
+        )}
+      `;
+    }
+  });
 
   return {
     ok: true,

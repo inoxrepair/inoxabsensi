@@ -38,7 +38,6 @@ export function AdminLayoutClient({
   nama,
   labelRole,
   versiLogo,
-  jmlBelumDibacaChat = 0,
   jmlPendingIzin = 0,
   children,
 }: {
@@ -46,7 +45,6 @@ export function AdminLayoutClient({
   nama: string;
   labelRole: string;
   versiLogo: string | null;
-  jmlBelumDibacaChat?: number;
   /** Pengajuan izin pending dalam lingkup admin (lencana menu Izin). */
   jmlPendingIzin?: number;
   children: React.ReactNode;
@@ -137,12 +135,6 @@ export function AdminLayoutClient({
                       }`}
                     >
                       <IkonMenu href={item.href} className="size-5" />
-                      {item.menu === "chat" ? (
-                        <LencanaJumlah
-                          jumlah={jmlBelumDibacaChat}
-                          className="absolute -top-1 -right-1"
-                        />
-                      ) : null}
                       {item.href === "/admin/izin" ? (
                         <LencanaJumlah
                           jumlah={jmlPendingIzin}
@@ -177,12 +169,6 @@ export function AdminLayoutClient({
                           >
                             <IkonMenu href={item.href} className="size-5 shrink-0" />
                             {item.label}
-                            {item.menu === "chat" ? (
-                              <LencanaJumlah
-                                jumlah={jmlBelumDibacaChat}
-                                className="ml-auto"
-                              />
-                            ) : null}
                             {item.href === "/admin/izin" ? (
                               <LencanaJumlah
                                 jumlah={jmlPendingIzin}
@@ -275,12 +261,6 @@ export function AdminLayoutClient({
                           >
                             <IkonMenu href={item.href} className="size-5 shrink-0" />
                             {item.label}
-                            {item.menu === "chat" ? (
-                              <LencanaJumlah
-                                jumlah={jmlBelumDibacaChat}
-                                className="ml-auto"
-                              />
-                            ) : null}
                             {item.href === "/admin/izin" ? (
                               <LencanaJumlah
                                 jumlah={jmlPendingIzin}

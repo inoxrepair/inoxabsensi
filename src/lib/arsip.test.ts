@@ -38,7 +38,7 @@ describe("rentangTerlaluPanjang", () => {
   });
 
   it("menerima rentang di dalam batas", () => {
-    expect(rentangTerlaluPanjang("2026-01-01", "2026-12-31")).toBe(false);
+    expect(rentangTerlaluPanjang("2026-01-01", "2026-03-31")).toBe(false);
   });
 
   it("menghormati batas kustom", () => {
@@ -46,8 +46,8 @@ describe("rentangTerlaluPanjang", () => {
     expect(rentangTerlaluPanjang("2026-01-01", "2026-02-28", 2)).toBe(false);
   });
 
-  it("batas default adalah dua belas bulan", () => {
-    expect(MAKS_BULAN_ARSIP).toBe(12);
+  it("batas default adalah tiga bulan", () => {
+    expect(MAKS_BULAN_ARSIP).toBe(3);
   });
 });
 

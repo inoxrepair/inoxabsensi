@@ -48,7 +48,7 @@ export async function ambilKolomTambahanIzin(
     );
   } catch (error) {
     // Kolom belum ada (migrasi belum jalan): halaman tetap tampil tanpa
-    // jam/foto, seperti pola lencana chat di src/lib/chat-data.ts.
+    // jam/foto.
     console.error("[izin] ambilKolomTambahanIzin gagal:", error);
     return new Map();
   }

@@ -377,9 +377,21 @@ export function rentangPeriodeGajian(
 }
 
 /**
+ * Rentang kustom maksimum (inklusif) yang diizinkan bacaRentang: 93 hari.
+ * Tanpa batas ini satu tarikan rekap/log/ekspor bisa menarik kolom dan
+ * baris tanpa batas (mis. setahun penuh). Rentang bulanan (periode) tidak
+ * kena batas ini — bulan terpanjang 31 hari.
+ */
+export const MAKS_HARI_RENTANG = 93;
+
+/**
  * Tentukan rentang aktif dari query. Prioritas: rentang kustom bila kedua
  * tanggal sah, lalu periode bulanan, lalu bulan berjalan. Tanggal yang
  * terbalik ditukar otomatis agar tidak menghasilkan hasil kosong.
+ * Rentang kustom dijepit ke MAKS_HARI_RENTANG hari (pola yang sama dengan
+ * bacaRentangGajian yang menjepit ke periode gajian): `sampai` tidak
+ * boleh lebih dari `dari + 92 hari`, supaya semua pemakai — jadwal,
+ * log absensi, arsip, rekap, dan ekspor Excel — menarik data terbatas.
  */
 export function bacaRentang(
   q: { dari?: string; sampai?: string; periode?: string },
@@ -388,7 +400,11 @@ export function bacaRentang(
   if (q.dari && q.sampai && tanggalValid(q.dari) && tanggalValid(q.sampai)) {
     const [dari, sampai] =
       q.dari <= q.sampai ? [q.dari, q.sampai] : [q.sampai, q.dari];
-    return { dari, sampai, kustom: true };
+    const sampaiJepit =
+      selisihHariIso(dari, sampai) > MAKS_HARI_RENTANG - 1
+        ? geserHariIso(dari, MAKS_HARI_RENTANG - 1)
+        : sampai;
+    return { dari, sampai: sampaiJepit, kustom: true };
   }
 
   const periode = q.periode && periodeValid(q.periode) ? q.periode : bulanBerjalan;

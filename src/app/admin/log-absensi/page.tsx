@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { DataTable, type Kolom } from "@/components/ui/data-table";
 import {
   Card,
@@ -23,10 +24,13 @@ import { AksiBaris } from "./baris";
 
 export const dynamic = "force-dynamic";
 
+/** Baris per halaman log — tanpa paginasi satu rentang bisa memuat ribuan baris. */
+const BATAS_HALAMAN = 100;
+
 export default async function AdminLogAbsensiPage({
   searchParams,
 }: {
-  searchParams: Promise<{ dari?: string; sampai?: string; cabang?: string }>;
+  searchParams: Promise<{ dari?: string; sampai?: string; cabang?: string; cursor?: string }>;
 }) {
   const admin = await wajibAkses("karyawan");
   const q = await searchParams;
@@ -37,16 +41,23 @@ export default async function AdminLogAbsensiPage({
     : (q.cabang ?? "");
   const lingkup = cabangTerpilih ? { cabangId: cabangTerpilih } : {};
 
-  const [absensi, cabang, auditHapus] = await Promise.all([
+  // Filter yang sama dipakai query halaman, hitung total, dan agregat —
+  // supaya kartu ringkasan tetap menghitung SELURUH rentang, bukan hanya
+  // halaman yang tampil.
+  const where = {
+    tanggal: { gte: rentang.dari, lte: rentang.sampai },
+    // Filter cabang di query memakai cabang yang tercatat pada baris
+    // absensi itu (cabang penempatan saat absen), bukan cabang
+    // penempatan karyawan saat ini — konsisten dengan kolom Cabang.
+    ...(lingkup.cabangId ? { cabangId: lingkup.cabangId } : {}),
+  };
+
+  // Urutan total (id sebagai penentu seri) supaya kursor stabil:
+  // tanggal + masukMenit saja bisa seri antar karyawan.
+  const ambilHalaman = (cursor?: string) =>
     db.absensi.findMany({
-      where: {
-        tanggal: { gte: rentang.dari, lte: rentang.sampai },
-        // Filter cabang di query memakai cabang yang tercatat pada baris
-        // absensi itu (cabang penempatan saat absen), bukan cabang
-        // penempatan karyawan saat ini — konsisten dengan kolom Cabang.
-        ...(lingkup.cabangId ? { cabangId: lingkup.cabangId } : {}),
-      },
-      orderBy: [{ tanggal: "desc" }, { masukMenit: "asc" }],
+      where,
+      orderBy: [{ tanggal: "desc" }, { masukMenit: "asc" }, { id: "asc" }],
       include: {
         user: { select: { name: true } },
         // Cabang diambil dari baris Absensi (snapshot penempatan saat
@@ -55,7 +66,15 @@ export default async function AdminLogAbsensiPage({
         cabang: { select: { nama: true } },
         cycles: { orderBy: { urutan: "asc" } },
       },
-    }),
+      take: BATAS_HALAMAN,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    });
+
+  // Kursor bisa basi bila baris itu dihapus setelah tautan dibuat
+  // (hapus tersedia di halaman ini) — jatuh kembali ke halaman pertama.
+  const absensi = await ambilHalaman(q.cursor).catch(() => ambilHalaman());
+
+  const [cabang, auditHapus, totalCatatan, ringkasan] = await Promise.all([
     db.cabang.findMany({ orderBy: { nama: "asc" }, select: { id: true, nama: true } }),
     db.auditLog.findMany({
       where: { aksi: "hapus_absensi" },
@@ -63,10 +82,34 @@ export default async function AdminLogAbsensiPage({
       take: 20,
       select: { id: true, ringkasan: true, dibuatPada: true },
     }),
+    db.absensi.count({ where }),
+    // Total jam kerja + jumlah pengguna SELURUH rentang (bukan halaman):
+    // dihitung di database supaya tidak perlu memuat semua baris.
+    // Rumus jam kerja mencerminkan hitungan baris di bawah (dan
+    // durasiMenit): cycle yang ada dijumlahkan (cycle terbuka = 0),
+    // tanpa cycle memakai masuk-keluar baris; selisih negatif (lewat
+    // tengah malam) ditambah 1440 menit.
+    db.$queryRaw<{ totalMenit: bigint | number; totalPengguna: bigint | number }[]>`
+      SELECT
+        COALESCE(SUM(
+          CASE WHEN EXISTS (SELECT 1 FROM "AbsensiCycle" c WHERE c."absensiId" = a."id")
+            THEN (SELECT COALESCE(SUM(
+              CASE WHEN c."keluarMenit" IS NOT NULL
+                THEN CASE WHEN c."keluarMenit" >= c."masukMenit" THEN c."keluarMenit" - c."masukMenit" ELSE c."keluarMenit" + 1440 - c."masukMenit" END
+                ELSE 0 END), 0)
+              FROM "AbsensiCycle" c WHERE c."absensiId" = a."id")
+            ELSE CASE WHEN a."masukMenit" IS NOT NULL AND a."keluarMenit" IS NOT NULL
+              THEN CASE WHEN a."keluarMenit" >= a."masukMenit" THEN a."keluarMenit" - a."masukMenit" ELSE a."keluarMenit" + 1440 - a."masukMenit" END
+              ELSE 0 END
+          END), 0) AS "totalMenit",
+        COUNT(DISTINCT a."userId") AS "totalPengguna"
+      FROM "Absensi" a
+      WHERE a."tanggal" >= ${rentang.dari} AND a."tanggal" <= ${rentang.sampai}
+        AND (${!lingkup.cabangId} OR a."cabangId" = ${lingkup.cabangId})
+    `,
   ]);
 
-  const terlihat = absensi;
-  const rows: BarisLog[] = terlihat.map((a) => {
+  const rows: BarisLog[] = absensi.map((a) => {
     const cycles = a.cycles.length
       ? a.cycles
       : a.masukMenit != null
@@ -93,7 +136,23 @@ export default async function AdminLogAbsensiPage({
   });
 
   const jumlahHari = selisihHari(rentang.dari, rentang.sampai) + 1;
-  const totalJam = rows.reduce((acc, r) => acc + (r.menitKerja ?? 0), 0);
+  // Ringkasan dari agregat database (seluruh rentang), bukan halaman.
+  const totalJam = Number(ringkasan[0]?.totalMenit ?? 0);
+  const totalPengguna = Number(ringkasan[0]?.totalPengguna ?? 0);
+
+  // Tautan halaman berikutnya: pin rentang aktif (bukan query mentah,
+  // supaya ganti bulan di tengah jalan tidak menggeser rentang) +
+  // cabang terpilih + id baris terakhir sebagai kursor.
+  const adaBerikutnya = rows.length === BATAS_HALAMAN;
+  const paramsBerikutnya = new URLSearchParams({
+    dari: rentang.dari,
+    sampai: rentang.sampai,
+  });
+  if (cabangTerpilih) paramsBerikutnya.set("cabang", cabangTerpilih);
+  if (adaBerikutnya) {
+    paramsBerikutnya.set("cursor", rows[rows.length - 1].id);
+  }
+  const tautanBerikutnya = `/admin/log-absensi?${paramsBerikutnya}`;
 
   const kolom: Kolom<BarisLog>[] = [
     { header: "Nama", cell: (r) => r.nama, rowHeader: true },
@@ -137,7 +196,7 @@ export default async function AdminLogAbsensiPage({
         <Card>
           <CardContent>
             <p className="text-sm text-muted">Catatan</p>
-            <p className="mt-1 text-2xl font-semibold tracking-tight">{rows.length}</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{totalCatatan}</p>
           </CardContent>
         </Card>
         <Card>
@@ -149,7 +208,7 @@ export default async function AdminLogAbsensiPage({
         <Card>
           <CardContent>
             <p className="text-sm text-muted">Pengguna</p>
-            <p className="mt-1 text-2xl font-semibold tracking-tight">{new Set(terlihat.map((a) => a.userId)).size}</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{totalPengguna}</p>
           </CardContent>
         </Card>
         <Card>
@@ -172,6 +231,21 @@ export default async function AdminLogAbsensiPage({
           Edit jam tersedia untuk admin cabang. Hapus baris hanya tersedia untuk Super Admin; baris yang dihapus membuat pengguna dapat absen lagi, dan ringkasannya tersimpan di audit di bawah.
         </CardFooter>
       </Card>
+
+      {(q.cursor || adaBerikutnya) && (
+        <div className="mt-4 flex items-center justify-between gap-3 text-sm text-muted">
+          <p>
+            Menampilkan {rows.length} dari {totalCatatan} catatan
+          </p>
+          {adaBerikutnya ? (
+            <Link href={tautanBerikutnya} className="font-medium underline underline-offset-2">
+              Halaman berikutnya →
+            </Link>
+          ) : (
+            <span>Halaman terakhir</span>
+          )}
+        </div>
+      )}
 
       <Card>
         <CardHeader>

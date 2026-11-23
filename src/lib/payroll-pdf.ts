@@ -296,6 +296,21 @@ export const LABEL_STATUS_SLIP: Record<StatusSlipPdf, string> = {
 };
 
 /**
+ * Cache hasil parse logo per proses, dikunci string data URL-nya: logo
+ * yang sama (satu logo aplikasi untuk semua slip) hanya di-decode base64
+ * sekali, bukan sekali per slip — bytes yang sama dipakai ulang untuk
+ * semua slip. Ruang kuncinya kecil (satu logo aplikasi), jadi Map ini
+ * tidak perlu batas ukuran. Catatan: embed-nya sendiri
+ * (embedPng/embedJpg) tetap jalan sekali per slip — pdf-lib mengikat
+ * gambar hasil embed ke konteks dokumen itu (`ref =
+ * this.context.nextRef()` di embedPng), jadi gambar dari satu
+ * PDFDocument tidak bisa dipakai di dokumen lain tanpa merusak referensi
+ * XObject-nya; tiap slip adalah PDFDocument sendiri sehingga wajib
+ * meng-embed salinannya sendiri.
+ */
+const cacheLogo = new Map<string, { bytes: Uint8Array; png: boolean }>();
+
+/**
  * Data URL logo -> bytes + jenisnya, bila PNG/JPEG (yang didukung pdf-lib).
  * null bila tidak ada logo atau formatnya tidak didukung (mis. WebP/SVG).
  */
@@ -303,15 +318,19 @@ export function parseLogoDataUrl(
   dataUrl: string | null | undefined,
 ): { bytes: Uint8Array; png: boolean } | null {
   if (!dataUrl) return null;
+  const dariCache = cacheLogo.get(dataUrl);
+  if (dariCache) return dariCache;
   const cocok = /^data:(image\/(png|jpeg));base64,([A-Za-z0-9+/=]+)$/.exec(
     dataUrl.trim(),
   );
   if (!cocok) return null;
   try {
-    return {
+    const hasil = {
       bytes: Uint8Array.from(Buffer.from(cocok[3], "base64")),
       png: cocok[2] === "png",
     };
+    cacheLogo.set(dataUrl, hasil);
+    return hasil;
   } catch {
     return null;
   }

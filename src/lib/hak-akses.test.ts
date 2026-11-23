@@ -28,7 +28,6 @@ describe("batasiMenuGajiAdminCabang", () => {
     "karyawan",
     "payroll",
     "slip-gaji",
-    "chat",
   ]);
 
   it("toggle mati: admin_cabang kehilangan payroll + slip-gaji, menu lain tetap", () => {
@@ -37,7 +36,6 @@ describe("batasiMenuGajiAdminCabang", () => {
     expect(hasil.has("slip-gaji")).toBe(false);
     expect(hasil.has("dashboard")).toBe(true);
     expect(hasil.has("karyawan")).toBe(true);
-    expect(hasil.has("chat")).toBe(true);
     // Set asal tidak diubah.
     expect(semua.has("payroll")).toBe(true);
   });

@@ -30,9 +30,6 @@ const ICON: Record<string, React.ReactNode> = {
   profil: (
     <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8 8c0-3.3-3.6-6-8-6s-8 2.7-8 6" />
   ),
-  chat: (
-    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" />
-  ),
   insentif_saya: (
     <>
       <path d="M4 17.5l5-6 3.5 3L20 7" />
@@ -80,8 +77,8 @@ function apakahAktif(href: string, pathname: string) {
 }
 
 /**
- * Bottom bar karyawan: 5 slot (Jadwal, Chat, Absen tengah, Top 10, Lainnya)
- * + lembar "Lainnya" untuk menu sisanya (Riwayat, Kasbon, Izin, Insentif,
+ * Bottom bar karyawan: 5 slot (Jadwal, Izin, Absen tengah, Top 10, Lainnya)
+ * + lembar "Lainnya" untuk menu sisanya (Riwayat, Kasbon, Insentif,
  * Profil). Absen di tengah ditampilkan menonjol: tombol bulat naik di atas
  * bar (menu yang paling sering dipakai). Pil penanda aktif (latar ink)
  * bergeser halus mengikuti menu yang dipilih — ikon + teks tiap slot diangkat
@@ -89,10 +86,8 @@ function apakahAktif(href: string, pathname: string) {
  * Bar tetap ringkas; semua menu tetap satu ketukan jauhnya.
  */
 export function KaryawanBottomNav({
-  jmlBelumDibacaChat = 0,
   jmlIzinDiproses = 0,
 }: {
-  jmlBelumDibacaChat?: number;
   /** Pengajuan yang sudah diproses admin sejak terakhir membuka halaman Izin. */
   jmlIzinDiproses?: number;
 }) {
@@ -105,7 +100,7 @@ export function KaryawanBottomNav({
     apakahAktif(item.href, pathname),
   );
 
-  // Indeks slot aktif untuk pil geser: 0 Jadwal, 1 Chat, 2 Absen, 3 Top 10,
+  // Indeks slot aktif untuk pil geser: 0 Jadwal, 1 Izin, 2 Absen, 3 Top 10,
   // 4 Lainnya. Fallback ke Absen bila tidak ada yang cocok (tak seharusnya
   // terjadi — semua halaman karyawan ada di daftar nav).
   const indeksUtama = utama.findIndex((item) =>
@@ -163,9 +158,9 @@ export function KaryawanBottomNav({
                 >
                   <span className="relative">
                     {ikon(item.menu, active)}
-                    {item.menu === "chat" ? (
+                    {item.menu === "izin_saya" ? (
                       <LencanaJumlah
-                        jumlah={jmlBelumDibacaChat}
+                        jumlah={jmlIzinDiproses}
                         className="absolute -top-1.5 -right-2.5"
                       />
                     ) : null}
@@ -188,10 +183,6 @@ export function KaryawanBottomNav({
             >
               <span className="relative">
                 {ikon("lainnya", aktifLainnya)}
-                <LencanaJumlah
-                  jumlah={jmlIzinDiproses}
-                  className="absolute -top-1.5 -right-2.5"
-                />
               </span>
               Lainnya
             </Button>
@@ -217,12 +208,6 @@ export function KaryawanBottomNav({
                   >
                     {ikon(item.menu, active)}
                     {item.label}
-                    {item.menu === "izin_saya" ? (
-                      <LencanaJumlah
-                        jumlah={jmlIzinDiproses}
-                        className="ml-auto"
-                      />
-                    ) : null}
                   </Link>
                 </li>
               );

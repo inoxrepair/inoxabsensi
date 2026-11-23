@@ -20,6 +20,63 @@ import { bacaRentangGajian, rentangPeriodeGajian } from "@/lib/rekap";
 import { petaDapatTunjanganMakan } from "@/lib/karyawan";
 
 /**
+ * Cache hasil hitungPayroll di memori proses (TTL 60 detik, pola yang
+ * sama dengan top5-data): halaman Payroll, ekspor PDF, dan email slip
+ * memanggil hitungPayroll berulang untuk periode yang sama, tapi isinya
+ * hanya berubah bila ada yang absen, jadwal/kasbon berubah, atau sinkron
+ * insentif jalan. Kunci = periode + cabang + jendela hitung efektif
+ * (bukan dari/sampai mentah dari query — dua query yang dijepit ke
+ * jendela yang sama harus berbagi cache). Yang di-cache hanya hasil
+ * sukses. Tidak ada invalidasi eksplisit: titik-titik ubah absen/
+ * jadwal/kasbon tersebar di banyak action dan tidak bisa dipastikan
+ * penuh — TTL singkat 60 detik sudah cukup sebagai batas; paling lambat
+ * satu menit setelah perubahan, angka baru tampil.
+ */
+const TTL_CACHE_PAYROLL_MS = 60 * 1000;
+
+export type HasilHitungPayroll = {
+  baris: BarisPayroll[];
+  total: ReturnType<typeof totalPayroll>;
+  jendela: { dari: string; sampai: string; kustom: boolean };
+  rentang: { dari: string; sampai: string };
+};
+
+type EntriCachePayroll = {
+  periode: string;
+  cabangId: string;
+  dari: string;
+  sampai: string;
+  waktu: number;
+  hasil: HasilHitungPayroll;
+};
+
+let cachePayroll: EntriCachePayroll | null = null;
+
+function cachePayrollCocok(
+  periode: string,
+  cabangId: string,
+  dari: string,
+  sampai: string,
+): HasilHitungPayroll | null {
+  if (!cachePayroll) return null;
+  if (
+    cachePayroll.periode !== periode ||
+    cachePayroll.cabangId !== cabangId ||
+    cachePayroll.dari !== dari ||
+    cachePayroll.sampai !== sampai
+  ) {
+    return null;
+  }
+  if (Date.now() - cachePayroll.waktu >= TTL_CACHE_PAYROLL_MS) return null;
+  return cachePayroll.hasil;
+}
+
+/** Kosongkan cache hitungPayroll — dipakai test (dan darurat manual). */
+export function bersihkanCachePayroll(): void {
+  cachePayroll = null;
+}
+
+/**
  * Hitung baris payroll untuk satu periode — SATU sumber kebenaran untuk
  * halaman Payroll dan ekspor PDF, supaya angka di layar dan di PDF tidak
  * pernah berbeda. Aturan yang sama dengan halaman: gaji pokok/tunjangan/
@@ -48,18 +105,16 @@ export async function hitungPayroll({
   dari?: string;
   sampai?: string;
   bulanIni: string;
-}): Promise<{
-  baris: BarisPayroll[];
-  total: ReturnType<typeof totalPayroll>;
-  jendela: { dari: string; sampai: string; kustom: boolean };
-  rentang: { dari: string; sampai: string };
-}> {
+}): Promise<HasilHitungPayroll> {
   const filterCabang = cabangId ? { cabangId } : {};
 
   const rentang = rentangPeriodeGajian(periode);
   // Jendela hitung hadir/telat: periode penuh, atau rentang tanggal kustom
   // yang dijepit ke dalam periode gajian (filter bulan tetap berlaku).
   const jendela = bacaRentangGajian({ dari, sampai, periode }, bulanIni);
+
+  const dariCache = cachePayrollCocok(periode, cabangId, jendela.dari, jendela.sampai);
+  if (dariCache) return dariCache;
 
   const [karyawan, payroll, absensiPeriode, kasbonPeriode, insentifPeriode, jadwalPeriode, petaMakan] =
     await Promise.all([
@@ -224,5 +279,14 @@ export async function hitungPayroll({
     };
   });
 
-  return { baris, total: totalPayroll(baris), jendela, rentang };
+  const hasil: HasilHitungPayroll = { baris, total: totalPayroll(baris), jendela, rentang };
+  cachePayroll = {
+    periode,
+    cabangId,
+    dari: jendela.dari,
+    sampai: jendela.sampai,
+    waktu: Date.now(),
+    hasil,
+  };
+  return hasil;
 }

@@ -40,22 +40,20 @@ export const ADMIN_NAV: NavItem[] = [
   { href: "/admin/slip-gaji", label: "Slip Gaji", menu: "slip-gaji", kategori: "Keuangan" },
   { href: "/admin/insentif", label: "Insentif", menu: "insentif", kategori: "Keuangan" },
   { href: "/admin/informasi", label: "Informasi", menu: "informasi", kategori: "Lainnya" },
-  { href: "/admin/chat", label: "Chat", menu: "chat", kategori: "Lainnya" },
   { href: "/admin/top5", label: "Top 10", menu: "top5", kategori: "Lainnya" },
   { href: "/admin/pengaturan", label: "Pengaturan", menu: "pengaturan", kategori: "Lainnya" },
 ];
 
-/** Menu karyawan (bottom navigation, mobile): 5 utama + Lainnya. */
+/** Menu karyawan (bottom navigation, mobile): 4 utama + Lainnya. */
 export const KARYAWAN_NAV: NavItem[] = [
   { href: "/karyawan/jadwal", label: "Jadwal", menu: "jadwal_saya", utama: true },
-  { href: "/karyawan/chat", label: "Chat", menu: "chat", utama: true },
+  { href: "/karyawan/izin", label: "Izin", menu: "izin_saya", utama: true },
   // Absen di tengah (indeks 2 dari 5) dan ditampilkan menonjol: tombol bulat
   // naik di atas bar — menu yang paling sering dipakai karyawan.
   { href: "/karyawan", label: "Absen", menu: "absen", utama: true },
   { href: "/karyawan/top5", label: "Top 10", menu: "top5", utama: true },
   { href: "/karyawan/riwayat", label: "Riwayat", menu: "riwayat_saya" },
   { href: "/karyawan/kasbon", label: "Kasbon", menu: "kasbon_saya" },
-  { href: "/karyawan/izin", label: "Izin", menu: "izin_saya" },
   { href: "/karyawan/insentif", label: "Insentif", menu: "insentif_saya" },
   { href: "/karyawan/profil", label: "Profil", menu: "profil" },
 ];

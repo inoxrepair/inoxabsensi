@@ -143,35 +143,8 @@ textarea {
 }
 
 /* --------------------------------------------------------------------------
-   Animasi masuk bubble chat: muncul pelan dari bawah (240 ms). Hanya jalan
-   saat bubble baru dipasang ke DOM; bubble lama tidak beranimasi ulang
-   saat daftar di-refresh. Nonaktif bila pengguna memilih mengurangi gerak.
-   -------------------------------------------------------------------------- */
-
-@keyframes inox-pesan-masuk {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.inox-pesan-masuk {
-  animation: inox-pesan-masuk 240ms ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .inox-pesan-masuk {
-    animation: none;
-  }
-}
-
-/* --------------------------------------------------------------------------
    Animasi tab Top 10: indikator tab aktif bergeser halus + konten ranking
-   masuk dengan fade + geser naik (240 ms, seperti bubble chat).
+   masuk dengan fade + geser naik (240 ms).
    Indikator adalah pil di belakang pemicu aktif; daftar tab memakai dua
    pemicu selebar setengah daftar (gap-0), jadi saat pemicu kedua aktif
    pil bergeser tepat satu setengah lebar. Latar pemicu aktif dibuat

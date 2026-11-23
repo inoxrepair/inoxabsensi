@@ -507,6 +507,36 @@ describe("bacaRentang", () => {
     expect(bacaRentang({ dari: "2026-08-05" }, bulan).kustom).toBe(false);
     expect(bacaRentang({ sampai: "2026-08-05" }, bulan).kustom).toBe(false);
   });
+
+  it("menjepit rentang kustom ke 93 hari (sampai = dari + 92 hari)", () => {
+    const r = bacaRentang(
+      { dari: "2026-01-01", sampai: "2026-06-30" },
+      bulan,
+    );
+    expect(r).toEqual({ dari: "2026-01-01", sampai: "2026-04-03", kustom: true });
+  });
+
+  it("tidak menjepit rentang kustom tepat 93 hari", () => {
+    expect(
+      bacaRentang({ dari: "2026-01-01", sampai: "2026-04-03" }, bulan),
+    ).toEqual({ dari: "2026-01-01", sampai: "2026-04-03", kustom: true });
+  });
+
+  it("menjepit rentang 94 hari ke 93 hari", () => {
+    const r = bacaRentang(
+      { dari: "2026-01-01", sampai: "2026-04-04" },
+      bulan,
+    );
+    expect(r.sampai).toBe("2026-04-03");
+  });
+
+  it("menukar dulu baru menjepit bila tanggal terbalik dan terlalu panjang", () => {
+    const r = bacaRentang(
+      { dari: "2026-06-30", sampai: "2026-01-01" },
+      bulan,
+    );
+    expect(r).toEqual({ dari: "2026-01-01", sampai: "2026-04-03", kustom: true });
+  });
 });
 
 describe("bacaRentangGajian", () => {
