@@ -1,5 +1,12 @@
-const CACHE = "inox-static-v2";
+const CACHE = "inox-static-v3";
 const STATIC_ASSETS = ["/manifest.webmanifest", "/icon.svg", "/offline.html"];
+
+/** Batas waktu satu percobaan fetch navigasi — tanpa ini koneksi yang
+ *  menggantung membuat pengguna menatap loading tanpa kepastian. */
+const BATAS_FETCH_MS = 10000;
+/** Jeda sebelum percobaan ulang — cukup untuk lewatnya gangguan sesaat
+ *  (pindah WiFi/data, restart service saat deploy). */
+const JEDA_ULANG_MS = 1000;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(STATIC_ASSETS)));
@@ -14,6 +21,12 @@ self.addEventListener("activate", (event) => {
       .then(() => self.clients.claim()),
   );
 });
+
+function fetchDenganBatas(request) {
+  const kontrol = new AbortController();
+  const timer = setTimeout(() => kontrol.abort(), BATAS_FETCH_MS);
+  return fetch(request, { signal: kontrol.signal }).finally(() => clearTimeout(timer));
+}
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
@@ -31,7 +44,20 @@ self.addEventListener("fetch", (event) => {
     url.pathname === "/login"
   ) {
     if (request.mode === "navigate") {
-      event.respondWith(fetch(request).catch(() => caches.match("/offline.html")));
+      // Jangan langsung menyerah ke halaman offline: gangguan sesaat
+      // (pindah jaringan, restart service saat deploy) cukup diatasi
+      // dengan satu percobaan ulang. Hanya bila keduanya gagal,
+      // tampilkan halaman offline.
+      event.respondWith(
+        fetchDenganBatas(request)
+          .catch(
+            () =>
+              new Promise((s) => setTimeout(s, JEDA_ULANG_MS)).then(() =>
+                fetch(request.clone()),
+              ),
+          )
+          .catch(() => caches.match("/offline.html")),
+      );
     }
     return;
   }
