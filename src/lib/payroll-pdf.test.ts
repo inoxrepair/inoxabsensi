@@ -24,7 +24,7 @@ function barisContoh(nama: string, cabang: string): BarisPayroll {
     kasbon: 200000,
     insentif: 685000,
     menitTelatRekap: 15,
-    kasbonDisetujuiSisa: 200000,
+    kasbonSisa: 200000,
     insentifTransaksi: 27,
   };
 }
@@ -131,7 +131,7 @@ describe("buatPayrollPdf", () => {
       kasbon: 0,
       insentif: 0,
       menitTelatRekap: 0,
-      kasbonDisetujuiSisa: 0,
+      kasbonSisa: 0,
       insentifTransaksi: 0,
     };
     const rekap = await buatPayrollPdf({
@@ -171,7 +171,7 @@ describe("buatPayrollPdf", () => {
       kasbon: 0,
       insentif: 665000,
       menitTelatRekap: 415,
-      kasbonDisetujuiSisa: 0,
+      kasbonSisa: 0,
       insentifTransaksi: 30,
     };
     const rekap = await buatPayrollPdf({

@@ -58,9 +58,11 @@ export function sisaKasbon(kasbon: {
 }
 
 /**
- * Total yang boleh ditarik payroll dari daftar kasbon: hanya yang
- * disetujui, dan hanya sisanya (jumlah - terbayar). Pending, ditolak,
- * lunas, dan dibatalkan tidak ikut.
+ * Total yang boleh ditarik payroll dari daftar kasbon: yang diajukan
+ * (pending) dan yang disetujui, dan hanya sisanya (jumlah - terbayar).
+ * Pending ikut dihitung: begitu karyawan mengajukan kasbon, potongannya
+ * langsung tercatat di slip periode itu. Ditolak, lunas, dan dibatalkan
+ * tidak ikut.
  */
 export function totalKasbonUntukPayroll(
   daftar: readonly {
@@ -70,8 +72,22 @@ export function totalKasbonUntukPayroll(
   }[],
 ): number {
   return daftar
-    .filter((k) => k.status === "disetujui")
+    .filter((k) => k.status === "pending" || k.status === "disetujui")
     .reduce((total, k) => total + sisaKasbon(k), 0);
+}
+
+/**
+ * Potongan kasbon yang tampil di slip: nilai manual yang pernah disimpan
+ * admin di tabel Payroll menang bila > 0 (admin boleh menyesuaikan,
+ * misal potong sebagian); bila belum pernah diisi, pakai sisa pengajuan
+ * (diajukan + disetujui) supaya kasbon yang baru diajukan langsung
+ * tercatat di slip periode itu tanpa menunggu admin mengisi manual.
+ */
+export function kasbonUntukSlip(
+  nilaiManual: number,
+  sisaPengajuan: number,
+): number {
+  return nilaiManual > 0 ? nilaiManual : sisaPengajuan;
 }
 
 /**

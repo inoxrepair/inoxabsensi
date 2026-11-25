@@ -696,7 +696,7 @@ export async function buatSlipPayrollPdf(
   ]);
   gambarBarisSlip([
     "Kasbon",
-    `sisa disetujui ${rupiah(r.kasbonDisetujuiSisa)}`,
+    `sisa kasbon ${rupiah(r.kasbonSisa)}`,
     r.kasbon > 0 ? `-${rupiah(r.kasbon)}` : "0",
   ]);
 

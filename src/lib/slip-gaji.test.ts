@@ -35,7 +35,7 @@ function barisPayroll(
     jamFleksibel: 0,
     hariShiftBiasa: 0,
     jamShiftBiasa: 0,
-    kasbonDisetujuiSisa: 100_000,
+    kasbonSisa: 100_000,
     insentifTransaksi: 12,
     ...ubah,
   };

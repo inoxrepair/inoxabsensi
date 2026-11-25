@@ -3,6 +3,7 @@ import {
   ajukanKasbonSkema,
   bayarKasbonSkema,
   KASBON_MAKS,
+  kasbonUntukSlip,
   prosesKasbonSkema,
   sisaKasbon,
   statusSetelahBayar,
@@ -76,17 +77,23 @@ describe("sisa dan payroll kasbon", () => {
     expect(sisaKasbon({ jumlah: 100000, jumlahTerbayar: 150000 })).toBe(0);
     expect(sisaKasbon({ jumlah: 100000 })).toBe(100000);
   });
-  it("payroll hanya menarik sisa kasbon disetujui", () => {
+  it("payroll menarik sisa kasbon diajukan dan disetujui", () => {
     expect(
       totalKasbonUntukPayroll([
         { status: "disetujui", jumlah: 100000, jumlahTerbayar: 40000 },
         { status: "disetujui", jumlah: 50000, jumlahTerbayar: 0 },
-        { status: "pending", jumlah: 999999, jumlahTerbayar: 0 },
+        { status: "pending", jumlah: 50000, jumlahTerbayar: 0 },
         { status: "ditolak", jumlah: 999999, jumlahTerbayar: 0 },
         { status: "lunas", jumlah: 999999, jumlahTerbayar: 999999 },
         { status: "dibatalkan", jumlah: 999999, jumlahTerbayar: 0 },
       ]),
-    ).toBe(110000);
+    ).toBe(160000);
+  });
+  it("kasbon slip: manual menang bila diisi, kalau tidak pakai sisa pengajuan", () => {
+    expect(kasbonUntukSlip(0, 50000)).toBe(50000);
+    expect(kasbonUntukSlip(0, 0)).toBe(0);
+    expect(kasbonUntukSlip(30000, 200000)).toBe(30000);
+    expect(kasbonUntukSlip(100000, 50000)).toBe(100000);
   });
   it("lunas hanya bila terbayar mencapai jumlah penuh", () => {
     expect(statusSetelahBayar(100000, 99999)).toBe("disetujui");

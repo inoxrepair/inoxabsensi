@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { ambilInsentifRentang } from "@/lib/insentif";
-import { sisaKasbon } from "@/lib/kasbon";
+import { kasbonUntukSlip, sisaKasbon } from "@/lib/kasbon";
 import {
   dalamMasaPercobaan,
   dihitungHadir,
@@ -79,8 +79,10 @@ export function bersihkanCachePayroll(): void {
 /**
  * Hitung baris payroll untuk satu periode — SATU sumber kebenaran untuk
  * halaman Payroll dan ekspor PDF, supaya angka di layar dan di PDF tidak
- * pernah berbeda. Aturan yang sama dengan halaman: gaji pokok/tunjangan/
- * kasbon dibaca dari tabel Payroll periode itu; tunjangan makan dari hari
+ * pernah berbeda. Aturan yang sama dengan halaman: gaji pokok/tunjangan
+ * dibaca dari tabel Payroll periode itu; kasbon = nilai manual yang pernah
+ * disimpan, bila belum pernah diisi pakai sisa pengajuan kasbon (diajukan +
+ * disetujui, jumlah - terbayar); tunjangan makan dari hari
  * hadir dan potongan telat dari menit telat tercatat di jendela aktif;
  * insentif dari baris transaksi iNOX dalam jendela yang sama; lembur dari
  * definisi shift terjadwal di atas 8 jam (ikut shift, bukan jam absen
@@ -141,11 +143,13 @@ export async function hitungPayroll({
           cycles: { select: { masukMenit: true, keluarMenit: true } },
         },
       }),
-      // Kasbon yang disetujui periode ini, dihitung sisanya saja.
+      // Kasbon yang diajukan atau disetujui periode ini, dihitung sisanya
+      // saja. Pending ikut: begitu karyawan mengajukan kasbon, potongannya
+      // langsung tercatat di slip periode itu.
       db.kasbon.findMany({
         where: {
           periode,
-          status: "disetujui",
+          status: { in: ["pending", "disetujui"] },
           user: { aktif: true, ...filterCabang },
         },
         select: { userId: true, jumlah: true, jumlahTerbayar: true },
@@ -271,10 +275,14 @@ export async function hitungPayroll({
       // (sudah dikurangi toleransi shift) × Rp 1.000 — bukan dari nilai
       // lama yang tersimpan di tabel Payroll.
       potonganTelat: potonganTelat(petaTelat.get(k.id) ?? 0),
-      kasbon: p?.kasbon ?? 0,
+      // Kasbon: nilai manual yang pernah disimpan admin menang bila > 0;
+      // bila belum pernah diisi, pakai sisa pengajuan (diajukan +
+      // disetujui) supaya kasbon yang baru diajukan langsung tercatat di
+      // slip periode itu.
+      kasbon: kasbonUntukSlip(p?.kasbon ?? 0, petaKasbonSisa.get(k.id) ?? 0),
       insentif: petaInsentif.get(k.id) ?? 0,
       menitTelatRekap: petaTelat.get(k.id) ?? 0,
-      kasbonDisetujuiSisa: petaKasbonSisa.get(k.id) ?? 0,
+      kasbonSisa: petaKasbonSisa.get(k.id) ?? 0,
       insentifTransaksi: petaInsentifTransaksi.get(k.id) ?? 0,
     };
   });

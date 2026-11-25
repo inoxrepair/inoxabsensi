@@ -263,8 +263,8 @@ export type BarisPayroll = KomponenGaji & {
   hariShiftBiasa: number;
   /** Total jam gaji pokok harian (durasi shift, maksimal 8 jam per hari, sudah dibulatkan) pada jendela hitung. */
   jamShiftBiasa: number;
-  /** Sisa kasbon disetujui periode ini (jumlah - terbayar). */
-  kasbonDisetujuiSisa: number;
+  /** Sisa kasbon periode ini (diajukan + disetujui, jumlah - terbayar). */
+  kasbonSisa: number;
   /** Jumlah transaksi iNOX dalam jendela hitung yang membentuk insentif. */
   insentifTransaksi: number;
 };

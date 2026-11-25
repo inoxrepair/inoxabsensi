@@ -78,7 +78,7 @@ export function TabelPayroll({
                 </th>
               ))}
               <th className="p-3 text-right font-medium">Potongan</th>
-              <th className="p-3 text-right font-medium">Kasbon disetujui (sisa)</th>
+              <th className="p-3 text-right font-medium">Kasbon (sisa)</th>
               <th className="p-3 text-right font-medium">Insentif</th>
               <th className="p-3 text-right font-medium">Tunjangan makan</th>
               <th className="p-3 text-right font-medium">Lembur</th>
@@ -130,7 +130,9 @@ export function TabelPayroll({
         pokok manual diisi, hitungan ini berhenti supaya tidak dobel.
         Insentif berasal dari sinkron inox.my.id (menu Insentif)
         dan mengikuti rentang tanggal yang dipilih di atas; insentif tidak
-        bisa diubah di sini. Tombol &quot;Isi kasbon dari
+        bisa diubah di sini. Kasbon yang diajukan (pending) maupun disetujui
+        langsung terhitung sebagai potongan bila kolom kasbon belum pernah
+        diisi; tombol &quot;Isi kasbon dari
         pengajuan&quot; hanya mengisi kolom, nilai baru tersimpan setelah
         tombol Simpan ditekan.
       </p>
@@ -256,8 +258,8 @@ function Baris({
         </span>
       </td>
       <td className="p-3 text-right tabular-nums">
-        {formatRupiah(awal.kasbonDisetujuiSisa)}
-        <span className="block text-xs font-normal text-muted">sisa disetujui</span>
+        {formatRupiah(awal.kasbonSisa)}
+        <span className="block text-xs font-normal text-muted">diajukan + disetujui</span>
       </td>
       <td className="p-3 text-right tabular-nums">
         {formatRupiah(awal.insentif)}
@@ -309,9 +311,9 @@ function Baris({
               variant="outline"
               size="sm"
               disabled={menunggu}
-              title="Isi kolom kasbon dari sisa kasbon disetujui; belum tersimpan sampai Simpan ditekan"
+              title="Isi kolom kasbon dari sisa kasbon diajukan + disetujui; belum tersimpan sampai Simpan ditekan"
               onClick={() =>
-                setNilai((n) => ({ ...n, kasbon: String(awal.kasbonDisetujuiSisa) }))
+                setNilai((n) => ({ ...n, kasbon: String(awal.kasbonSisa) }))
               }
             >
               Isi kasbon dari pengajuan
