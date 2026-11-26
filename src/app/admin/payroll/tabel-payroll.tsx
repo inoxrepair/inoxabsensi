@@ -66,7 +66,7 @@ export function TabelPayroll({
       ) : null}
 
       <div className="overflow-x-auto rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
-        <table className="w-full min-w-[1300px] text-sm">
+        <table className="w-full min-w-[1360px] text-sm">
           <caption className="sr-only">
             {bolehUbah ? "Payroll editable per karyawan" : "Payroll per karyawan"}
           </caption>
@@ -107,10 +107,11 @@ export function TabelPayroll({
         Nilai disimpan dalam rupiah. Gaji diterima = gaji pokok + gaji pokok
         fleksibel + gaji pokok harian + tunjangan + tunjangan makan + lembur
         + insentif + penyesuaian - potongan - kasbon. Penyesuaian: kolom
-        tambahan per karyawan — isi nominal bertanda (positif = tambahan,
-        negatif = pengurangan, mis. -50000) beserta keterangan (mis.
-        Potongan BPJS); keterangan wajib bila nominal diisi; baris ini
-        tampil di slip gaji beserta keterangannya. Tunjangan makan
+        tambahan per karyawan — isi nominal beserta keterangan (mis.
+        Potongan BPJS); tombol + Tambah / − Kurang memilih jenisnya,
+        karena keyboard angka HP tidak punya tombol minus; keterangan
+        wajib bila nominal diisi; baris ini tampil di slip gaji beserta
+        keterangannya. Tunjangan makan
         dihitung otomatis {formatRupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)} × hari
         hadir (status hadir/telat) pada periode ini; alpa, izin, dan off
         tidak dihitung. Potongan telat dihitung otomatis{" "}
@@ -195,6 +196,22 @@ function Baris({
   const diterima = takeHomePay(angka);
   const peringatan = melebihiPendapatan(angka);
 
+  const tandaNegatif = nilai.penyesuaian.trim().startsWith("-");
+  // Keyboard angka HP tidak punya tombol minus: tombol ＋/− inilah yang
+  // membalik tanda nominal penyesuaian (＋ tambahan / − pengurangan).
+  function aturTanda(negatif: boolean) {
+    setNilai((n) => {
+      const angka = (n.penyesuaian || "").replace(/^-/, "");
+      if (negatif) {
+        return {
+          ...n,
+          penyesuaian: angka === "" || angka === "0" ? "-" : `-${angka}`,
+        };
+      }
+      return { ...n, penyesuaian: angka === "" ? "0" : angka };
+    });
+  }
+
   // Tautan slip gaji karyawan ini (mengikuti periode + rentang kustom
   // yang sedang tampil, supaya angkanya sama dengan baris ini).
   const slipParams = new URLSearchParams({
@@ -238,7 +255,9 @@ function Baris({
                 inputMode="numeric"
                 value={nilai[key]}
                 onChange={(e) => setNilai((n) => ({ ...n, [key]: e.target.value }))}
-                className="h-auto w-32 px-2.5 py-1.5 text-right tabular-nums"
+                className={`h-auto px-2.5 py-1.5 text-right tabular-nums ${
+                  key === "penyesuaian" ? "w-40" : "w-32"
+                }`}
               />
             </>
           ) : (
@@ -247,6 +266,28 @@ function Baris({
           {key === "penyesuaian" ? (
             bolehUbah ? (
               <>
+                <div className="mt-1.5 flex gap-1">
+                  <Button
+                    type="button"
+                    variant={tandaNegatif ? "outline" : "default"}
+                    size="sm"
+                    onClick={() => aturTanda(false)}
+                    title="Penyesuaian sebagai tambahan (nominal positif)"
+                    className="h-7 flex-1 px-1 text-xs"
+                  >
+                    + Tambah
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={tandaNegatif ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => aturTanda(true)}
+                    title="Penyesuaian sebagai pengurangan (nominal negatif)"
+                    className="h-7 flex-1 px-1 text-xs"
+                  >
+                    − Kurang
+                  </Button>
+                </div>
                 <Label
                   className="sr-only"
                   htmlFor={`keteranganPenyesuaian-${awal.userId}`}
@@ -258,7 +299,7 @@ function Baris({
                   name="keteranganPenyesuaian"
                   type="text"
                   maxLength={100}
-                  placeholder="Keterangan, mis. Potongan BPJS"
+                  placeholder="Keterangan"
                   value={nilai.keteranganPenyesuaian}
                   onChange={(e) =>
                     setNilai((n) => ({
@@ -266,7 +307,7 @@ function Baris({
                       keteranganPenyesuaian: e.target.value,
                     }))
                   }
-                  className="mt-1.5 h-auto w-32 px-2.5 py-1.5 text-left"
+                  className="mt-1.5 h-auto w-40 px-2.5 py-1.5 text-left"
                 />
               </>
             ) : awal.keteranganPenyesuaian ? (

@@ -31,16 +31,19 @@ export async function simpanPayroll(formData: FormData): Promise<HasilPayroll> {
 
   // Upsert mentah: client Prisma lokal belum mengenal kolom
   // penyesuaian/keteranganPenyesuaian (prisma generate gagal di VM ini).
-  // ON CONFLICT jalan di Postgres maupun SQLite; "updatedAt" diisi
-  // manual karena @updatedAt hanya jalan lewat client Prisma, bukan di
-  // database. Keterangan kosong disimpan null (bukan string kosong).
+  // ON CONFLICT jalan di Postgres maupun SQLite. "updatedAt" WAJIB diisi
+  // manual di INSERT maupun UPDATE: @updatedAt hanya jalan lewat client
+  // Prisma, dan kolomnya NOT NULL tanpa default di database — tanpa ini
+  // INSERT baris baru gagal (500) walau UPDATE baris lama lolos.
+  // Keterangan kosong disimpan null (bukan string kosong).
   const keterangan = komponen.keteranganPenyesuaian?.trim() || null;
   await db.$executeRaw`
     INSERT INTO "Payroll" ("id", "userId", "periode", "gajiPokok",
-      "tunjangan", "kasbon", "penyesuaian", "keteranganPenyesuaian")
+      "tunjangan", "kasbon", "penyesuaian", "keteranganPenyesuaian",
+      "updatedAt")
     VALUES (${randomUUID()}, ${userId}, ${periode}, ${komponen.gajiPokok},
       ${komponen.tunjangan}, ${komponen.kasbon}, ${komponen.penyesuaian},
-      ${keterangan})
+      ${keterangan}, CURRENT_TIMESTAMP)
     ON CONFLICT ("userId", "periode") DO UPDATE SET
       "gajiPokok" = EXCLUDED."gajiPokok",
       "tunjangan" = EXCLUDED."tunjangan",
