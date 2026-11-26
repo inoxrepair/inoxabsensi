@@ -287,6 +287,20 @@ function LihatSlip({
                 </dd>
               </div>
             ))}
+            {r.komponen.penyesuaian !== 0 ? (
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted">
+                  {r.komponen.penyesuaian > 0 ? "Tambahan" : "Pengurangan"}
+                  {r.keteranganPenyesuaian
+                    ? ` — ${r.keteranganPenyesuaian}`
+                    : null}
+                </dt>
+                <dd className="tabular-nums">
+                  {r.komponen.penyesuaian > 0 ? "+ " : "− "}
+                  {formatRupiah(Math.abs(r.komponen.penyesuaian))}
+                </dd>
+              </div>
+            ) : null}
             <div className="flex justify-between gap-3 border-t border-line pt-2 font-medium">
               <dt>Diterima</dt>
               <dd className="tabular-nums">{formatRupiah(r.diterima)}</dd>

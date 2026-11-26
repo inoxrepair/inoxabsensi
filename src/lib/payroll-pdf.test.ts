@@ -22,6 +22,8 @@ function barisContoh(nama: string, cabang: string): BarisPayroll {
     jamShiftBiasa: 0,
     potonganTelat: 15000,
     kasbon: 200000,
+    penyesuaian: 0,
+    keteranganPenyesuaian: null,
     insentif: 685000,
     menitTelatRekap: 15,
     kasbonSisa: 200000,
@@ -237,6 +239,44 @@ describe("buatSlipPayrollPdf", () => {
       baris: {
         ...barisContoh("Fajri Mokodompit", "KWSN"),
         tunjanganMakan: 0,
+      },
+      log: logContoh(),
+    });
+    expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe("%PDF-");
+    const doc = await PDFDocument.load(bytes);
+    expect(doc.getPageCount()).toBe(2);
+  });
+
+  it("penyesuaian (pengurangan + keterangan) tampil di slip yang valid", async () => {
+    const bytes = await buatSlipPayrollPdf({
+      periode: "2026-11",
+      rentang: { dari: "2026-10-28", sampai: "2026-11-27" },
+      jendelaKustom: false,
+      jendela: { dari: "2026-10-28", sampai: "2026-11-27" },
+      perusahaan: "iNOX Repair",
+      baris: {
+        ...barisContoh("Fajri Mokodompit", "KWSN"),
+        penyesuaian: -50_000,
+        keteranganPenyesuaian: "Potongan BPJS",
+      },
+      log: logContoh(),
+    });
+    expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe("%PDF-");
+    const doc = await PDFDocument.load(bytes);
+    expect(doc.getPageCount()).toBe(2);
+  });
+
+  it("penyesuaian positif (tambahan) tampil di slip yang valid", async () => {
+    const bytes = await buatSlipPayrollPdf({
+      periode: "2026-11",
+      rentang: { dari: "2026-10-28", sampai: "2026-11-27" },
+      jendelaKustom: false,
+      jendela: { dari: "2026-10-28", sampai: "2026-11-27" },
+      perusahaan: "iNOX Repair",
+      baris: {
+        ...barisContoh("Fajri Mokodompit", "KWSN"),
+        penyesuaian: 100_000,
+        keteranganPenyesuaian: "Bonus target",
       },
       log: logContoh(),
     });

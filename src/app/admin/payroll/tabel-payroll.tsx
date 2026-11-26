@@ -20,6 +20,7 @@ const KOMPONEN = [
   ["gajiPokok", "Gaji pokok"],
   ["tunjangan", "Tunjangan"],
   ["kasbon", "Kasbon"],
+  ["penyesuaian", "Penyesuaian"],
 ] as const;
 
 /** Form payroll per karyawan; semua angka tersimpan sekaligus per baris. */
@@ -65,7 +66,7 @@ export function TabelPayroll({
       ) : null}
 
       <div className="overflow-x-auto rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-zinc-900/60 shadow-lg shadow-black/5 dark:shadow-black/50 backdrop-blur-xl">
-        <table className="w-full min-w-[1120px] text-sm">
+        <table className="w-full min-w-[1300px] text-sm">
           <caption className="sr-only">
             {bolehUbah ? "Payroll editable per karyawan" : "Payroll per karyawan"}
           </caption>
@@ -105,7 +106,11 @@ export function TabelPayroll({
       <p className="text-xs text-muted">
         Nilai disimpan dalam rupiah. Gaji diterima = gaji pokok + gaji pokok
         fleksibel + gaji pokok harian + tunjangan + tunjangan makan + lembur
-        + insentif - potongan - kasbon. Tunjangan makan
+        + insentif + penyesuaian - potongan - kasbon. Penyesuaian: kolom
+        tambahan per karyawan — isi nominal bertanda (positif = tambahan,
+        negatif = pengurangan, mis. -50000) beserta keterangan (mis.
+        Potongan BPJS); keterangan wajib bila nominal diisi; baris ini
+        tampil di slip gaji beserta keterangannya. Tunjangan makan
         dihitung otomatis {formatRupiah(TARIF_TUNJANGAN_MAKAN_PER_HARI)} × hari
         hadir (status hadir/telat) pada periode ini; alpa, izin, dan off
         tidak dihitung. Potongan telat dihitung otomatis{" "}
@@ -158,6 +163,8 @@ function Baris({
     gajiPokok: String(awal.gajiPokok),
     tunjangan: String(awal.tunjangan),
     kasbon: String(awal.kasbon),
+    penyesuaian: String(awal.penyesuaian),
+    keteranganPenyesuaian: awal.keteranganPenyesuaian ?? "",
   });
   const [menunggu, mulai] = useTransition();
 
@@ -179,6 +186,9 @@ function Baris({
     // Potongan telat juga read-only: menit telat tercatat × Rp 1.000.
     potonganTelat: awal.potonganTelat,
     kasbon: Number(nilai.kasbon) || 0,
+    // Penyesuaian juga dari form: nominal bertanda (positif = tambahan,
+    // negatif = pengurangan).
+    penyesuaian: Number(nilai.penyesuaian) || 0,
     // Insentif dibaca (read-only) dari tabel Insentif, bukan dari form.
     insentif: awal.insentif,
   };
@@ -201,6 +211,7 @@ function Baris({
     form.set("userId", awal.userId);
     form.set("periode", periode);
     for (const [key] of KOMPONEN) form.set(key, nilai[key]);
+    form.set("keteranganPenyesuaian", nilai.keteranganPenyesuaian);
 
     mulai(async () => onPesan(await simpanPayroll(form)));
   }
@@ -222,7 +233,7 @@ function Baris({
                 id={`${key}-${awal.userId}`}
                 name={key}
                 type="number"
-                min={0}
+                min={key === "penyesuaian" ? undefined : 0}
                 step={1}
                 inputMode="numeric"
                 value={nilai[key]}
@@ -233,6 +244,37 @@ function Baris({
           ) : (
             <span className="tabular-nums">{formatRupiah(awal[key])}</span>
           )}
+          {key === "penyesuaian" ? (
+            bolehUbah ? (
+              <>
+                <Label
+                  className="sr-only"
+                  htmlFor={`keteranganPenyesuaian-${awal.userId}`}
+                >
+                  Keterangan penyesuaian {awal.nama}
+                </Label>
+                <Input
+                  id={`keteranganPenyesuaian-${awal.userId}`}
+                  name="keteranganPenyesuaian"
+                  type="text"
+                  maxLength={100}
+                  placeholder="Keterangan, mis. Potongan BPJS"
+                  value={nilai.keteranganPenyesuaian}
+                  onChange={(e) =>
+                    setNilai((n) => ({
+                      ...n,
+                      keteranganPenyesuaian: e.target.value,
+                    }))
+                  }
+                  className="mt-1.5 h-auto w-32 px-2.5 py-1.5 text-left"
+                />
+              </>
+            ) : awal.keteranganPenyesuaian ? (
+              <span className="block text-xs font-normal text-muted">
+                {awal.keteranganPenyesuaian}
+              </span>
+            ) : null
+          ) : null}
           {key === "gajiPokok" ? (
             <>
               {awal.gajiPokokFleksibel > 0 ? (

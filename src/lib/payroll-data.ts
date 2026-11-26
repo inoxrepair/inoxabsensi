@@ -79,10 +79,10 @@ export function bersihkanCachePayroll(): void {
 /**
  * Hitung baris payroll untuk satu periode — SATU sumber kebenaran untuk
  * halaman Payroll dan ekspor PDF, supaya angka di layar dan di PDF tidak
- * pernah berbeda. Aturan yang sama dengan halaman: gaji pokok/tunjangan
- * dibaca dari tabel Payroll periode itu; kasbon = nilai manual yang pernah
- * disimpan, bila belum pernah diisi pakai sisa pengajuan kasbon (diajukan +
- * disetujui, jumlah - terbayar); tunjangan makan dari hari
+ * pernah berbeda. Aturan yang sama dengan halaman: gaji pokok/tunjangan/
+ * penyesuaian dibaca dari tabel Payroll periode itu; kasbon = nilai manual
+ * yang pernah disimpan, bila belum pernah diisi pakai sisa pengajuan kasbon
+ * (diajukan + disetujui, jumlah - terbayar); tunjangan makan dari hari
  * hadir dan potongan telat dari menit telat tercatat di jendela aktif;
  * insentif dari baris transaksi iNOX dalam jendela yang sama; lembur dari
  * definisi shift terjadwal di atas 8 jam (ikut shift, bukan jam absen
@@ -125,9 +125,29 @@ export async function hitungPayroll({
         orderBy: [{ cabang: { nama: "asc" } }, { name: "asc" }],
         select: { id: true, name: true, tanggalMasuk: true, cabang: { select: { nama: true } } },
       }),
-      db.payroll.findMany({
-        where: { periode, user: { aktif: true, ...filterCabang } },
-      }),
+      // Baris Payroll periode ini, dibaca mentah: client Prisma lokal
+      // belum mengenal kolom penyesuaian/keteranganPenyesuaian (prisma
+      // generate gagal di VM ini; pola yang sama dengan
+      // petaDapatTunjanganMakan di src/lib/karyawan.ts). Kolom dijamin
+      // ada saat kode ini jalan karena migrasi ikut update yang sama.
+      db.$queryRaw<
+        {
+          userId: string;
+          gajiPokok: number;
+          tunjangan: number;
+          kasbon: number;
+          penyesuaian: number;
+          keteranganPenyesuaian: string | null;
+        }[]
+      >`
+        SELECT p."userId", p."gajiPokok", p."tunjangan", p."kasbon",
+          p."penyesuaian", p."keteranganPenyesuaian"
+        FROM "Payroll" p
+        JOIN "User" u ON u."id" = p."userId"
+        WHERE p."periode" = ${periode}
+          AND u."aktif" = true
+          AND (${cabangId === ""} OR u."cabangId" = ${cabangId})
+      `,
       // Menit telat & hari hadir dihitung dari jendela aktif (periode
       // penuh atau rentang tanggal kustom di dalamnya).
       db.absensi.findMany({
@@ -280,9 +300,13 @@ export async function hitungPayroll({
       // disetujui) supaya kasbon yang baru diajukan langsung tercatat di
       // slip periode itu.
       kasbon: kasbonUntukSlip(p?.kasbon ?? 0, petaKasbonSisa.get(k.id) ?? 0),
+      // Penyesuaian: nominal bertanda dari tabel Payroll (positif =
+      // tambahan, negatif = pengurangan) beserta keterangannya.
+      penyesuaian: p?.penyesuaian ?? 0,
       insentif: petaInsentif.get(k.id) ?? 0,
       menitTelatRekap: petaTelat.get(k.id) ?? 0,
       kasbonSisa: petaKasbonSisa.get(k.id) ?? 0,
+      keteranganPenyesuaian: p?.keteranganPenyesuaian ?? null,
       insentifTransaksi: petaInsentifTransaksi.get(k.id) ?? 0,
     };
   });

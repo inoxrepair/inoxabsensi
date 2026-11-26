@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { payrollSkema } from "@/lib/payroll";
@@ -28,11 +29,26 @@ export async function simpanPayroll(formData: FormData): Promise<HasilPayroll> {
   });
   if (!target) return { ok: false, pesan: "Karyawan tidak ditemukan." };
 
-  await db.payroll.upsert({
-    where: { userId_periode: { userId, periode } },
-    update: komponen,
-    create: { userId, periode, ...komponen },
-  });
+  // Upsert mentah: client Prisma lokal belum mengenal kolom
+  // penyesuaian/keteranganPenyesuaian (prisma generate gagal di VM ini).
+  // ON CONFLICT jalan di Postgres maupun SQLite; "updatedAt" diisi
+  // manual karena @updatedAt hanya jalan lewat client Prisma, bukan di
+  // database. Keterangan kosong disimpan null (bukan string kosong).
+  const keterangan = komponen.keteranganPenyesuaian?.trim() || null;
+  await db.$executeRaw`
+    INSERT INTO "Payroll" ("id", "userId", "periode", "gajiPokok",
+      "tunjangan", "kasbon", "penyesuaian", "keteranganPenyesuaian")
+    VALUES (${randomUUID()}, ${userId}, ${periode}, ${komponen.gajiPokok},
+      ${komponen.tunjangan}, ${komponen.kasbon}, ${komponen.penyesuaian},
+      ${keterangan})
+    ON CONFLICT ("userId", "periode") DO UPDATE SET
+      "gajiPokok" = EXCLUDED."gajiPokok",
+      "tunjangan" = EXCLUDED."tunjangan",
+      "kasbon" = EXCLUDED."kasbon",
+      "penyesuaian" = EXCLUDED."penyesuaian",
+      "keteranganPenyesuaian" = EXCLUDED."keteranganPenyesuaian",
+      "updatedAt" = CURRENT_TIMESTAMP
+  `;
 
   revalidatePath("/admin/payroll");
   return { ok: true, pesan: `Payroll ${target.name} tersimpan.` };

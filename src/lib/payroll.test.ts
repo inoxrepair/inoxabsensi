@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocksPayrollData = vi.hoisted(() => ({
   userFindMany: vi.fn(),
-  payrollFindMany: vi.fn(),
   absensiFindMany: vi.fn(),
   kasbonFindMany: vi.fn(),
   jadwalFindMany: vi.fn(),
@@ -12,7 +11,6 @@ const mocksPayrollData = vi.hoisted(() => ({
 vi.mock("@/lib/db", () => ({
   db: {
     user: { findMany: mocksPayrollData.userFindMany },
-    payroll: { findMany: mocksPayrollData.payrollFindMany },
     absensi: { findMany: mocksPayrollData.absensiFindMany },
     kasbon: { findMany: mocksPayrollData.kasbonFindMany },
     jadwal: { findMany: mocksPayrollData.jadwalFindMany },
@@ -89,6 +87,40 @@ describe("payrollSkema", () => {
       form({ gajiPokok: "0", tunjangan: "0", potonganTelat: "0", kasbon: "0" }),
     );
     expect(h.success).toBe(true);
+  });
+
+  it("penyesuaian boleh negatif (pengurangan) dan positif (tambahan)", () => {
+    const h = payrollSkema.safeParse(
+      form({ penyesuaian: "-50000", keteranganPenyesuaian: "Potongan BPJS" }),
+    );
+    expect(h.success).toBe(true);
+    if (h.success) expect(h.data.penyesuaian).toBe(-50_000);
+    const h2 = payrollSkema.safeParse(
+      form({ penyesuaian: "100000", keteranganPenyesuaian: "Bonus target" }),
+    );
+    expect(h2.success).toBe(true);
+    if (h2.success) expect(h2.data.penyesuaian).toBe(100_000);
+  });
+
+  it("penyesuaian tanpa keterangan ditolak", () => {
+    expect(galat({ penyesuaian: "-50000" })).toMatch(
+      /Keterangan penyesuaian wajib/,
+    );
+  });
+
+  it("penyesuaian nol tanpa keterangan diterima", () => {
+    expect(payrollSkema.safeParse(form({ penyesuaian: "0" })).success).toBe(
+      true,
+    );
+  });
+
+  it("keterangan penyesuaian maksimal 100 karakter", () => {
+    expect(
+      galat({
+        penyesuaian: "1000",
+        keteranganPenyesuaian: "x".repeat(101),
+      }),
+    ).toMatch(/maksimal 100/);
   });
 
   it("menolak nilai negatif", () => {
@@ -169,6 +201,7 @@ describe("takeHomePay", () => {
         gajiPokokHarian: 0,
         potonganTelat: 50_000,
         kasbon: 500_000,
+        penyesuaian: 0,
         insentif: 0,
       }),
     ).toBe(3_350_000);
@@ -185,6 +218,7 @@ describe("takeHomePay", () => {
         gajiPokokHarian: 0,
         potonganTelat: 50_000,
         kasbon: 500_000,
+        penyesuaian: 0,
         insentif: 0,
       }),
     ).toBe(3_790_000);
@@ -201,6 +235,7 @@ describe("takeHomePay", () => {
         gajiPokokHarian: 0,
         potonganTelat: potonganTelat(15),
         kasbon: 500_000,
+        penyesuaian: 0,
         insentif: 0,
       }),
     ).toBe(3_825_000);
@@ -217,6 +252,7 @@ describe("takeHomePay", () => {
         gajiPokokHarian: 0,
         potonganTelat: 0,
         kasbon: 500_000,
+        penyesuaian: 0,
         insentif: 0,
       }),
     ).toBe(-400_000);
@@ -233,6 +269,7 @@ describe("takeHomePay", () => {
         gajiPokokHarian: 0,
         potonganTelat: 50_000,
         kasbon: 500_000,
+        penyesuaian: 0,
         insentif: 0,
       }),
     ).toBe(3_850_000);
@@ -249,9 +286,26 @@ describe("takeHomePay", () => {
         gajiPokokHarian: 0,
         potonganTelat: 0,
         kasbon: 0,
+        penyesuaian: 0,
         insentif: 0,
       }),
     ).toBe(0);
+  });
+
+  it("penyesuaian positif menambah, negatif mengurangi gaji diterima", () => {
+    const dasar = {
+      gajiPokok: 2_000_000,
+      tunjangan: 0,
+      tunjanganMakan: 0,
+      lembur: 0,
+      gajiPokokFleksibel: 0,
+      gajiPokokHarian: 0,
+      potonganTelat: 0,
+      kasbon: 0,
+      insentif: 0,
+    };
+    expect(takeHomePay({ ...dasar, penyesuaian: 100_000 })).toBe(2_100_000);
+    expect(takeHomePay({ ...dasar, penyesuaian: -50_000 })).toBe(1_950_000);
   });
 });
 
@@ -283,6 +337,7 @@ describe("melebihiPendapatan", () => {
         gajiPokokHarian: 0,
         potonganTelat: 600_000,
         kasbon: 600_000,
+        penyesuaian: 0,
         insentif: 0,
       }),
     ).toBe(true);
@@ -299,6 +354,7 @@ describe("melebihiPendapatan", () => {
         gajiPokokHarian: 0,
         potonganTelat: 500_000,
         kasbon: 500_000,
+        penyesuaian: 0,
         insentif: 0,
       }),
     ).toBe(false);
@@ -315,16 +371,34 @@ describe("melebihiPendapatan", () => {
         gajiPokokHarian: 0,
         potonganTelat: 100_000,
         kasbon: 0,
+        penyesuaian: 0,
         insentif: 0,
       }),
     ).toBe(false);
+  });
+
+  it("penyesuaian negatif dihitung sebagai potongan", () => {
+    expect(
+      melebihiPendapatan({
+        gajiPokok: 100_000,
+        tunjangan: 0,
+        tunjanganMakan: 0,
+        lembur: 0,
+        gajiPokokFleksibel: 0,
+        gajiPokokHarian: 0,
+        potonganTelat: 0,
+        kasbon: 0,
+        penyesuaian: -200_000,
+        insentif: 0,
+      }),
+    ).toBe(true);
   });
 });
 
 describe("totalPayroll", () => {
   it("menjumlahkan seluruh komponen dan gaji diterima", () => {
     const t = totalPayroll([
-      { gajiPokok: 1_000_000, tunjangan: 100_000, tunjanganMakan: 0, lembur: 0, gajiPokokFleksibel: 0, gajiPokokHarian: 0, potonganTelat: 0, kasbon: 0, insentif: 0 },
+      { gajiPokok: 1_000_000, tunjangan: 100_000, tunjanganMakan: 0, lembur: 0, gajiPokokFleksibel: 0, gajiPokokHarian: 0, potonganTelat: 0, kasbon: 0, penyesuaian: 0, insentif: 0 },
       {
         gajiPokok: 2_000_000,
         tunjangan: 200_000,
@@ -334,6 +408,7 @@ describe("totalPayroll", () => {
         gajiPokokHarian: 0,
         potonganTelat: 50_000,
         kasbon: 100_000,
+        penyesuaian: 0,
         insentif: 0,
       },
     ]);
@@ -344,7 +419,17 @@ describe("totalPayroll", () => {
     expect(t.gajiPokokFleksibel).toBe(120_000);
     expect(t.potonganTelat).toBe(50_000);
     expect(t.kasbon).toBe(100_000);
+    expect(t.penyesuaian).toBe(0);
     expect(t.diterima).toBe(3_730_000);
+  });
+
+  it("penyesuaian dijumlahkan ke total dan gaji diterima", () => {
+    const t = totalPayroll([
+      { gajiPokok: 1_000_000, tunjangan: 0, tunjanganMakan: 0, lembur: 0, gajiPokokFleksibel: 0, gajiPokokHarian: 0, potonganTelat: 0, kasbon: 0, penyesuaian: 100_000, insentif: 0 },
+      { gajiPokok: 1_000_000, tunjangan: 0, tunjanganMakan: 0, lembur: 0, gajiPokokFleksibel: 0, gajiPokokHarian: 0, potonganTelat: 0, kasbon: 0, penyesuaian: -50_000, insentif: 0 },
+    ]);
+    expect(t.penyesuaian).toBe(50_000);
+    expect(t.diterima).toBe(2_050_000);
   });
 
   it("array kosong menghasilkan nol semua", () => {
@@ -357,6 +442,7 @@ describe("totalPayroll", () => {
       gajiPokokHarian: 0,
       potonganTelat: 0,
       kasbon: 0,
+      penyesuaian: 0,
       insentif: 0,
       diterima: 0,
     });
@@ -507,6 +593,7 @@ describe("gaji pokok fleksibel", () => {
         lembur: 0,
         potonganTelat: 0,
         kasbon: 0,
+        penyesuaian: 0,
         insentif: 0,
       }),
     ).toBe(1_512_000);
@@ -535,6 +622,7 @@ describe("gaji pokok harian", () => {
         lembur: 0,
         potonganTelat: 415_000, // 415 menit telat tercatat
         kasbon: 0,
+        penyesuaian: 0,
         insentif: 665_000, // 30 transaksi
       }),
     ).toBe(1_782_000);
@@ -560,17 +648,33 @@ describe("hitungPayroll (cache)", () => {
     { id: "u1", name: "Budi", tanggalMasuk: "2026-01-01", cabang: { nama: "KWSN" } },
   ];
 
+  // Baris Payroll mentah yang dikembalikan queryRaw untuk query Payroll;
+  // queryRaw lain (insentif, tunjangan makan) tetap mengembalikan [].
+  let barisPayrollMock: {
+    userId: string;
+    gajiPokok: number;
+    tunjangan: number;
+    kasbon: number;
+    penyesuaian: number;
+    keteranganPenyesuaian: string | null;
+  }[] = [];
+
   beforeEach(() => {
     vi.clearAllMocks();
     bersihkanCachePayroll();
+    barisPayrollMock = [];
     mocksPayrollData.userFindMany.mockResolvedValue(karyawan);
-    mocksPayrollData.payrollFindMany.mockResolvedValue([]);
     mocksPayrollData.absensiFindMany.mockResolvedValue([]);
     mocksPayrollData.kasbonFindMany.mockResolvedValue([]);
     mocksPayrollData.jadwalFindMany.mockResolvedValue([]);
     // Dipakai ambilInsentifRentang dan petaDapatTunjanganMakan:
     // tidak ada transaksi insentif, semua karyawan dapat tunjangan makan.
-    mocksPayrollData.queryRaw.mockResolvedValue([]);
+    mocksPayrollData.queryRaw.mockImplementation(
+      (strings: TemplateStringsArray) =>
+        Promise.resolve(
+          strings.join("").includes('FROM "Payroll"') ? barisPayrollMock : [],
+        ),
+    );
   });
 
   const panggil = (ubah: Record<string, string> = {}) =>
@@ -582,6 +686,41 @@ describe("hitungPayroll (cache)", () => {
     expect(hasil.baris[0].nama).toBe("Budi");
     expect(hasil.baris[0].gajiPokok).toBe(0);
     expect(hasil.jendela).toEqual({ dari: "2026-10-28", sampai: "2026-11-27", kustom: false });
+  });
+
+  it("penyesuaian dari tabel Payroll masuk ke baris beserta keterangan", async () => {
+    barisPayrollMock = [
+      {
+        userId: "u1",
+        gajiPokok: 2_000_000,
+        tunjangan: 0,
+        kasbon: 0,
+        penyesuaian: -50_000,
+        keteranganPenyesuaian: "Potongan BPJS",
+      },
+    ];
+    const hasil = await panggil();
+    expect(hasil.baris[0].penyesuaian).toBe(-50_000);
+    expect(hasil.baris[0].keteranganPenyesuaian).toBe("Potongan BPJS");
+    expect(hasil.baris[0].gajiPokok).toBe(2_000_000);
+    expect(hasil.total.diterima).toBe(1_950_000);
+  });
+
+  it("penyesuaian positif menambah gaji diterima", async () => {
+    barisPayrollMock = [
+      {
+        userId: "u1",
+        gajiPokok: 2_000_000,
+        tunjangan: 0,
+        kasbon: 0,
+        penyesuaian: 100_000,
+        keteranganPenyesuaian: "Bonus target",
+      },
+    ];
+    const hasil = await panggil();
+    expect(hasil.baris[0].penyesuaian).toBe(100_000);
+    expect(hasil.baris[0].keteranganPenyesuaian).toBe("Bonus target");
+    expect(hasil.total.diterima).toBe(2_100_000);
   });
 
   it("panggilan kedua dengan kunci sama tidak mengulang query", async () => {

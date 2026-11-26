@@ -316,6 +316,11 @@ model Payroll {
   tunjangan     Int @default(0)
   potonganTelat Int @default(0)
   kasbon        Int @default(0)
+  /// Penyesuaian gaji periode ini, bertanda: positif = tambahan,
+  /// negatif = pengurangan. 0 = tidak ada.
+  penyesuaian        Int @default(0)
+  /// Keterangan penyesuaian (mis. "Potongan BPJS"); tampil di slip gaji.
+  keteranganPenyesuaian String?
 
   catatan String?
 
@@ -351,6 +356,11 @@ model SlipGaji {
   insentif           Int @default(0)
   potonganTelat      Int @default(0)
   kasbon             Int @default(0)
+  /// Penyesuaian gaji periode ini (bertanda: positif = tambahan,
+  /// negatif = pengurangan) beserta keterangannya; disalin dari Payroll
+  /// saat slip dibuat, tampil di slip gaji.
+  penyesuaian        Int @default(0)
+  keteranganPenyesuaian String?
   diterima           Int @default(0)
 
   /// "dibuat" | "dibayar".

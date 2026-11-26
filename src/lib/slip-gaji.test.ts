@@ -28,6 +28,8 @@ function barisPayroll(
     lembur: 120_000,
     potonganTelat: 15_000,
     kasbon: 100_000,
+    penyesuaian: 0,
+    keteranganPenyesuaian: null,
     insentif: 300_000,
     hariHadir: 20,
     menitTelatRekap: 15,
@@ -58,6 +60,8 @@ function slip(
     insentif: 300_000,
     potonganTelat: 15_000,
     kasbon: 100_000,
+    penyesuaian: 0,
+    keteranganPenyesuaian: null,
     diterima: 3_205_000,
     status: "dibuat",
     dibuatOleh: "admin-1",
@@ -126,6 +130,20 @@ describe("snapshotDariBaris", () => {
     expect(k.gajiPokok).toBe(b.gajiPokok);
     expect(k.tunjanganMakan).toBe(b.tunjanganMakan);
     expect(k.insentif).toBe(b.insentif);
+  });
+
+  it("snapshot membawa penyesuaian beserta keterangan", () => {
+    const b = barisPayroll({
+      penyesuaian: -50_000,
+      keteranganPenyesuaian: "Potongan BPJS",
+    });
+    const s = snapshotDariBaris(b, "2026-11", "admin-1");
+    expect(s.penyesuaian).toBe(-50_000);
+    expect(s.keteranganPenyesuaian).toBe("Potongan BPJS");
+    expect(s.diterima).toBe(takeHomePay(b));
+    const gabung = gabungkanBarisSlip([b], new Map([[b.userId, { ...slip(), ...s }]]));
+    expect(gabung[0].komponen.penyesuaian).toBe(-50_000);
+    expect(gabung[0].keteranganPenyesuaian).toBe("Potongan BPJS");
   });
 });
 

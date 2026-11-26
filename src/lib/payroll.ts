@@ -165,7 +165,7 @@ export function menitKerjaCycle(
 }
 
 /** FormData mengirim string; terima juga "3.500.000" dan "3 500 000". */
-function rupiah(label: string) {
+function rupiah(label: string, bolehNegatif = false) {
   return z.preprocess(
     (v) => {
       if (v === undefined || v === null) return 0;
@@ -184,37 +184,65 @@ function rupiah(label: string) {
     z
       .number({ error: `${label} harus berupa angka.` })
       .int(`${label} harus bilangan bulat.`)
-      .min(0, `${label} tidak boleh negatif.`)
+      .min(
+        bolehNegatif ? -RUPIAH_MAKS : 0,
+        bolehNegatif
+          ? `${label} melebihi batas wajar.`
+          : `${label} tidak boleh negatif.`,
+      )
       .max(RUPIAH_MAKS, `${label} melebihi batas wajar.`),
   );
 }
 
-export const payrollSkema = z.object({
-  userId: z.string().min(1, "Karyawan tidak valid."),
-  periode: z
-    .string()
-    .refine(periodeValid, "Periode tidak valid."),
-  gajiPokok: rupiah("Gaji pokok"),
-  tunjangan: rupiah("Tunjangan"),
-  kasbon: rupiah("Kasbon"),
-  // Insentif SENGAJA tidak ada di skema ini: satu-satunya sumber nilai
-  // insentif adalah tabel Insentif (hasil sinkron inox.my.id) yang dibaca
-  // halaman Payroll. Form payroll tidak boleh menulisnya, supaya tidak
-  // ada dua sumber kebenaran yang bisa berbeda.
-  // Potongan telat juga SENGAJA tidak ada: dihitung otomatis dari menit
-  // telat tercatat × Rp 1.000 (lihat potonganTelat di bawah).
-  // Lembur juga SENGAJA tidak ada: dihitung otomatis dari shift terjadwal
-  // di atas 8 jam × Rp 12.000 (lihat menitLembur/jamLembur/upahLembur).
-  // Gaji pokok fleksibel juga SENGAJA tidak ada: dihitung otomatis dari
-  // jam kerja nyata hari fleksibel × Rp 12.000 (lihat menitKerjaCycle/
-  // jamDibulatkan/upahPerJam) — gaji pokok manual tetap ditambah untuk
-  // hari terjadwal.
-  // Gaji pokok harian juga SENGAJA tidak ada: dihitung otomatis dari
-  // durasi shift hari terjadwal (maksimal 8 jam, dibulatkan per hari) ×
-  // Rp 12.000 untuk karyawan yang gaji pokok manualnya 0 (lihat
-  // jamShiftBiasa/upahPerJam) — kalau gaji pokok manual diisi, hitungan
-  // ini berhenti supaya tidak dobel.
-});
+export const payrollSkema = z
+  .object({
+    userId: z.string().min(1, "Karyawan tidak valid."),
+    periode: z.string().refine(periodeValid, "Periode tidak valid."),
+    gajiPokok: rupiah("Gaji pokok"),
+    tunjangan: rupiah("Tunjangan"),
+    kasbon: rupiah("Kasbon"),
+    /**
+     * Penyesuaian gaji: nominal BERTANDA — positif = tambahan, negatif =
+     * pengurangan (mis. -50000 untuk potongan BPJS). Keterangan wajib
+     * bila nominal diisi (dicek superRefine di bawah) karena baris ini
+     * tampil di slip gaji beserta keterangannya.
+     */
+    penyesuaian: rupiah("Penyesuaian", true),
+    keteranganPenyesuaian: z
+      .string()
+      .trim()
+      .max(100, "Keterangan penyesuaian maksimal 100 karakter.")
+      .optional(),
+    // Insentif SENGAJA tidak ada di skema ini: satu-satunya sumber nilai
+    // insentif adalah tabel Insentif (hasil sinkron inox.my.id) yang dibaca
+    // halaman Payroll. Form payroll tidak boleh menulisnya, supaya tidak
+    // ada dua sumber kebenaran yang bisa berbeda.
+    // Potongan telat juga SENGAJA tidak ada: dihitung otomatis dari menit
+    // telat tercatat × Rp 1.000 (lihat potonganTelat di bawah).
+    // Lembur juga SENGAJA tidak ada: dihitung otomatis dari shift terjadwal
+    // di atas 8 jam × Rp 12.000 (lihat menitLembur/jamLembur/upahLembur).
+    // Gaji pokok fleksibel juga SENGAJA tidak ada: dihitung otomatis dari
+    // jam kerja nyata hari fleksibel × Rp 12.000 (lihat menitKerjaCycle/
+    // jamDibulatkan/upahPerJam) — gaji pokok manual tetap ditambah untuk
+    // hari terjadwal.
+    // Gaji pokok harian juga SENGAJA tidak ada: dihitung otomatis dari
+    // durasi shift hari terjadwal (maksimal 8 jam, dibulatkan per hari) ×
+    // Rp 12.000 untuk karyawan yang gaji pokok manualnya 0 (lihat
+    // jamShiftBiasa/upahPerJam) — kalau gaji pokok manual diisi, hitungan
+    // ini berhenti supaya tidak dobel.
+  })
+  .superRefine((d, ctx) => {
+    // Penyesuaian tanpa keterangan tidak ada gunanya di slip: barisnya
+    // tampil beserta keterangan yang ditulis admin.
+    if (d.penyesuaian !== 0 && !d.keteranganPenyesuaian) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["keteranganPenyesuaian"],
+        message:
+          "Keterangan penyesuaian wajib diisi bila ada penyesuaian.",
+      });
+    }
+  });
 
 export type DataPayroll = z.output<typeof payrollSkema>;
 
@@ -243,6 +271,12 @@ export type KomponenGaji = {
   /** Dihitung otomatis dari menit telat tercatat × Rp 1.000; tidak diisi manual. */
   potonganTelat: number;
   kasbon: number;
+  /**
+   * Penyesuaian gaji periode ini, BERTANDA: positif = tambahan, negatif
+   * = pengurangan (0 = tidak ada). Diisi manual di form payroll beserta
+   * keterangannya; tampil di slip gaji.
+   */
+  penyesuaian: number;
   insentif: number;
 };
 
@@ -265,25 +299,29 @@ export type BarisPayroll = KomponenGaji & {
   jamShiftBiasa: number;
   /** Sisa kasbon periode ini (diajukan + disetujui, jumlah - terbayar). */
   kasbonSisa: number;
+  /** Keterangan penyesuaian (null bila tidak ada penyesuaian). */
+  keteranganPenyesuaian: string | null;
   /** Jumlah transaksi iNOX dalam jendela hitung yang membentuk insentif. */
   insentifTransaksi: number;
 };
 
-/** Gaji bersih yang diterima karyawan (termasuk tunjangan makan, lembur, gaji pokok fleksibel, gaji pokok harian & insentif). */
+/** Gaji bersih yang diterima karyawan (termasuk tunjangan makan, lembur, gaji pokok fleksibel, gaji pokok harian, penyesuaian & insentif). */
 export function takeHomePay(k: KomponenGaji): number {
   return (
-    k.gajiPokok + k.gajiPokokFleksibel + k.gajiPokokHarian + k.tunjangan + k.tunjanganMakan + k.lembur + k.insentif - k.potonganTelat - k.kasbon
+    k.gajiPokok + k.gajiPokokFleksibel + k.gajiPokokHarian + k.tunjangan + k.tunjanganMakan + k.lembur + k.insentif + k.penyesuaian - k.potonganTelat - k.kasbon
   );
 }
 
 /**
  * Potongan dan kasbon boleh melebihi pendapatan secara teknis, tapi itu
  * hampir selalu salah input. Dipakai untuk memberi peringatan, bukan menolak.
+ * Penyesuaian negatif (pengurangan) ikut sisi potongan; positif (tambahan)
+ * ikut sisi pendapatan.
  */
 export function melebihiPendapatan(k: KomponenGaji): boolean {
   return (
-    k.potonganTelat + k.kasbon >
-    k.gajiPokok + k.tunjangan + k.tunjanganMakan
+    k.potonganTelat + k.kasbon + Math.max(0, -k.penyesuaian) >
+    k.gajiPokok + k.tunjangan + k.tunjanganMakan + Math.max(0, k.penyesuaian)
   );
 }
 
@@ -297,6 +335,7 @@ export function totalPayroll(baris: KomponenGaji[]) {
     lembur: number;
     potonganTelat: number;
     kasbon: number;
+    penyesuaian: number;
     insentif: number;
     diterima: number;
   }>(
@@ -309,9 +348,10 @@ export function totalPayroll(baris: KomponenGaji[]) {
       lembur: a.lembur + b.lembur,
       potonganTelat: a.potonganTelat + b.potonganTelat,
       kasbon: a.kasbon + b.kasbon,
+      penyesuaian: a.penyesuaian + b.penyesuaian,
       insentif: a.insentif + b.insentif,
       diterima: a.diterima + takeHomePay(b),
     }),
-    { gajiPokok: 0, gajiPokokFleksibel: 0, gajiPokokHarian: 0, tunjangan: 0, tunjanganMakan: 0, lembur: 0, potonganTelat: 0, kasbon: 0, insentif: 0, diterima: 0 },
+    { gajiPokok: 0, gajiPokokFleksibel: 0, gajiPokokHarian: 0, tunjangan: 0, tunjanganMakan: 0, lembur: 0, potonganTelat: 0, kasbon: 0, penyesuaian: 0, insentif: 0, diterima: 0 },
   );
 }

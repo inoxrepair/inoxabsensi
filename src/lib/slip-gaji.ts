@@ -55,6 +55,10 @@ export type SlipGaji = {
   insentif: number;
   potonganTelat: number;
   kasbon: number;
+  /** Penyesuaian gaji periode ini (bertanda: + tambahan, − pengurangan). */
+  penyesuaian: number;
+  /** Keterangan penyesuaian (null bila tidak ada penyesuaian). */
+  keteranganPenyesuaian: string | null;
   diterima: number;
   status: StatusSlipTersimpan;
   dibuatOleh: string | null;
@@ -140,6 +144,8 @@ export function snapshotDariBaris(
     insentif: baris.insentif,
     potonganTelat: baris.potonganTelat,
     kasbon: baris.kasbon,
+    penyesuaian: baris.penyesuaian,
+    keteranganPenyesuaian: baris.keteranganPenyesuaian,
     // THP yang sama dengan yang tampil di halaman Payroll dan di PDF
     // (hitungPayroll yang sama) — dibekukan di sini.
     diterima: takeHomePay(baris),
@@ -159,6 +165,7 @@ export function komponenDariSnapshot(s: SlipGaji): KomponenGaji {
     lembur: s.lembur,
     potonganTelat: s.potonganTelat,
     kasbon: s.kasbon,
+    penyesuaian: s.penyesuaian,
     insentif: s.insentif,
   };
 }
@@ -192,6 +199,8 @@ export type BarisSlip = {
   /** true = angka dari snapshot yang tersimpan. */
   dariSnapshot: boolean;
   snapshot: SlipGaji | null;
+  /** Keterangan penyesuaian (dari snapshot bila ada, kalau tidak dari hitungan saat ini). */
+  keteranganPenyesuaian: string | null;
 };
 
 /**
@@ -218,6 +227,7 @@ export function gabungkanBarisSlip(
           lembur: b.lembur,
           potonganTelat: b.potonganTelat,
           kasbon: b.kasbon,
+          penyesuaian: b.penyesuaian,
           insentif: b.insentif,
         };
     return {
@@ -229,6 +239,9 @@ export function gabungkanBarisSlip(
       diterima: snap ? snap.diterima : takeHomePay(b),
       dariSnapshot: snap !== null,
       snapshot: snap,
+      keteranganPenyesuaian: snap
+        ? snap.keteranganPenyesuaian
+        : b.keteranganPenyesuaian,
     };
   });
 }
@@ -247,6 +260,8 @@ type BarisSlipGaji = {
   insentif: number;
   potonganTelat: number;
   kasbon: number;
+  penyesuaian: number;
+  keteranganPenyesuaian: string | null;
   diterima: number;
   status: string;
   dibuatOleh: string | null;
@@ -271,6 +286,8 @@ function petakanSlip(r: BarisSlipGaji): SlipGaji {
     insentif: Number(r.insentif),
     potonganTelat: Number(r.potonganTelat),
     kasbon: Number(r.kasbon),
+    penyesuaian: Number(r.penyesuaian),
+    keteranganPenyesuaian: r.keteranganPenyesuaian,
     diterima: Number(r.diterima),
     status: bacaStatusSlip(r.status),
     dibuatOleh: r.dibuatOleh,
@@ -290,7 +307,7 @@ export async function ambilSlipPeriode(
     SELECT s."id", s."userId", s."nama", s."periode", s."gajiPokok",
       s."gajiPokokFleksibel", s."gajiPokokHarian", s."tunjangan",
       s."tunjanganMakan", s."lembur", s."insentif", s."potonganTelat",
-      s."kasbon", s."diterima", s."status", s."dibuatOleh", s."dibuatPada",
+      s."kasbon", s."penyesuaian", s."keteranganPenyesuaian", s."diterima", s."status", s."dibuatOleh", s."dibuatPada",
       s."dibayarOleh", s."dibayarPada", c."nama" AS "cabangNama"
     FROM "SlipGaji" s
     LEFT JOIN "User" u ON u."id" = s."userId"
@@ -308,7 +325,7 @@ export async function ambilSlip(id: string): Promise<SlipGaji | null> {
     SELECT s."id", s."userId", s."nama", s."periode", s."gajiPokok",
       s."gajiPokokFleksibel", s."gajiPokokHarian", s."tunjangan",
       s."tunjanganMakan", s."lembur", s."insentif", s."potonganTelat",
-      s."kasbon", s."diterima", s."status", s."dibuatOleh", s."dibuatPada",
+      s."kasbon", s."penyesuaian", s."keteranganPenyesuaian", s."diterima", s."status", s."dibuatOleh", s."dibuatPada",
       s."dibayarOleh", s."dibayarPada", c."nama" AS "cabangNama"
     FROM "SlipGaji" s
     LEFT JOIN "User" u ON u."id" = s."userId"
@@ -335,7 +352,7 @@ export async function ambilRiwayatSlip({
     SELECT s."id", s."userId", s."nama", s."periode", s."gajiPokok",
       s."gajiPokokFleksibel", s."gajiPokokHarian", s."tunjangan",
       s."tunjanganMakan", s."lembur", s."insentif", s."potonganTelat",
-      s."kasbon", s."diterima", s."status", s."dibuatOleh", s."dibuatPada",
+      s."kasbon", s."penyesuaian", s."keteranganPenyesuaian", s."diterima", s."status", s."dibuatOleh", s."dibuatPada",
       s."dibayarOleh", s."dibayarPada", c."nama" AS "cabangNama"
     FROM "SlipGaji" s
     LEFT JOIN "User" u ON u."id" = s."userId"
@@ -374,13 +391,14 @@ export async function simpanSlip(
   const hasil = await db.$executeRaw`
     INSERT INTO "SlipGaji" ("id", "userId", "nama", "periode", "gajiPokok",
       "gajiPokokFleksibel", "gajiPokokHarian", "tunjangan", "tunjanganMakan",
-      "lembur", "insentif", "potonganTelat", "kasbon", "diterima", "status",
-      "dibuatOleh")
+      "lembur", "insentif", "potonganTelat", "kasbon", "penyesuaian",
+      "keteranganPenyesuaian", "diterima", "status", "dibuatOleh")
     VALUES (${randomUUID()}, ${snapshot.userId}, ${snapshot.nama},
       ${snapshot.periode}, ${snapshot.gajiPokok},
       ${snapshot.gajiPokokFleksibel}, ${snapshot.gajiPokokHarian},
       ${snapshot.tunjangan}, ${snapshot.tunjanganMakan}, ${snapshot.lembur},
       ${snapshot.insentif}, ${snapshot.potonganTelat}, ${snapshot.kasbon},
+      ${snapshot.penyesuaian}, ${snapshot.keteranganPenyesuaian},
       ${snapshot.diterima}, ${snapshot.status}, ${snapshot.dibuatOleh})
     ON CONFLICT ("userId", "periode") DO NOTHING
   `;

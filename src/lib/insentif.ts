@@ -19,7 +19,7 @@ import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { formatTanggal } from "@/lib/format";
-import { takeHomePay } from "@/lib/payroll";
+import { takeHomePay, type KomponenGaji } from "@/lib/payroll";
 import { periodeValid, rentangPeriodeGajian, tanggalValid } from "@/lib/rekap";
 
 /**
@@ -708,16 +708,6 @@ export async function ambilInsentifRentang(
  * rumus kanonik di lib/payroll supaya tidak ada dua rumus THP yang bisa
  * berbeda (mis. saat komponen baru seperti tunjangan makan ditambahkan).
  */
-export function takeHomePayDenganInsentif(k: {
-  gajiPokok: number;
-  gajiPokokFleksibel: number;
-  gajiPokokHarian: number;
-  tunjangan: number;
-  tunjanganMakan: number;
-  lembur: number;
-  potonganTelat: number;
-  kasbon: number;
-  insentif: number;
-}): number {
+export function takeHomePayDenganInsentif(k: KomponenGaji): number {
   return takeHomePay(k);
 }
