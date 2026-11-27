@@ -6,6 +6,7 @@ import {
   keadaanHarian,
   labelPeriode,
   labelRentang,
+  periodeGajianDariTanggal,
   periodeTerakhir,
   periodeValid,
   persenKehadiran,
@@ -458,6 +459,27 @@ describe("rentangPeriodeGajian", () => {
       dari: "2028-01-28",
       sampai: "2028-02-29",
     });
+  });
+});
+
+describe("periodeGajianDariTanggal", () => {
+  it("periode dinamai menurut bulan akhir rentang 28–27", () => {
+    expect(periodeGajianDariTanggal("2026-10-28")).toBe("2026-11");
+    expect(periodeGajianDariTanggal("2026-11-27")).toBe("2026-11");
+    expect(periodeGajianDariTanggal("2026-11-28")).toBe("2026-12");
+    expect(periodeGajianDariTanggal("2026-11-15")).toBe("2026-11");
+  });
+
+  it("melewati pergantian tahun", () => {
+    expect(periodeGajianDariTanggal("2026-12-28")).toBe("2027-01");
+    expect(periodeGajianDariTanggal("2027-01-27")).toBe("2027-01");
+    expect(periodeGajianDariTanggal("2027-01-28")).toBe("2027-02");
+  });
+
+  it("tanggal tidak valid -> null", () => {
+    expect(periodeGajianDariTanggal("2026-02-30")).toBeNull();
+    expect(periodeGajianDariTanggal("bukan-tanggal")).toBeNull();
+    expect(periodeGajianDariTanggal("")).toBeNull();
   });
 });
 

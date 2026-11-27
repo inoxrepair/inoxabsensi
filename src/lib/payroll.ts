@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { periodeValid, tanggalValid } from "@/lib/rekap";
+import { periodeGajianDariTanggal, periodeValid, tanggalValid } from "@/lib/rekap";
 import { durasiMenit, selisihHari } from "@/lib/waktu";
 
 /**
@@ -101,6 +101,28 @@ export function dalamMasaPercobaan(tanggalMasuk: string, tanggalAbsen: string): 
   if (!tanggalValid(tanggalMasuk) || !tanggalValid(tanggalAbsen)) return false;
   const selisih = selisihHari(tanggalMasuk, tanggalAbsen);
   return selisih >= 0 && selisih < MASA_PERCOBAAN_HARI;
+}
+
+/**
+ * True bila tanggal absen masih dalam periode gajian pertama karyawan
+ * (periode yang memuat tanggal masuknya, siklus 28–27). Dipakai
+ * bersama dalamMasaPercobaan supaya "periode awal" karyawan baru
+ * sepenuhnya bebas lembur: aturan 30 hari saja masih menyisakan lembur
+ * di hari terakhir periode bila karyawan masuk tepat di awal periode
+ * (mis. masuk 28/10, shift 27/11 adalah hari ke-30 sejak masuk).
+ * Tanggal tidak valid atau absen sebelum tanggal masuk -> false, supaya
+ * data aneh tidak membuat gaji hilang (prinsip yang sama dengan
+ * dalamMasaPercobaan).
+ */
+export function dalamPeriodeGajianAwal(
+  tanggalMasuk: string,
+  tanggalAbsen: string,
+): boolean {
+  if (!tanggalValid(tanggalMasuk) || !tanggalValid(tanggalAbsen)) return false;
+  if (selisihHari(tanggalMasuk, tanggalAbsen) < 0) return false;
+  const periodeMasuk = periodeGajianDariTanggal(tanggalMasuk);
+  const periodeAbsen = periodeGajianDariTanggal(tanggalAbsen);
+  return periodeMasuk !== null && periodeMasuk === periodeAbsen;
 }
 
 /**

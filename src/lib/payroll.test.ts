@@ -21,6 +21,7 @@ vi.mock("@/lib/db", () => ({
 import { bersihkanCachePayroll, hitungPayroll } from "./payroll-data";
 import {
   dalamMasaPercobaan,
+  dalamPeriodeGajianAwal,
   dihitungHadir,
   durasiShiftMenit,
   jamDibulatkan,
@@ -540,6 +541,34 @@ describe("masa percobaan", () => {
     expect(dalamMasaPercobaan("2026-01-15", "2026-02-30")).toBe(false);
     expect(dalamMasaPercobaan("bukan-tanggal", "2026-01-15")).toBe(false);
     expect(dalamMasaPercobaan("", "")).toBe(false);
+  });
+});
+
+describe("periode gajian awal", () => {
+  it("kasus bocor: masuk 28/10, shift 27/11 masih periode pertama", () => {
+    // 27/11 adalah hari ke-30 sejak 28/10 (lolos aturan 30 hari),
+    // tapi masih periode gajian pertama karyawan itu.
+    expect(dalamPeriodeGajianAwal("2026-10-28", "2026-11-27")).toBe(true);
+    expect(dalamPeriodeGajianAwal("2026-10-28", "2026-10-28")).toBe(true);
+    expect(dalamPeriodeGajianAwal("2026-11-15", "2026-11-27")).toBe(true);
+  });
+
+  it("periode berikutnya bukan periode awal", () => {
+    expect(dalamPeriodeGajianAwal("2026-10-28", "2026-11-28")).toBe(false);
+    expect(dalamPeriodeGajianAwal("2026-11-15", "2026-11-28")).toBe(false);
+    expect(dalamPeriodeGajianAwal("2026-12-28", "2027-01-28")).toBe(false);
+  });
+
+  it("melewati pergantian tahun", () => {
+    expect(dalamPeriodeGajianAwal("2026-12-28", "2027-01-27")).toBe(true);
+  });
+
+  it("tanggal tidak valid atau absen sebelum masuk -> false", () => {
+    expect(dalamPeriodeGajianAwal("2026-02-31", "2026-03-01")).toBe(false);
+    expect(dalamPeriodeGajianAwal("2026-01-15", "2026-02-30")).toBe(false);
+    expect(dalamPeriodeGajianAwal("bukan-tanggal", "2026-01-15")).toBe(false);
+    expect(dalamPeriodeGajianAwal("", "")).toBe(false);
+    expect(dalamPeriodeGajianAwal("2026-11-20", "2026-11-15")).toBe(false);
   });
 });
 

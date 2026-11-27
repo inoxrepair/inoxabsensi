@@ -3,6 +3,7 @@ import { ambilInsentifRentang } from "@/lib/insentif";
 import { kasbonUntukSlip, sisaKasbon } from "@/lib/kasbon";
 import {
   dalamMasaPercobaan,
+  dalamPeriodeGajianAwal,
   dihitungHadir,
   jamDibulatkan,
   jamLembur,
@@ -86,8 +87,9 @@ export function bersihkanCachePayroll(): void {
  * hadir dan potongan telat dari menit telat tercatat di jendela aktif;
  * insentif dari baris transaksi iNOX dalam jendela yang sama; lembur dari
  * definisi shift terjadwal di atas 8 jam (ikut shift, bukan jam absen
- * nyata), dibulatkan per hari, dalam jendela yang sama — kecuali 30 hari
- * pertama sejak tanggal masuk karyawan (masa percobaan, lembur 0); gaji pokok
+ * nyata), dibulatkan per hari, dalam jendela yang sama — kecuali masa
+ * percobaan (30 hari pertama sejak tanggal masuk, atau periode gajian
+ * pertama karyawan itu, lembur 0); gaji pokok
  * fleksibel dari jam kerja nyata hari fleksibel (jumlah cycle absen hari
  * itu, dibulatkan per hari) × Rp 12.000, dalam jendela yang sama; gaji
  * pokok harian dari durasi shift hari terjadwal (maksimal 8 jam,
@@ -220,7 +222,8 @@ export async function hitungPayroll({
   // ditentukan oleh shift hari itu: hari terjadwal dihitung lembur dari
   // definisi shiftnya (durasi di atas 8 jam, dibulatkan per hari, sisa
   // 30 menit atau lebih ke atas; kecuali masa percobaan — 30 hari pertama
-  // sejak tanggal masuk, lembur hari itu 0); hari fleksibel dihitung dari jam kerja
+  // sejak tanggal masuk ATAU periode gajian pertama karyawan itu, lembur
+  // hari itu 0); hari fleksibel dihitung dari jam kerja
   // nyata (jumlah cycle absen hari itu, 1–3 cycle diakumulasi, dibulatkan
   // per hari dengan aturan yang sama). Hari alpa/izin/off tidak dihitung
   // keduanya; shift fleksibel tidak dihitung lembur.
@@ -242,11 +245,15 @@ export async function hitungPayroll({
     const shift = petaJadwal.get(`${a.userId}|${a.tanggal}`);
     if (!shift) continue;
     if (shift.mode === "terjadwal") {
-      // Masa percobaan: 30 hari pertama sejak tanggal masuk tidak
-      // dihitung lembur, berapa pun durasi shiftnya.
-      const jam = dalamMasaPercobaan(petaTanggalMasuk.get(a.userId) ?? "", a.tanggal)
-        ? 0
-        : jamLembur(menitLembur(shift.mulaiMenit, shift.selesaiMenit, shift.mode));
+      // Masa percobaan: 30 hari pertama sejak tanggal masuk ATAU
+      // periode gajian pertama karyawan itu tidak dihitung lembur,
+      // berapa pun durasi shiftnya.
+      const tanggalMasuk = petaTanggalMasuk.get(a.userId) ?? "";
+      const jam =
+        dalamMasaPercobaan(tanggalMasuk, a.tanggal) ||
+        dalamPeriodeGajianAwal(tanggalMasuk, a.tanggal)
+          ? 0
+          : jamLembur(menitLembur(shift.mulaiMenit, shift.selesaiMenit, shift.mode));
       if (jam > 0) petaJamLembur.set(a.userId, (petaJamLembur.get(a.userId) ?? 0) + jam);
       if ((peta.get(a.userId)?.gajiPokok ?? 0) === 0) {
         const jamHarian = jamShiftBiasa(shift.mulaiMenit, shift.selesaiMenit);

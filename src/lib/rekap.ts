@@ -1,5 +1,5 @@
 import type { StatusAbsensi } from "@/lib/domain";
-import { formatTanggal } from "@/lib/format";
+import { formatTanggal, parseTanggalIso } from "@/lib/format";
 import { durasiMenit } from "@/lib/waktu";
 
 /**
@@ -374,6 +374,28 @@ export function rentangPeriodeGajian(
     .toISOString()
     .slice(0, 10);
   return { dari, sampai };
+}
+
+/**
+ * Kode periode gajian ("yyyy-mm", siklus 28–27) untuk sebuah tanggal.
+ * Periode dinamai menurut bulan AKHIR rentangnya: 28/10/2026 dan
+ * 27/11/2026 sama-sama periode "2026-11"; 28/11/2026 sudah periode
+ * "2026-12". Tanggal tidak valid -> null. Memakai batas default 28–27,
+ * selaras dengan hitungPayroll yang memanggil rentangPeriodeGajian
+ * tanpa parameter.
+ */
+export function periodeGajianDariTanggal(iso: string): string | null {
+  const parsed = parseTanggalIso(iso);
+  if (!parsed) return null;
+  const [y, m, d] = parsed;
+  // Tanggal 28 ke atas masuk periode bulan berikutnya.
+  let tahun = y;
+  let bulan = m + (d >= 28 ? 1 : 0);
+  if (bulan > 12) {
+    bulan = 1;
+    tahun += 1;
+  }
+  return `${tahun}-${String(bulan).padStart(2, "0")}`;
 }
 
 /**
