@@ -350,7 +350,12 @@ model LogLogin {
   /// ID perangkat per HP (10 karakter heksadesimal, dari cookie browser);
   /// null untuk baris sebelum fitur ini. Dipakai untuk sidik perangkat.
   perangkatId String?
-  dibuatPada DateTime @default(now())
+  /// Instans absolut login/logout; WAJIB timestamptz — TIMESTAMP tanpa
+  /// zona menyimpan jam WIB server lalu dibaca Prisma sebagai UTC,
+  /// sehingga Log Login tampil 7 jam lebih maju (lihat migrasi
+  /// 20261128010000_log_login_timestamptz). Tampilan selalu WITA
+  /// (ZONA_WAKTU di src/lib/waktu.ts).
+  dibuatPada DateTime @default(now()) @db.Timestamptz(3)
 
   @@index([userId, dibuatPada])
   @@index([dibuatPada])

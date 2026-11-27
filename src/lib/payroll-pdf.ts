@@ -12,7 +12,7 @@ import {
   type BarisPayroll,
 } from "@/lib/payroll";
 import { labelPeriode, type KeadaanHari } from "@/lib/rekap";
-import { formatDurasi, keJam, namaHari } from "@/lib/waktu";
+import { formatDurasi, keJam, namaHari, ZONA_WAKTU } from "@/lib/waktu";
 
 /**
  * Laporan payroll satu periode (semua karyawan) sebagai PDF.
@@ -64,7 +64,10 @@ export async function buatPayrollPdf(data: DataPayrollPdf): Promise<Uint8Array> 
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
 
+  // Tanggal cetak dalam WITA (tanpa timeZone, server WIB bisa mencetak
+  // tanggal kemarin untuk PDF yang dibuat 00.00–01.00 WITA).
   const tanggalCetak = new Date().toLocaleDateString("id-ID", {
+    timeZone: ZONA_WAKTU,
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -367,7 +370,10 @@ export async function buatSlipPayrollPdf(
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
 
+  // Tanggal cetak dalam WITA (tanpa timeZone, server WIB bisa mencetak
+  // tanggal kemarin untuk PDF yang dibuat 00.00–01.00 WITA).
   const tanggalCetak = new Date().toLocaleDateString("id-ID", {
+    timeZone: ZONA_WAKTU,
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

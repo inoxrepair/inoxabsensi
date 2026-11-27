@@ -62,6 +62,12 @@ describe("formatJamDetik", () => {
     expect(formatJamDetik(new Date("2026-11-13T16:30:45.000Z"))).toBe(
       "00.30.45",
     );
+    // Kasus log login: masuk tengah malam WITA (16:00 UTC) tampil 00.00.00,
+    // bukan 07.00 — jam disimpan sebagai instans absolut (timestamptz),
+    // lapisan tampilan selalu WITA.
+    expect(formatJamDetik(new Date("2026-11-27T16:00:00.000Z"))).toBe(
+      "00.00.00",
+    );
   });
 });
 
@@ -135,6 +141,13 @@ describe("waktu lokal", () => {
   it("tengah malam UTC sudah hari berikutnya di WITA (+08)", () => {
     expect(tanggalLokal(new Date("2026-08-30T17:00:00Z"))).toBe("2026-08-31");
     expect(menitLokal(new Date("2026-08-30T17:00:00Z"))).toBe(60);
+  });
+
+  it("login tengah malam WITA jatuh di tanggal WITA yang benar", () => {
+    // 16:00 UTC 27 Nov = 00:00 WITA 28 Nov (bukan 07:00 28 Nov).
+    expect(tanggalLokal(new Date("2026-11-27T16:00:00.000Z"))).toBe(
+      "2026-11-28",
+    );
   });
 });
 
