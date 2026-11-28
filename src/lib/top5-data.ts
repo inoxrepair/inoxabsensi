@@ -1,6 +1,11 @@
 import { db } from "@/lib/db";
 import { ambilInsentifRentang } from "@/lib/insentif";
-import { labelPeriode, rentangPeriodeGajian } from "@/lib/rekap";
+import {
+  labelPeriode,
+  periodeGajianDariTanggal,
+  periodeTerakhir,
+  rentangPeriodeGajian,
+} from "@/lib/rekap";
 import {
   cacheTop5Segar,
   hitungPeringkat,
@@ -12,7 +17,39 @@ import {
   type PeringkatPerbaikan,
   type PeringkatTop,
 } from "@/lib/top5";
-import { tanggalLokal } from "@/lib/waktu";
+import { menitLokal, tanggalLokal } from "@/lib/waktu";
+
+/**
+ * Jam ganti periode Top 10 pada hari pertama periode baru (WITA):
+ * sebelum jam ini Top 10 masih menampilkan periode yang baru berakhir
+ * (klasemen akhir periode itu), sesudahnya menampilkan periode baru.
+ */
+export const JAM_GANTI_PERIODE_TOP10_MENIT = 22 * 60;
+
+/**
+ * Periode gajian ("yyyy-mm") yang dipakai Top 10 saat ini.
+ *
+ * JANGAN memakai bulan kalender (`tanggalLokal().slice(0, 7)`) sebagai
+ * kode periode: periode dinamai menurut bulan AKHIR rentang 28–27,
+ * sehingga tanggal 28–30 masih masuk periode bulan berikutnya
+ * (28/11/2026 sudah periode "2026-12") — kode lama membuat Top 10
+ * menampilkan periode lama sampai tanggal 1 bulan berikutnya.
+ *
+ * Di hari pertama periode baru, Top 10 baru pindah setelah jam 22.00
+ * WITA; sebelum itu klasemen akhir periode sebelumnya masih ditampilkan.
+ */
+export function periodeTop10(saat: Date = new Date()): string {
+  const hariIni = tanggalLokal(saat);
+  const periode = periodeGajianDariTanggal(hariIni) ?? hariIni.slice(0, 7);
+  const rentang = rentangPeriodeGajian(periode);
+  if (
+    hariIni === rentang.dari &&
+    menitLokal(saat) < JAM_GANTI_PERIODE_TOP10_MENIT
+  ) {
+    return periodeTerakhir(periode, 2)[1];
+  }
+  return periode;
+}
 
 /**
  * Cache peringkat di memori proses (TTL 5 menit, lihat TTL_CACHE_TOP5_MS):
@@ -58,11 +95,11 @@ export type HasilTop5 = {
 };
 
 export async function ambilTop5(): Promise<HasilTop5> {
-  const bulanIni = tanggalLokal().slice(0, 7);
-  const rentang = rentangPeriodeGajian(bulanIni);
+  const periode = periodeTop10();
+  const rentang = rentangPeriodeGajian(periode);
   const kosong: HasilTop5 = {
     peringkat: [],
-    periode: labelPeriode(bulanIni),
+    periode: labelPeriode(periode),
     dari: rentang.dari,
     sampai: rentang.sampai,
   };
@@ -119,11 +156,11 @@ export type HasilTopPerbaikan = {
  * membawa foto). Bila query gagal, halaman menampilkan empty state.
  */
 export async function ambilTopPerbaikan(): Promise<HasilTopPerbaikan> {
-  const bulanIni = tanggalLokal().slice(0, 7);
-  const rentang = rentangPeriodeGajian(bulanIni);
+  const periode = periodeTop10();
+  const rentang = rentangPeriodeGajian(periode);
   const kosong: HasilTopPerbaikan = {
     peringkat: [],
-    periode: labelPeriode(bulanIni),
+    periode: labelPeriode(periode),
     dari: rentang.dari,
     sampai: rentang.sampai,
   };
